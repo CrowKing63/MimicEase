@@ -38,7 +38,7 @@ import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker;
 import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult;
 
 /** The helper of camera feed. */
-class FaceLandmarkerHelper extends HandlerThread {
+public class FaceLandmarkerHelper extends HandlerThread {
 
     public static final String TAG = "FaceLandmarkerHelper";
 

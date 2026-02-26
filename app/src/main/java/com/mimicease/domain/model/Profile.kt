@@ -8,6 +8,6 @@ data class Profile(
     val sensitivity: Float,
     val globalCooldownMs: Int,
     val triggers: List<Trigger>,
-    val createdAt: Long,
-    val updatedAt: Long
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
 )

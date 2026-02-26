@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">MimicEase</string>
+    <string name="accessibility_service_description">MimicEase uses accessibility services to help you interact with your device through facial expressions and gestures.</string>
 </resources>
