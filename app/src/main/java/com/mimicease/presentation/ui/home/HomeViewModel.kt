@@ -1,5 +1,7 @@
 package com.mimicease.presentation.ui.home
 
+import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mimicease.domain.model.Profile
@@ -7,7 +9,9 @@ import com.mimicease.domain.model.Trigger
 import com.mimicease.domain.repository.ProfileRepository
 import com.mimicease.domain.repository.SettingsRepository
 import com.mimicease.domain.repository.TriggerRepository
+import com.mimicease.service.FaceDetectionForegroundService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +36,8 @@ data class HomeUiState(
 class HomeViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val profileRepository: ProfileRepository,
-    private val triggerRepository: TriggerRepository
+    private val triggerRepository: TriggerRepository,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -56,11 +61,48 @@ class HomeViewModel @Inject constructor(
                 }
             }
         }
+
+        // 서비스의 실시간 pause 상태 관찰
+        viewModelScope.launch {
+            FaceDetectionForegroundService.isPaused.collect { paused ->
+                _uiState.update { it.copy(isPaused = paused) }
+            }
+        }
+
+        // 추론 시간 관찰 (개발자 모드)
+        viewModelScope.launch {
+            FaceDetectionForegroundService.inferenceTimeMs.collect { ms ->
+                _uiState.update { it.copy(inferenceTimeMs = ms) }
+            }
+        }
     }
 
     fun toggleServicePause() {
-        _uiState.update { it.copy(isPaused = !it.isPaused) }
-        // TODO: Intent to Foreground Service to pause analysis
+        val action = if (_uiState.value.isPaused) {
+            FaceDetectionForegroundService.ACTION_RESUME
+        } else {
+            FaceDetectionForegroundService.ACTION_PAUSE
+        }
+        val intent = Intent(appContext, FaceDetectionForegroundService::class.java).apply {
+            this.action = action
+        }
+        appContext.startService(intent)
+    }
+
+    fun startService() {
+        viewModelScope.launch {
+            settingsRepository.updateSettings { it.copy(isServiceEnabled = true) }
+        }
+        val intent = Intent(appContext, FaceDetectionForegroundService::class.java)
+        appContext.startForegroundService(intent)
+    }
+
+    fun stopService() {
+        viewModelScope.launch {
+            settingsRepository.updateSettings { it.copy(isServiceEnabled = false) }
+        }
+        val intent = Intent(appContext, FaceDetectionForegroundService::class.java)
+        appContext.stopService(intent)
     }
 
     fun toggleTriggerEnabled(trigger: Trigger, isEnabled: Boolean) {
