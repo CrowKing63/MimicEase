@@ -31,21 +31,28 @@ import androidx.annotation.NonNull;
 import androidx.camera.core.ImageProxy;
 import com.google.mediapipe.framework.image.BitmapImageBuilder;
 import com.google.mediapipe.framework.image.MPImage;
+import com.google.mediapipe.tasks.components.containers.Category;
 import com.google.mediapipe.tasks.core.BaseOptions;
 import com.google.mediapipe.tasks.core.Delegate;
 import com.google.mediapipe.tasks.vision.core.RunningMode;
 import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker;
 import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /** The helper of camera feed. */
 public class FaceLandmarkerHelper extends HandlerThread {
 
     public static final String TAG = "FaceLandmarkerHelper";
 
+    /** Callback interface for blendshape results. */
+    public interface FaceResultListener {
+        void onResult(Map<String, Float> blendshapes, long mediapipeTimeMs, boolean isFaceVisible);
+    }
+
     // number of allowed multiple detection works at the sametime.
     private static final int N_WORKS_LIMIT = 1;
-
-    // Indicates if have new face landmarks detected.
 
     // Internal resolution for MediaPipe
     // this highly effect the performance.
@@ -98,7 +105,8 @@ public class FaceLandmarkerHelper extends HandlerThread {
     public boolean isFaceVisible;
     public int frontCameraOrientation = 270;
 
-
+    /** Listener for face detection results. Set via setFaceResultListener(). */
+    private FaceResultListener faceResultListener;
 
     // Frame rotation state for MediaPipe graph.
     private int currentRotationState = Surface.ROTATION_0;
@@ -107,12 +115,14 @@ public class FaceLandmarkerHelper extends HandlerThread {
         super(TAG);
     }
 
+    /** Sets the listener that receives blendshape results after each frame. */
+    public void setFaceResultListener(FaceResultListener listener) {
+        this.faceResultListener = listener;
+    }
 
     public void setFrontCameraOrientation(int orientation) {
         frontCameraOrientation = orientation;
     }
-
-
 
     /**
      * Sets internal frame rotation state for the MediaPipe graph.
@@ -309,9 +319,17 @@ public class FaceLandmarkerHelper extends HandlerThread {
             currHeadY = result.faceLandmarks().get(0).get(FOREHEAD_INDEX).y() * mpInputHeight;
 
             if (result.faceBlendshapes().isPresent()) {
-                // Convert from Category to simple float array.
-                for (int i = 0; i < TOTAL_BLENDSHAPES; i++) {
-                    currBlendshapes[i] = result.faceBlendshapes().get().get(0).get(i).score();
+                List<Category> categories = result.faceBlendshapes().get().get(0);
+                // Build float array (legacy) and named map for new listener
+                Map<String, Float> blendMap = new HashMap<>(categories.size());
+                for (int i = 0; i < categories.size() && i < TOTAL_BLENDSHAPES; i++) {
+                    Category cat = categories.get(i);
+                    currBlendshapes[i] = cat.score();
+                    blendMap.put(cat.categoryName(), cat.score());
+                }
+                // Notify listener with named map
+                if (faceResultListener != null) {
+                    faceResultListener.onResult(blendMap, mediapipeTimeMs, true);
                 }
             }
 
@@ -319,6 +337,10 @@ public class FaceLandmarkerHelper extends HandlerThread {
             lastMeasurementTsMs = SystemClock.uptimeMillis();
         } else {
             isFaceVisible = false;
+            // Notify listener with empty map when no face detected
+            if (faceResultListener != null) {
+                faceResultListener.onResult(new HashMap<>(), mediapipeTimeMs, false);
+            }
         }
 
         long ts = SystemClock.uptimeMillis();
@@ -332,7 +354,6 @@ public class FaceLandmarkerHelper extends HandlerThread {
     }
 
     public float[] getBlendshapes() {
-
         return currBlendshapes;
     }
 

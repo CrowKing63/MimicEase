@@ -5,9 +5,9 @@ data class Profile(
     val name: String,
     val icon: String,
     val isActive: Boolean,
-    val sensitivity: Float,
-    val globalCooldownMs: Int,
-    val triggers: List<Trigger>,
+    val sensitivity: Float = 1.0f,
+    val globalCooldownMs: Int = 300,
+    val triggers: List<Trigger> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )
