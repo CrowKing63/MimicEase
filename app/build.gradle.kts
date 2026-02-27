@@ -65,6 +65,11 @@ dependencies {
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
+    implementation(libs.androidx.camera.core)
+
+    // Guava - ListenableFuture (CameraX ProcessCameraProvider.getInstance() 반환타입)
+    // guava:android 로 실제 클래스 제공, 빈 stub 으로 listenablefuture:1.0 중복 클래스 충돌 방지
+    implementation("com.google.guava:guava:32.1.3-android")
     implementation("com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava")
 
     // Room

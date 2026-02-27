@@ -26,11 +26,9 @@ import androidx.navigation.NavController
 import com.mimicease.presentation.ui.home.MimicBottomNavigation
 import com.mimicease.service.FaceDetectionForegroundService
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -134,7 +132,6 @@ class ExpressionTestViewModel @Inject constructor() : ViewModel() {
     init {
         viewModelScope.launch {
             FaceDetectionForegroundService.blendShapeFlow
-                .flowOn(Dispatchers.Default)
                 .collect { values ->
                     val top3 = values.entries
                         .sortedByDescending { it.value }
