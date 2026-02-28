@@ -162,7 +162,13 @@ public class FaceLandmarkerHelper extends HandlerThread {
     public void init(Context context) {
 
         Log.i(TAG, "init : " + Thread.currentThread());
-        Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_DISPLAY);
+        // THREAD_PRIORITY_URGENT_DISPLAY (-8) can throw SecurityException on unprivileged
+        // threads in some Android versions/OEMs. Catch it so the process doesn't die.
+        try {
+            Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_DISPLAY);
+        } catch (SecurityException e) {
+            Log.w(TAG, "Could not set urgent thread priority: " + e.getMessage());
+        }
         isRunning = true;
 
         currBlendshapes = new float[TOTAL_BLENDSHAPES];
@@ -171,14 +177,21 @@ public class FaceLandmarkerHelper extends HandlerThread {
 
         // Set general FaceLandmarker options.
         Log.i(TAG, "Init MediaPipe");
-        BaseOptions.Builder baseOptionBuilder = BaseOptions.builder();
-        baseOptionBuilder.setDelegate(Delegate.GPU);
-        baseOptionBuilder.setModelAssetPath("face_landmarker.task");
 
+        // Try GPU delegate first for better performance; fall back to CPU if unavailable.
+        if (!initWithDelegate(Delegate.GPU)) {
+            Log.w(TAG, "GPU delegate failed, falling back to CPU delegate");
+            initWithDelegate(Delegate.CPU);
+        }
+    }
+
+    private boolean initWithDelegate(Delegate delegate) {
         try {
-            BaseOptions baseOptions = baseOptionBuilder.build();
-            // Create an option builder with base options and specific
-            // options only use for Face Landmarker.
+            BaseOptions baseOptions = BaseOptions.builder()
+                .setDelegate(delegate)
+                .setModelAssetPath("face_landmarker.task")
+                .build();
+
             FaceLandmarker.FaceLandmarkerOptions.Builder optionsBuilder =
                 FaceLandmarker.FaceLandmarkerOptions.builder()
                     .setBaseOptions(baseOptions)
@@ -194,11 +207,12 @@ public class FaceLandmarkerHelper extends HandlerThread {
 
             options = optionsBuilder.build();
             faceLandmarker = FaceLandmarker.createFromOptions(this.context, options);
+            Log.i(TAG, "MediaPipe initialized with delegate: " + delegate);
+            return true;
 
-        } catch (IllegalStateException e) {
-            Log.e(TAG, "MediaPipe failed to load the task with error: " + e.getMessage());
-        } catch (RuntimeException e) {
-            Log.e(TAG, "Face Landmarker failed to load model with error: " + e.getMessage());
+        } catch (Exception e) {
+            Log.e(TAG, "MediaPipe failed with delegate " + delegate + ": " + e.getMessage());
+            return false;
         }
     }
 
@@ -359,7 +373,13 @@ public class FaceLandmarkerHelper extends HandlerThread {
 
     /** Recreates {@link FaceLandmarker} and resume the process. */
     public void resumeThread() {
-        faceLandmarker = FaceLandmarker.createFromOptions(this.context, options);
+        if (options != null && context != null) {
+            try {
+                faceLandmarker = FaceLandmarker.createFromOptions(this.context, options);
+            } catch (RuntimeException e) {
+                Log.e(TAG, "resumeThread: failed to recreate FaceLandmarker: " + e.getMessage());
+            }
+        }
         isRunning = true;
     }
 

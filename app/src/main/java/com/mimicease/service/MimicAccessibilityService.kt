@@ -64,7 +64,14 @@ class MimicAccessibilityService : AccessibilityService() {
 
     override fun onUnbind(intent: Intent?): Boolean {
         serviceScope.cancel()
-        faceDetectionServiceConnection?.let { unbindService(it) }
+        // unbindService() can throw IllegalArgumentException if the binding was never
+        // fully established (e.g., FaceDetectionForegroundService crashed during creation).
+        faceDetectionServiceConnection?.let {
+            try { unbindService(it) } catch (e: Exception) { /* already unbound */ }
+        }
+        // Stop the foreground service when accessibility is disabled so it doesn't
+        // keep running indefinitely via START_STICKY.
+        stopService(Intent(this, FaceDetectionForegroundService::class.java))
         faceDetectionService = null
         instance = null
         return super.onUnbind(intent)

@@ -7,8 +7,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.os.Binder
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
 import android.util.Size
 import androidx.camera.core.CameraSelector
@@ -100,12 +103,37 @@ class FaceDetectionForegroundService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel(this)
+
+        // On Android 14+ (targetSdk >= 34), startForeground() with FOREGROUND_SERVICE_TYPE_CAMERA
+        // throws SecurityException if the CAMERA runtime permission is not yet granted.
+        // Check permission first and fall back to a basic foreground start if not granted.
+        val hasCameraPermission = ContextCompat.checkSelfPermission(
+            this, android.Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+
+        // startForeground() MUST be called early in onCreate() to satisfy the 5-second
+        // timeout on Android 12+. Calling it after slow initialization (like MediaPipe
+        // GPU model loading) causes ForegroundServiceDidNotStartInTimeException crash.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && hasCameraPermission) {
+            startForeground(
+                NOTIFICATION_ID,
+                buildNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, buildNotification())
+        }
+
         cameraExecutor = Executors.newSingleThreadExecutor()
         expressionAnalyzer = ExpressionAnalyzer()
         initFaceLandmarker()
         observeSettingsAndProfile()
         registerScreenStateReceiver()
-        setupCamera()
+        if (hasCameraPermission) {
+            setupCamera()
+        } else {
+            Timber.w("Camera permission not granted — skipping camera setup")
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -123,7 +151,7 @@ class FaceDetectionForegroundService : LifecycleService() {
                 faceLandmarkerHelper.resumeThread()
                 updateNotification()
             }
-            else -> startForeground(NOTIFICATION_ID, buildNotification())
+            else -> updateNotification()
         }
         return START_STICKY
     }
@@ -140,13 +168,24 @@ class FaceDetectionForegroundService : LifecycleService() {
     private fun initFaceLandmarker() {
         faceLandmarkerHelper = FaceLandmarkerHelper()
         faceLandmarkerHelper.start()  // Start HandlerThread
-        faceLandmarkerHelper.init(this)
         faceLandmarkerHelper.setFaceResultListener { blendshapes, mediapipeMs, faceVisible ->
             _isFaceVisible.value = faceVisible
             _inferenceTimeMs.value = mediapipeMs
             if (faceVisible && blendshapes.isNotEmpty()) {
                 serviceScope.launch { _blendShapeFlow.emit(blendshapes) }
                 processResults(blendshapes)
+            }
+        }
+        // Post init() to the HandlerThread to avoid blocking the main thread.
+        // GPU model loading can take several seconds; running it on the HandlerThread
+        // keeps the main thread free and prevents the 5-second startForeground() timeout.
+        // The try-catch is critical: an uncaught Throwable in a HandlerThread propagates
+        // to the default UncaughtExceptionHandler and kills the entire process.
+        Handler(faceLandmarkerHelper.looper).post {
+            try {
+                faceLandmarkerHelper.init(this@FaceDetectionForegroundService)
+            } catch (t: Throwable) {
+                Timber.e(t, "FaceLandmarkerHelper init failed on HandlerThread")
             }
         }
     }
@@ -194,26 +233,26 @@ class FaceDetectionForegroundService : LifecycleService() {
     private fun setupCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
-
-            val cameraSelector = CameraSelector.Builder()
-                .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
-                .build()
-
-            val imageAnalysis = ImageAnalysis.Builder()
-                .setTargetResolution(Size(640, 480))
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
-                .build()
-                .also { analysis ->
-                    analysis.setAnalyzer(cameraExecutor) { imageProxy ->
-                        // detectLiveStream calls postProcessLandmarks via MediaPipe async callback
-                        // which then calls our FaceResultListener
-                        faceLandmarkerHelper.detectLiveStream(imageProxy)
-                    }
-                }
-
             try {
+                val cameraProvider = cameraProviderFuture.get()
+
+                val cameraSelector = CameraSelector.Builder()
+                    .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+                    .build()
+
+                val imageAnalysis = ImageAnalysis.Builder()
+                    .setTargetResolution(Size(640, 480))
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                    .build()
+                    .also { analysis ->
+                        analysis.setAnalyzer(cameraExecutor) { imageProxy ->
+                            // detectLiveStream calls postProcessLandmarks via MediaPipe async callback
+                            // which then calls our FaceResultListener
+                            faceLandmarkerHelper.detectLiveStream(imageProxy)
+                        }
+                    }
+
                 cameraProvider.unbindAll()
                 val camera = cameraProvider.bindToLifecycle(
                     this,
