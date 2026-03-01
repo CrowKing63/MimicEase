@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
         android:name=".MimicEaseApp"
@@ -23,8 +25,15 @@
             android:theme="@style/Theme.MimicEase">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Deep link for AI assistant (Gemini/Bixby) toggle -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="mimicease" />
             </intent-filter>
         </activity>
 
@@ -45,6 +54,22 @@
             android:name=".service.FaceDetectionForegroundService"
             android:exported="false"
             android:foregroundServiceType="camera" />
+
+        <!-- Global toggle receiver for AI assistants, Tasker, etc. -->
+        <receiver
+            android:name=".service.ToggleBroadcastReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.mimicease.ACTION_TOGGLE" />
+                <action android:name="com.mimicease.ACTION_ENABLE" />
+                <action android:name="com.mimicease.ACTION_DISABLE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Google Assistant App Actions -->
+        <meta-data
+            android:name="com.google.android.actions"
+            android:resource="@xml/actions" />
     </application>
 
 </manifest>

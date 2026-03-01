@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
+import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +25,16 @@ class MimicAccessibilityService : AccessibilityService() {
         private set
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
+    // 글로벌 토글 컨트롤러 (BroadcastReceiver에서 접근 가능)
+    var globalToggleController: GlobalToggleController? = null
+        private set
+
+    // 커서 위치 추적 (CURSOR_CLICK 모드)
+    val cursorTracker = CursorTracker()
+
+    // Switch Access Bridge (SwitchKey 액션 → 접근성 동작 변환)
+    val switchAccessBridge by lazy { SwitchAccessBridge(this) }
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
@@ -41,6 +52,17 @@ class MimicAccessibilityService : AccessibilityService() {
                 faceDetectionService = localBinder.getService()
                 // ActionExecutor에 this(AccessibilityService) 참조 전달
                 faceDetectionService?.setAccessibilityService(this@MimicAccessibilityService)
+
+                // GlobalToggleController 초기화
+                globalToggleController = GlobalToggleController(
+                    context = this@MimicAccessibilityService,
+                    onToggle = { faceDetectionService?.togglePause() },
+                    onEnable = { faceDetectionService?.resumeAnalysis() },
+                    onDisable = { faceDetectionService?.pauseAnalysis() },
+                    isPaused = { FaceDetectionForegroundService.isPaused.value }
+                )
+                // 초기 설정 적용은 FaceDetectionForegroundService에서 observe하여 전달
+                faceDetectionService?.setGlobalToggleController(globalToggleController!!)
             }
             override fun onServiceDisconnected(name: ComponentName) {
                 faceDetectionService = null
@@ -54,8 +76,18 @@ class MimicAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // 현재 포커스 창 정보 업데이트 (필요 시 활용)
-        // MimicEase 자체 이벤트는 소비하지 않음
+        event ?: return
+        // 커서 위치 추적 (hover + focus 이벤트)
+        cursorTracker.onAccessibilityEvent(event)
+    }
+
+    /**
+     * 물리 키 이벤트 수신.
+     * 볼륨 Up+Down 동시 홀드 등으로 글로벌 토글을 처리합니다.
+     * 처리하지 않은 키는 false를 반환하여 다른 앱에 전달합니다.
+     */
+    override fun onKeyEvent(event: KeyEvent): Boolean {
+        return globalToggleController?.handleKeyEvent(event) ?: false
     }
 
     override fun onInterrupt() {
@@ -64,6 +96,8 @@ class MimicAccessibilityService : AccessibilityService() {
 
     override fun onUnbind(intent: Intent?): Boolean {
         serviceScope.cancel()
+        globalToggleController?.destroy()
+        globalToggleController = null
         // unbindService() can throw IllegalArgumentException if the binding was never
         // fully established (e.g., FaceDetectionForegroundService crashed during creation).
         faceDetectionServiceConnection?.let {
@@ -77,3 +111,4 @@ class MimicAccessibilityService : AccessibilityService() {
         return super.onUnbind(intent)
     }
 }
+

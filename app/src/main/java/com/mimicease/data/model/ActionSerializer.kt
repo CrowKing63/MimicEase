@@ -21,6 +21,7 @@ object ActionSerializer {
                 "endX" to action.endX, "endY" to action.endY, "duration" to action.duration
             ))
             is Action.OpenApp    -> gson.toJson(mapOf("packageName" to action.packageName))
+            is Action.SwitchKey  -> gson.toJson(mapOf("keyCode" to action.keyCode, "label" to action.label))
             else                 -> "{}"
         }
         return type to params
@@ -72,6 +73,15 @@ object ActionSerializer {
             "VolumeUp"         -> Action.VolumeUp
             "VolumeDown"       -> Action.VolumeDown
             "MimicPause"       -> Action.MimicPause
+            "TapAtCursor"      -> Action.TapAtCursor
+            "DoubleTapAtCursor" -> Action.DoubleTapAtCursor
+            "LongPressAtCursor" -> Action.LongPressAtCursor
+            "DragStartAtCursor" -> Action.DragStartAtCursor
+            "DragEndAtCursor"  -> Action.DragEndAtCursor
+            "SwitchKey"        -> Action.SwitchKey(
+                keyCode = (map["keyCode"] as? Double)?.toInt() ?: 0,
+                label = (map["label"] as? String) ?: ""
+            )
             else               -> Action.GlobalHome  // 알 수 없는 타입 폴백
         }
     }

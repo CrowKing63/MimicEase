@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Google Assistant App Actions 정의.
+  "미믹이즈 켜줘", "미믹이즈 꺼줘" 등의 음성 명령으로 서비스를 제어합니다.
+-->
+<actions>
+    <action intentName="custom.actions.intent.TOGGLE_MIMICEASE">
+        <fulfillment urlTemplate="mimicease://toggle" />
+    </action>
+    <action intentName="custom.actions.intent.ENABLE_MIMICEASE">
+        <fulfillment urlTemplate="mimicease://enable" />
+    </action>
+    <action intentName="custom.actions.intent.DISABLE_MIMICEASE">
+        <fulfillment urlTemplate="mimicease://disable" />
+    </action>
+</actions>

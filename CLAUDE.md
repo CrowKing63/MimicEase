@@ -15,11 +15,12 @@ MimicEase/
 │       ├── presentation/             # 프레젠테이션 레이어 (Compose UI + ViewModel)
 │       ├── service/                  # 백그라운드 서비스
 │       ├── di/                       # Hilt DI 모듈
-│       └── navigation/               # Compose 네비게이션 그래프
+│       ├── navigation/               # Compose 네비게이션 그래프
+│       └── ui/theme/                 # Material3 테마 (Color, Theme, Type)
 ├── gameFace/                         # GameFace 라이브러리 모듈 (얼굴 인식 엔진)
 │   └── src/main/java/com/mimicease/gameface/
-│       └── FaceLandmarkerHelper.kt   # MediaPipe 핵심 얼굴 감지
-├── docs/                             # 상세 문서 (11개 마크다운 파일)
+│       └── FaceLandmarkerHelper.java # MediaPipe 핵심 얼굴 감지 (Java)
+├── docs/                             # 상세 문서 (12개 마크다운 파일)
 ├── gradle/
 │   └── libs.versions.toml            # Gradle 버전 카탈로그
 └── MimicEase_사양서.md               # 한국어 사양서
@@ -80,6 +81,9 @@ MimicAccessibilityService
 # 릴리즈 APK 빌드
 ./gradlew assembleRelease
 
+# Kotlin 컴파일만 빠르게 검증 (APK 빌드 없이)
+./gradlew :app:compileDebugKotlin
+
 # 유닛 테스트 실행
 ./gradlew test
 
@@ -105,10 +109,19 @@ MimicAccessibilityService
 - DI는 반드시 Hilt 사용
 - 비동기 처리는 Coroutines + Flow 사용
 
+### 주요 함정 (Gotchas)
+- **SystemClock 금지**: `service/` 레이어에서 `android.os.SystemClock` 사용 금지 — JVM 유닛 테스트에서 "not mocked" 예외 발생. `System.currentTimeMillis()` 사용
+- **ViewModel 위치**: ViewModel 클래스가 각 화면 파일과 동일한 `.kt` 파일에 정의됨 (예: `ExpressionTestScreen.kt` 내 `ExpressionTestViewModel`)
+- **Java 모듈**: `gameFace/` 모듈의 `FaceLandmarkerHelper`는 Java로 작성됨 (Kotlin 아님)
+- **TalkBack 공존**: `onAccessibilityEvent()`에서 이벤트를 consume하지 말 것 — TalkBack과 체인 유지
+- **카메라 충돌**: 다른 앱 카메라 사용 시 `CameraState.ERROR_CAMERA_IN_USE` 감지 후 `pauseAnalysis()` 호출
+- **서비스 재시작**: `onStartCommand()`에서 `intent`가 null일 수 있음 (`START_STICKY` 재시작 시)
+
 ### 주요 도메인 모델
 - `Profile` — 표정 프로필 (이름, 활성화 상태, 트리거 목록)
 - `Trigger` — 표정-액션 매핑 (BlendShape, 임계값, 쿨다운, 액션)
 - `Action` (sealed class) — 30+ 액션 타입 (시스템, 제스처, 앱 실행, 미디어 제어)
+- **BlendShape 전체 목록**: `ExpressionTestScreen.kt`의 `BLENDSHAPE_DISPLAY_NAMES`가 52개 정규 출처 — 다른 파일에서 BlendShape 목록 유지 시 이 맵 기준으로 동기화
 
 ### 권한
 앱은 다음 권한이 필요합니다:
@@ -125,7 +138,12 @@ MimicAccessibilityService
 | `docs/01_project_overview.md` | 프로젝트 목표, 대상 사용자, BlendShape 목록 |
 | `docs/02_tech_stack.md` | 기술 스택, 라이브러리, 아키텍처 구조 |
 | `docs/03_architecture.md` | 데이터 흐름, 핵심 컴포넌트 4개, 서비스 2개 |
+| `docs/04_expression_test.md` | 표정 테스트 화면 상세 |
+| `docs/05_profile_trigger.md` | 프로필/트리거 설정 |
 | `docs/06_actions.md` | 전체 액션 목록 및 파라미터 사양 |
+| `docs/07_ui_screens.md` | 전체 화면 설계 및 네비게이션 구조 |
 | `docs/08_data_model.md` | Room 엔티티, 도메인 모델, Action sealed class |
 | `docs/09_accessibility_service.md` | 서비스 생명주기, 제스처 실행, EMA 필터 |
+| `docs/10_permissions_performance.md` | 권한 처리 및 성능 최적화 |
+| `docs/11_roadmap_testing_notes.md` | 개발 로드맵, 테스트 전략, 구현 주의사항 |
 | `MimicEase_사양서.md` | 한국어 전체 사양서 |

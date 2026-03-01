@@ -47,6 +47,16 @@ sealed class Action {
     object VolumeUp : Action()
     object VolumeDown : Action()
 
+    // ── 커서 위치 액션 (CURSOR_CLICK / HEAD_MOUSE 모드) ──
+    object TapAtCursor : Action()
+    object DoubleTapAtCursor : Action()
+    object LongPressAtCursor : Action()
+    object DragStartAtCursor : Action()
+    object DragEndAtCursor : Action()
+
+    // ── 스위치 제어 (모든 모드에서 사용 가능) ──────────
+    data class SwitchKey(val keyCode: Int, val label: String = "") : Action()
+
     // ── MimicEase 내부 ───────────────────────────
     object MimicPause : Action()
 }

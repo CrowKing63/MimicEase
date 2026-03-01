@@ -1,5 +1,6 @@
 package com.mimicease.presentation.ui.profile
 
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,6 +28,7 @@ import com.mimicease.domain.model.Action
 import com.mimicease.domain.model.Trigger
 import com.mimicease.domain.repository.TriggerRepository
 import com.mimicease.service.FaceDetectionForegroundService
+import com.mimicease.service.SwitchAccessBridge
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -67,6 +70,12 @@ fun actionDisplayName(action: Action): String = when (action) {
     is Action.VolumeUp            -> "볼륨 올리기"
     is Action.VolumeDown          -> "볼륨 내리기"
     is Action.MimicPause          -> "MimicEase 일시정지"
+    is Action.TapAtCursor         -> "커서 위치 탭"
+    is Action.DoubleTapAtCursor   -> "커서 위치 더블탭"
+    is Action.LongPressAtCursor   -> "커서 위치 길게 누르기"
+    is Action.DragStartAtCursor   -> "커서 위치 드래그 시작"
+    is Action.DragEndAtCursor     -> "커서 위치 드래그 종료"
+    is Action.SwitchKey           -> "스위치 입력: ${action.label}"
     else                          -> "알 수 없는 액션"
 }
 
@@ -77,40 +86,88 @@ private val ACTION_SYSTEM = listOf(
     Action.ScreenLock, Action.TakeScreenshot, Action.PowerDialog
 )
 private val ACTION_GESTURE = listOf(
-    Action.TapCenter, Action.DoubleTap(), Action.LongPress(),
+    Action.TapCenter, Action.TapCustom(0.5f, 0.5f), Action.DoubleTap(), Action.LongPress(),
     Action.SwipeUp(), Action.SwipeDown(), Action.SwipeLeft(), Action.SwipeRight(),
     Action.ScrollUp, Action.ScrollDown,
-    Action.PinchIn, Action.PinchOut
+    Action.Drag(0.1f, 0.5f, 0.9f, 0.5f), Action.PinchIn, Action.PinchOut
 )
 private val ACTION_MEDIA = listOf(
     Action.MediaPlayPause, Action.MediaNext, Action.MediaPrev,
     Action.VolumeUp, Action.VolumeDown
 )
+private val ACTION_CURSOR = listOf(
+    Action.TapAtCursor, Action.DoubleTapAtCursor, Action.LongPressAtCursor,
+    Action.DragStartAtCursor, Action.DragEndAtCursor
+)
+private val ACTION_SWITCH = SwitchAccessBridge.SUPPORTED_SWITCH_KEYS.map { info ->
+    Action.SwitchKey(keyCode = info.keyCode, label = info.label)
+}
 private val ACTION_OTHER = listOf(Action.MimicPause)
 
-// BlendShape 정보
+// BlendShape 정보 (MediaPipe Face Landmarker 52개 전체)
 private val ALL_BLENDSHAPES = listOf(
-    "eyeBlinkLeft" to "눈 깜빡임 (왼)",
-    "eyeBlinkRight" to "눈 깜빡임 (오)",
-    "eyeWideLeft" to "눈 크게 (왼)",
-    "eyeWideRight" to "눈 크게 (오)",
-    "eyeSquintLeft" to "눈 찡그림 (왼)",
-    "eyeSquintRight" to "눈 찡그림 (오)",
-    "browInnerUp" to "눈썹 안쪽 올리기",
-    "browOuterUpLeft" to "눈썹 바깥 올리기 (왼)",
-    "browOuterUpRight" to "눈썹 바깥 올리기 (오)",
-    "browDownLeft" to "눈썹 내리기 (왼)",
-    "browDownRight" to "눈썹 내리기 (오)",
-    "jawOpen" to "입 벌리기",
-    "mouthSmileLeft" to "미소 (왼)",
-    "mouthSmileRight" to "미소 (오)",
-    "mouthPucker" to "입술 오므리기",
-    "mouthFunnel" to "입 모으기",
-    "mouthFrownLeft" to "입꼬리 내리기 (왼)",
-    "mouthFrownRight" to "입꼬리 내리기 (오)",
-    "cheekPuff" to "볼 부풀리기",
-    "noseSneerLeft" to "코 찡그림 (왼)",
-    "noseSneerRight" to "코 찡그림 (오)"
+    // 눈 깜빡임 / 크기
+    "eyeBlinkLeft"       to "눈 깜빡임 (왼)",
+    "eyeBlinkRight"      to "눈 깜빡임 (오)",
+    "eyeWideLeft"        to "눈 크게 (왼)",
+    "eyeWideRight"       to "눈 크게 (오)",
+    "eyeSquintLeft"      to "눈 찡그림 (왼)",
+    "eyeSquintRight"     to "눈 찡그림 (오)",
+    // 눈 시선
+    "eyeLookUpLeft"      to "눈 위로 (왼)",
+    "eyeLookUpRight"     to "눈 위로 (오)",
+    "eyeLookDownLeft"    to "눈 아래로 (왼)",
+    "eyeLookDownRight"   to "눈 아래로 (오)",
+    "eyeLookInLeft"      to "눈 안쪽 (왼)",
+    "eyeLookInRight"     to "눈 안쪽 (오)",
+    "eyeLookOutLeft"     to "눈 바깥쪽 (왼)",
+    "eyeLookOutRight"    to "눈 바깥쪽 (오)",
+    // 눈썹
+    "browInnerUp"        to "눈썹 안쪽 올리기",
+    "browOuterUpLeft"    to "눈썹 바깥 올리기 (왼)",
+    "browOuterUpRight"   to "눈썹 바깥 올리기 (오)",
+    "browDownLeft"       to "눈썹 내리기 (왼)",
+    "browDownRight"      to "눈썹 내리기 (오)",
+    // 턱
+    "jawOpen"            to "입 벌리기",
+    "jawLeft"            to "턱 왼쪽",
+    "jawRight"           to "턱 오른쪽",
+    "jawForward"         to "턱 앞으로",
+    // 미소 / 입꼬리
+    "mouthSmileLeft"     to "미소 (왼)",
+    "mouthSmileRight"    to "미소 (오)",
+    "mouthFrownLeft"     to "입꼬리 내리기 (왼)",
+    "mouthFrownRight"    to "입꼬리 내리기 (오)",
+    // 입 모양
+    "mouthPucker"        to "입술 오므리기",
+    "mouthFunnel"        to "입 모으기",
+    "mouthLeft"          to "입 왼쪽",
+    "mouthRight"         to "입 오른쪽",
+    "mouthClose"         to "입 다물기",
+    // 입술 말기 / 올리기
+    "mouthRollLower"     to "아랫입술 말기",
+    "mouthRollUpper"     to "윗입술 말기",
+    "mouthShrugLower"    to "아랫입술 올리기",
+    "mouthShrugUpper"    to "윗입술 올리기",
+    // 입술 세부
+    "mouthUpperUpLeft"   to "윗입술 위로 (왼)",
+    "mouthUpperUpRight"  to "윗입술 위로 (오)",
+    "mouthLowerDownLeft" to "아랫입술 아래로 (왼)",
+    "mouthLowerDownRight" to "아랫입술 아래로 (오)",
+    "mouthDimpleLeft"    to "보조개 (왼)",
+    "mouthDimpleRight"   to "보조개 (오)",
+    "mouthPressLeft"     to "입술 누르기 (왼)",
+    "mouthPressRight"    to "입술 누르기 (오)",
+    "mouthStretchLeft"   to "입 늘리기 (왼)",
+    "mouthStretchRight"  to "입 늘리기 (오)",
+    // 볼 / 코
+    "cheekPuff"          to "볼 부풀리기",
+    "cheekSquintLeft"    to "볼 찡그림 (왼)",
+    "cheekSquintRight"   to "볼 찡그림 (오)",
+    "noseSneerLeft"      to "코 찡그림 (왼)",
+    "noseSneerRight"     to "코 찡그림 (오)",
+    // 혀
+    "tongueOut"          to "혀 내밀기"
 )
 
 // ─── ViewModel ───────────────────────────────────────────────────────────
@@ -358,6 +415,67 @@ fun TriggerEditScreen(
                 }
             }
 
+            // ⑧ 파라미터 편집 (TapCustom)
+            AnimatedVisibility(visible = uiState.selectedAction is Action.TapCustom) {
+                val action = uiState.selectedAction as? Action.TapCustom
+                if (action != null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        SectionLabel("탭 위치 X: ${"%.2f".format(action.x)}  (왼쪽 0.0 → 오른쪽 1.0)")
+                        Slider(
+                            value = action.x,
+                            onValueChange = { viewModel.updateAction(action.copy(x = it)) },
+                            valueRange = 0f..1f
+                        )
+                        SectionLabel("탭 위치 Y: ${"%.2f".format(action.y)}  (위 0.0 → 아래 1.0)")
+                        Slider(
+                            value = action.y,
+                            onValueChange = { viewModel.updateAction(action.copy(y = it)) },
+                            valueRange = 0f..1f
+                        )
+                    }
+                }
+            }
+
+            // ⑧ 파라미터 편집 (Drag)
+            AnimatedVisibility(visible = uiState.selectedAction is Action.Drag) {
+                val action = uiState.selectedAction as? Action.Drag
+                if (action != null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        SectionLabel("시작 X: ${"%.2f".format(action.startX)}")
+                        Slider(
+                            value = action.startX,
+                            onValueChange = { viewModel.updateAction(action.copy(startX = it)) },
+                            valueRange = 0f..1f
+                        )
+                        SectionLabel("시작 Y: ${"%.2f".format(action.startY)}")
+                        Slider(
+                            value = action.startY,
+                            onValueChange = { viewModel.updateAction(action.copy(startY = it)) },
+                            valueRange = 0f..1f
+                        )
+                        SectionLabel("끝 X: ${"%.2f".format(action.endX)}")
+                        Slider(
+                            value = action.endX,
+                            onValueChange = { viewModel.updateAction(action.copy(endX = it)) },
+                            valueRange = 0f..1f
+                        )
+                        SectionLabel("끝 Y: ${"%.2f".format(action.endY)}")
+                        Slider(
+                            value = action.endY,
+                            onValueChange = { viewModel.updateAction(action.copy(endY = it)) },
+                            valueRange = 0f..1f
+                        )
+                        SectionLabel("드래그 시간: ${action.duration}ms")
+                        Slider(
+                            value = action.duration.toFloat(),
+                            onValueChange = { viewModel.updateAction(action.copy(duration = it.toLong())) },
+                            valueRange = 100f..2000f,
+                            steps = 37
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
@@ -445,10 +563,12 @@ fun ActionPickerSheet(
     onSelect: (Action) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val tabs = listOf("시스템", "제스처", "미디어", "기타")
+    val tabs = listOf("시스템", "제스처", "미디어", "커서", "스위치", "앱", "기타")
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    val actionsByTab = listOf(ACTION_SYSTEM, ACTION_GESTURE, ACTION_MEDIA, ACTION_OTHER)
+    val staticActionsByTab = listOf(
+        ACTION_SYSTEM, ACTION_GESTURE, ACTION_MEDIA, ACTION_CURSOR, ACTION_SWITCH
+    )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -459,7 +579,7 @@ fun ActionPickerSheet(
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
-        TabRow(selectedTabIndex = selectedTab) {
+        ScrollableTabRow(selectedTabIndex = selectedTab) {
             tabs.forEachIndexed { index, label ->
                 Tab(
                     selected = selectedTab == index,
@@ -468,17 +588,65 @@ fun ActionPickerSheet(
                 )
             }
         }
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(bottom = 32.dp)
-        ) {
-            items(actionsByTab[selectedTab]) { action ->
-                ListItem(
-                    headlineContent = { Text(actionDisplayName(action)) },
-                    modifier = Modifier.clickable { onSelect(action) }
-                )
-                HorizontalDivider()
+        when (selectedTab) {
+            5 -> AppPickerTab(onSelect = onSelect)  // 앱
+            6 -> LazyColumn(                         // 기타
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(bottom = 32.dp)
+            ) {
+                items(ACTION_OTHER) { action ->
+                    ListItem(
+                        headlineContent = { Text(actionDisplayName(action)) },
+                        modifier = Modifier.clickable { onSelect(action) }
+                    )
+                    HorizontalDivider()
+                }
             }
+            else -> LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(bottom = 32.dp)
+            ) {
+                items(staticActionsByTab[selectedTab]) { action ->
+                    ListItem(
+                        headlineContent = { Text(actionDisplayName(action)) },
+                        modifier = Modifier.clickable { onSelect(action) }
+                    )
+                    HorizontalDivider()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppPickerTab(onSelect: (Action) -> Unit) {
+    val context = LocalContext.current
+    val apps = remember {
+        val pm = context.packageManager
+        val intent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
+        @Suppress("DEPRECATION")
+        pm.queryIntentActivities(intent, 0)
+            .map { it.activityInfo.packageName to pm.getApplicationLabel(it.activityInfo.applicationInfo).toString() }
+            .distinctBy { it.first }
+            .sortedBy { it.second }
+    }
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(bottom = 32.dp)
+    ) {
+        items(apps) { (pkg, name) ->
+            ListItem(
+                headlineContent = { Text(name) },
+                supportingContent = {
+                    Text(
+                        text = pkg,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = FontFamily.Monospace
+                    )
+                },
+                modifier = Modifier.clickable { onSelect(Action.OpenApp(pkg)) }
+            )
+            HorizontalDivider()
         }
     }
 }

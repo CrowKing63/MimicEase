@@ -21,6 +21,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import com.mimicease.MainActivity
+import com.mimicease.domain.model.Action
 import com.mimicease.domain.repository.ProfileRepository
 import com.mimicease.domain.repository.SettingsRepository
 import com.mimicease.gameface.FaceLandmarkerHelper
@@ -37,6 +38,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import com.mimicease.domain.model.InteractionMode
+import com.mimicease.domain.model.ModeManager
 import timber.log.Timber
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -94,8 +97,15 @@ class FaceDetectionForegroundService : LifecycleService() {
     private lateinit var triggerMatcher: TriggerMatcher
     private lateinit var actionExecutor: ActionExecutor
 
+    // Phase 3: Head Tracking components
+    private lateinit var headTracker: HeadTracker
+    private lateinit var cursorOverlayView: CursorOverlayView
+    private lateinit var dwellClickController: DwellClickController
+
     private var isAnalyzing = true
     private var activeProfileName: String? = null
+    private var currentMode: InteractionMode = InteractionMode.EXPRESSION_ONLY
+    private var globalToggleController: GlobalToggleController? = null
 
     @Inject lateinit var profileRepository: ProfileRepository
     @Inject lateinit var settingsRepository: SettingsRepository
@@ -126,6 +136,12 @@ class FaceDetectionForegroundService : LifecycleService() {
 
         cameraExecutor = Executors.newSingleThreadExecutor()
         expressionAnalyzer = ExpressionAnalyzer()
+        
+        // Initialize Phase 3 components
+        headTracker = HeadTracker(this)
+        cursorOverlayView = CursorOverlayView(this)
+        // actionExecutor is injected later via bind, so dwell controller is initialized in setActionExecutor
+        
         initFaceLandmarker()
         observeSettingsAndProfile()
         registerScreenStateReceiver()
@@ -163,17 +179,30 @@ class FaceDetectionForegroundService : LifecycleService() {
 
     fun setAccessibilityService(service: MimicAccessibilityService) {
         actionExecutor = ActionExecutor(service)
+        dwellClickController = DwellClickController(actionExecutor)
+    }
+
+    fun setGlobalToggleController(controller: GlobalToggleController) {
+        globalToggleController = controller
     }
 
     private fun initFaceLandmarker() {
         faceLandmarkerHelper = FaceLandmarkerHelper()
         faceLandmarkerHelper.start()  // Start HandlerThread
-        faceLandmarkerHelper.setFaceResultListener { blendshapes, mediapipeMs, faceVisible ->
+        faceLandmarkerHelper.setFaceResultListener { blendshapes, transformMatrix, mediapipeMs, faceVisible ->
             _isFaceVisible.value = faceVisible
             _inferenceTimeMs.value = mediapipeMs
             if (faceVisible && blendshapes.isNotEmpty()) {
                 serviceScope.launch { _blendShapeFlow.emit(blendshapes) }
-                processResults(blendshapes)
+                
+                var yaw = 0f
+                var pitch = 0f
+                if (transformMatrix != null) {
+                    yaw = Math.atan2(transformMatrix[2].toDouble(), transformMatrix[10].toDouble()).toFloat()
+                    pitch = Math.asin(-transformMatrix[6].toDouble()).toFloat()
+                }
+                
+                processResults(blendshapes, yaw, pitch)
             }
         }
         // Post init() to the HandlerThread to avoid blocking the main thread.
@@ -190,15 +219,56 @@ class FaceDetectionForegroundService : LifecycleService() {
         }
     }
 
-    private fun processResults(rawValues: Map<String, Float>) {
+    private fun processResults(rawValues: Map<String, Float>, yaw: Float = 0f, pitch: Float = 0f) {
         if (!isAnalyzing || !::triggerMatcher.isInitialized || !::actionExecutor.isInitialized) return
 
         val smoothed = expressionAnalyzer.processSmoothed(rawValues)
+
+        // 글로벌 토글: 표정 채널 검사 (트리거 매칭보다 먼저)
+        if (globalToggleController?.checkExpressionToggle(smoothed) == true) {
+            return  // 토글이 발동되면 이번 프레임의 다른 트리거는 무시
+        }
+
+        // Phase 3: Head Tracking
+        if (currentMode == InteractionMode.HEAD_MOUSE) {
+            // Update logical cursor position
+            val (cx, cy) = headTracker.updatePosition(yaw, pitch)
+            
+            // Update Dwell progress
+            val progress = if (::dwellClickController.isInitialized) {
+                dwellClickController.update(cx, cy, System.currentTimeMillis())
+            } else 0f
+            
+            // Draw overlay
+            serviceScope.launch(Dispatchers.Main) {
+                if (cursorOverlayView.parent == null) {
+                    cursorOverlayView.show()
+                }
+                cursorOverlayView.update(cx, cy, progress)
+            }
+        } else {
+            // Hide overlay if not in mode
+            serviceScope.launch(Dispatchers.Main) {
+                cursorOverlayView.hide()
+            }
+        }
+
         val actions = triggerMatcher.match(smoothed)
 
         if (actions.isNotEmpty()) {
             serviceScope.launch(Dispatchers.Main) {
-                actions.forEach { actionExecutor.execute(it) }
+                actions.forEach { action ->
+                    // 모드별 Action 필터링
+                     if (ModeManager.isActionAllowed(currentMode, action)) {
+                        actionExecutor.execute(action)
+                        // Manual gesture tap in Head Mouse mode should reset the dwell timer
+                        if (currentMode == InteractionMode.HEAD_MOUSE && action is Action.TapAtCursor) {
+                            if (::dwellClickController.isInitialized) {
+                                dwellClickController.reset(System.currentTimeMillis())
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -217,6 +287,24 @@ class FaceDetectionForegroundService : LifecycleService() {
                     )
 
                     // Update camera facing if needed (requires restart)
+                    // 모드 업데이트
+                    currentMode = settings.activeMode
+
+                    // 글로벌 토글 설정 업데이트
+                    globalToggleController?.updateSettings(settings)
+
+                    // Phase 3: Head Mouse settings
+                    if (::headTracker.isInitialized) {
+                        // Base sensitivity 2500f * multiplier
+                        headTracker.sensitivityX = 2500f * settings.headMouseSensitivity
+                        headTracker.sensitivityY = 2500f * settings.headMouseSensitivity
+                        headTracker.deadzone = settings.headMouseDeadZone
+                    }
+                    if (::dwellClickController.isInitialized) {
+                        dwellClickController.dwellDurationMs = settings.dwellClickTimeMs
+                        dwellClickController.thresholdPixel = settings.dwellClickRadiusPx
+                    }
+
                     // Profile triggers and cooldown
                     profile?.let { p ->
                         activeProfileName = p.name
@@ -357,6 +445,13 @@ class FaceDetectionForegroundService : LifecycleService() {
         serviceScope.cancel()
         cameraExecutor.shutdown()
         unregisterReceiver(screenStateReceiver)
+        
+        serviceScope.launch(Dispatchers.Main) {
+            if (::cursorOverlayView.isInitialized) {
+                cursorOverlayView.hide()
+            }
+        }
+        
         faceLandmarkerHelper.destroy()
     }
 }

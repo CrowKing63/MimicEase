@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import com.mimicease.data.local.AppSettings
 import com.mimicease.data.local.AppSettingsKeys
+import com.mimicease.domain.model.InteractionMode
 import com.mimicease.domain.repository.SettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -29,7 +30,20 @@ class SettingsRepositoryImpl @Inject constructor(
                 isDeveloperMode = preferences[AppSettingsKeys.DEVELOPER_MODE] ?: false,
                 isServiceEnabled = preferences[AppSettingsKeys.SERVICE_ENABLED] ?: false,
                 activeProfileId = preferences[AppSettingsKeys.ACTIVE_PROFILE_ID],
-                onboardingCompleted = preferences[AppSettingsKeys.ONBOARDING_COMPLETED] ?: false
+                onboardingCompleted = preferences[AppSettingsKeys.ONBOARDING_COMPLETED] ?: false,
+                activeMode = InteractionMode.fromString(
+                    preferences[AppSettingsKeys.ACTIVE_MODE] ?: InteractionMode.EXPRESSION_ONLY.name
+                ),
+                toggleByExpression = preferences[AppSettingsKeys.TOGGLE_BY_EXPRESSION] ?: false,
+                toggleExpressionHoldMs = preferences[AppSettingsKeys.TOGGLE_EXPRESSION_HOLD_MS] ?: 3000,
+                toggleByKeyCombo = preferences[AppSettingsKeys.TOGGLE_BY_KEY_COMBO] ?: true,
+                toggleKeyHoldMs = preferences[AppSettingsKeys.TOGGLE_KEY_HOLD_MS] ?: 2000,
+                toggleByBroadcast = preferences[AppSettingsKeys.TOGGLE_BY_BROADCAST] ?: true,
+                headMouseSensitivity = preferences[AppSettingsKeys.HEAD_MOUSE_SENSITIVITY] ?: 1.0f,
+                headMouseDeadZone = preferences[AppSettingsKeys.HEAD_MOUSE_DEAD_ZONE] ?: 0.02f,
+                dwellClickEnabled = preferences[AppSettingsKeys.DWELL_CLICK_ENABLED] ?: true,
+                dwellClickTimeMs = preferences[AppSettingsKeys.DWELL_CLICK_TIME_MS] ?: 1000L,
+                dwellClickRadiusPx = preferences[AppSettingsKeys.DWELL_CLICK_RADIUS_PX] ?: 30f
             )
         }
     }
@@ -44,7 +58,20 @@ class SettingsRepositoryImpl @Inject constructor(
                 isDeveloperMode = preferences[AppSettingsKeys.DEVELOPER_MODE] ?: false,
                 isServiceEnabled = preferences[AppSettingsKeys.SERVICE_ENABLED] ?: false,
                 activeProfileId = preferences[AppSettingsKeys.ACTIVE_PROFILE_ID],
-                onboardingCompleted = preferences[AppSettingsKeys.ONBOARDING_COMPLETED] ?: false
+                onboardingCompleted = preferences[AppSettingsKeys.ONBOARDING_COMPLETED] ?: false,
+                activeMode = InteractionMode.fromString(
+                    preferences[AppSettingsKeys.ACTIVE_MODE] ?: InteractionMode.EXPRESSION_ONLY.name
+                ),
+                toggleByExpression = preferences[AppSettingsKeys.TOGGLE_BY_EXPRESSION] ?: false,
+                toggleExpressionHoldMs = preferences[AppSettingsKeys.TOGGLE_EXPRESSION_HOLD_MS] ?: 3000,
+                toggleByKeyCombo = preferences[AppSettingsKeys.TOGGLE_BY_KEY_COMBO] ?: true,
+                toggleKeyHoldMs = preferences[AppSettingsKeys.TOGGLE_KEY_HOLD_MS] ?: 2000,
+                toggleByBroadcast = preferences[AppSettingsKeys.TOGGLE_BY_BROADCAST] ?: true,
+                headMouseSensitivity = preferences[AppSettingsKeys.HEAD_MOUSE_SENSITIVITY] ?: 1.0f,
+                headMouseDeadZone = preferences[AppSettingsKeys.HEAD_MOUSE_DEAD_ZONE] ?: 0.02f,
+                dwellClickEnabled = preferences[AppSettingsKeys.DWELL_CLICK_ENABLED] ?: true,
+                dwellClickTimeMs = preferences[AppSettingsKeys.DWELL_CLICK_TIME_MS] ?: 1000L,
+                dwellClickRadiusPx = preferences[AppSettingsKeys.DWELL_CLICK_RADIUS_PX] ?: 30f
             )
             
             val updated = updateParams(current)
@@ -61,6 +88,18 @@ class SettingsRepositoryImpl @Inject constructor(
                 preferences.remove(AppSettingsKeys.ACTIVE_PROFILE_ID)
             }
             preferences[AppSettingsKeys.ONBOARDING_COMPLETED] = updated.onboardingCompleted
+            preferences[AppSettingsKeys.ACTIVE_MODE] = updated.activeMode.name
+            preferences[AppSettingsKeys.TOGGLE_BY_EXPRESSION] = updated.toggleByExpression
+            preferences[AppSettingsKeys.TOGGLE_EXPRESSION_HOLD_MS] = updated.toggleExpressionHoldMs
+            preferences[AppSettingsKeys.TOGGLE_BY_KEY_COMBO] = updated.toggleByKeyCombo
+            preferences[AppSettingsKeys.TOGGLE_KEY_HOLD_MS] = updated.toggleKeyHoldMs
+            preferences[AppSettingsKeys.TOGGLE_BY_BROADCAST] = updated.toggleByBroadcast
+            preferences[AppSettingsKeys.HEAD_MOUSE_SENSITIVITY] = updated.headMouseSensitivity
+            preferences[AppSettingsKeys.HEAD_MOUSE_DEAD_ZONE] = updated.headMouseDeadZone
+            preferences[AppSettingsKeys.DWELL_CLICK_ENABLED] = updated.dwellClickEnabled
+            preferences[AppSettingsKeys.DWELL_CLICK_TIME_MS] = updated.dwellClickTimeMs
+            preferences[AppSettingsKeys.DWELL_CLICK_RADIUS_PX] = updated.dwellClickRadiusPx
         }
     }
 }
+

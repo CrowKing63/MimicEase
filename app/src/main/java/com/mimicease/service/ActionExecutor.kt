@@ -9,8 +9,12 @@ import android.media.AudioManager
 import android.os.Build
 import android.view.KeyEvent
 import com.mimicease.domain.model.Action
+import timber.log.Timber
 
 class ActionExecutor(private val service: MimicAccessibilityService) {
+
+    private var dragStartX: Float? = null
+    private var dragStartY: Float? = null
 
     fun execute(action: Action) {
         when (action) {
@@ -72,6 +76,48 @@ class ActionExecutor(private val service: MimicAccessibilityService) {
                     svc.faceDetectionService?.togglePause()
                 }
             }
+            // ── 커서 위치 액션 (CursorTracker 연동) ──
+            is Action.TapAtCursor -> {
+                service.cursorTracker.getCurrentPosition()?.let { (x, y) ->
+                    executeTap(x, y)
+                } ?: Timber.w("TapAtCursor: no cursor position available")
+            }
+            is Action.DoubleTapAtCursor -> {
+                service.cursorTracker.getCurrentPosition()?.let { (x, y) ->
+                    executeDoubleTap(x, y)
+                } ?: Timber.w("DoubleTapAtCursor: no cursor position available")
+            }
+            is Action.LongPressAtCursor -> {
+                service.cursorTracker.getCurrentPosition()?.let { (x, y) ->
+                    executeLongPress(x, y)
+                } ?: Timber.w("LongPressAtCursor: no cursor position available")
+            }
+            is Action.DragStartAtCursor -> {
+                service.cursorTracker.getCurrentPosition()?.let { (x, y) ->
+                    dragStartX = x
+                    dragStartY = y
+                    Timber.d("DragStartAtCursor: saved start position ($x, $y)")
+                } ?: Timber.w("DragStartAtCursor: no cursor position available")
+            }
+            is Action.DragEndAtCursor -> {
+                val sx = dragStartX
+                val sy = dragStartY
+                service.cursorTracker.getCurrentPosition()?.let { (ex, ey) ->
+                    if (sx != null && sy != null) {
+                        executeAbsoluteSwipe(sx, sy, ex, ey, 500L)
+                        Timber.d("DragEndAtCursor: executed swipe from ($sx, $sy) to ($ex, $ey)")
+                        dragStartX = null
+                        dragStartY = null
+                    } else {
+                        Timber.w("DragEndAtCursor: drag start position not set")
+                    }
+                } ?: Timber.w("DragEndAtCursor: no cursor position available")
+            }
+            // ── 스위치 제어 ──
+            is Action.SwitchKey -> {
+                Timber.d("SwitchKey: keyCode=${action.keyCode}, label=${action.label}")
+                service.switchAccessBridge.injectKeyEvent(action.keyCode)
+            }
             else -> {}
         }
     }
@@ -113,6 +159,10 @@ class ActionExecutor(private val service: MimicAccessibilityService) {
     private fun executeSwipe(sx: Float, sy: Float, ex: Float, ey: Float, durationMs: Long) {
         val (asx, asy) = relToAbs(sx, sy)
         val (aex, aey) = relToAbs(ex, ey)
+        executeAbsoluteSwipe(asx, asy, aex, aey, durationMs)
+    }
+
+    private fun executeAbsoluteSwipe(asx: Float, asy: Float, aex: Float, aey: Float, durationMs: Long) {
         val path = Path().apply { moveTo(asx, asy); lineTo(aex, aey) }
         val stroke = GestureDescription.StrokeDescription(path, 0L, durationMs)
         service.dispatchGesture(

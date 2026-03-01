@@ -1,6 +1,5 @@
 package com.mimicease.service
 
-import android.os.SystemClock
 import com.mimicease.domain.model.Action
 import com.mimicease.domain.model.Trigger
 
@@ -13,7 +12,7 @@ class TriggerMatcher(
     private val holdStartTime = mutableMapOf<String, Long>()  // triggerId → hold 시작 시각
 
     fun match(smoothedValues: Map<String, Float>): List<Action> {
-        val now = SystemClock.elapsedRealtime()
+        val now = System.currentTimeMillis()
         val actions = mutableListOf<Action>()
 
         // 1. 전역 쿨다운 체크

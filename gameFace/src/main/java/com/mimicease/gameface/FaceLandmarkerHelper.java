@@ -48,7 +48,8 @@ public class FaceLandmarkerHelper extends HandlerThread {
 
     /** Callback interface for blendshape results. */
     public interface FaceResultListener {
-        void onResult(Map<String, Float> blendshapes, long mediapipeTimeMs, boolean isFaceVisible);
+        void onResult(Map<String, Float> blendshapes, float[] transformationMatrix, long mediapipeTimeMs,
+                boolean isFaceVisible);
     }
 
     // number of allowed multiple detection works at the sametime.
@@ -83,7 +84,6 @@ public class FaceLandmarkerHelper extends HandlerThread {
 
     public long mediapipeTimeMs = 0;
     public long preprocessTimeMs = 0;
-
 
     // tracking how many works in process.
     private int currentInWorks = 0;
@@ -127,9 +127,11 @@ public class FaceLandmarkerHelper extends HandlerThread {
     /**
      * Sets internal frame rotation state for the MediaPipe graph.
      *
-     * @param rotationValue Current rotation of the device screen, the value should be {@link
-     *     Surface#ROTATION_0}, {@link Surface#ROTATION_90}, {@link Surface#ROTATION_180} or {@link
-     *     Surface#ROTATION_180}.
+     * @param rotationValue Current rotation of the device screen, the value should
+     *                      be {@link
+     *                      Surface#ROTATION_0}, {@link Surface#ROTATION_90},
+     *                      {@link Surface#ROTATION_180} or {@link
+     *                      Surface#ROTATION_180}.
      */
     public void setRotation(int rotationValue) {
         currentRotationState = rotationValue;
@@ -139,15 +141,14 @@ public class FaceLandmarkerHelper extends HandlerThread {
     @SuppressLint("HandlerLeak")
     @Override
     protected void onLooperPrepared() {
-        handler =
-            new Handler() {
-                @Override
-                public void handleMessage(@NonNull Message msg) {
-                    // Function for handle message from main thread.
-                    detectLiveStream((ImageProxy) msg.obj);
+        handler = new Handler() {
+            @Override
+            public void handleMessage(@NonNull Message msg) {
+                // Function for handle message from main thread.
+                detectLiveStream((ImageProxy) msg.obj);
 
-                }
-            };
+            }
+        };
     }
 
     public Handler getHandler() {
@@ -162,7 +163,8 @@ public class FaceLandmarkerHelper extends HandlerThread {
     public void init(Context context) {
 
         Log.i(TAG, "init : " + Thread.currentThread());
-        // THREAD_PRIORITY_URGENT_DISPLAY (-8) can throw SecurityException on unprivileged
+        // THREAD_PRIORITY_URGENT_DISPLAY (-8) can throw SecurityException on
+        // unprivileged
         // threads in some Android versions/OEMs. Catch it so the process doesn't die.
         try {
             Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_DISPLAY);
@@ -178,7 +180,8 @@ public class FaceLandmarkerHelper extends HandlerThread {
         // Set general FaceLandmarker options.
         Log.i(TAG, "Init MediaPipe");
 
-        // Try GPU delegate first for better performance; fall back to CPU if unavailable.
+        // Try GPU delegate first for better performance; fall back to CPU if
+        // unavailable.
         if (!initWithDelegate(Delegate.GPU)) {
             Log.w(TAG, "GPU delegate failed, falling back to CPU delegate");
             initWithDelegate(Delegate.CPU);
@@ -188,19 +191,18 @@ public class FaceLandmarkerHelper extends HandlerThread {
     private boolean initWithDelegate(Delegate delegate) {
         try {
             BaseOptions baseOptions = BaseOptions.builder()
-                .setDelegate(delegate)
-                .setModelAssetPath("face_landmarker.task")
-                .build();
+                    .setDelegate(delegate)
+                    .setModelAssetPath("face_landmarker.task")
+                    .build();
 
-            FaceLandmarker.FaceLandmarkerOptions.Builder optionsBuilder =
-                FaceLandmarker.FaceLandmarkerOptions.builder()
+            FaceLandmarker.FaceLandmarkerOptions.Builder optionsBuilder = FaceLandmarker.FaceLandmarkerOptions.builder()
                     .setBaseOptions(baseOptions)
                     .setMinFaceDetectionConfidence(MIN_FACE_DETECTION_CONFIDENCE)
                     .setMinTrackingConfidence(MIN_FACE_TRACKING_CONFIDENCE)
                     .setMinFacePresenceConfidence(MIN_FACE_PRESENCE_CONFIDENCE)
                     .setNumFaces(MAX_NUM_FACES)
                     .setOutputFaceBlendshapes(true)
-                    .setOutputFacialTransformationMatrixes(false)
+                    .setOutputFacialTransformationMatrixes(true)
                     .setRunningMode(RUNNING_MODE);
 
             optionsBuilder.setResultListener(this::postProcessLandmarks);
@@ -216,9 +218,9 @@ public class FaceLandmarkerHelper extends HandlerThread {
         }
     }
 
-
     /**
      * Converts the ImageProxy to MP Image and feed it to Mediapipe Graph.
+     * 
      * @param imageProxy An image proxy from camera feed
      */
     public void detectLiveStream(ImageProxy imageProxy) {
@@ -240,7 +242,6 @@ public class FaceLandmarkerHelper extends HandlerThread {
         frameWidth = imageProxy.getWidth();
         frameHeight = imageProxy.getHeight();
 
-
         Bitmap bitmap = Bitmap.createBitmap(frameWidth, frameHeight, Bitmap.Config.ARGB_8888);
 
         bitmap.copyPixelsFromBuffer(imageProxy.getPlanes()[0].getBuffer());
@@ -248,8 +249,7 @@ public class FaceLandmarkerHelper extends HandlerThread {
         // Handle rotations.
         Matrix rotationMatrix = getRotationMatrix(imageProxy);
 
-        Bitmap rotatedBitmap =
-            Bitmap.createBitmap(
+        Bitmap rotatedBitmap = Bitmap.createBitmap(
                 bitmap, 0, 0, imageProxy.getWidth(), imageProxy.getHeight(), rotationMatrix, true);
 
         // Convert the input Bitmap object to an MPImage object to run inference.
@@ -313,10 +313,11 @@ public class FaceLandmarkerHelper extends HandlerThread {
     }
 
     /**
-     * Gets result landmarks and blendshapes then apply some scaling and save the value.
+     * Gets result landmarks and blendshapes then apply some scaling and save the
+     * value.
      *
      * @param result The result of face landmarker.
-     * @param input The input image of face landmarker.
+     * @param input  The input image of face landmarker.
      */
     private void postProcessLandmarks(FaceLandmarkerResult result, MPImage input) {
         currentInWorks -= 1;
@@ -341,9 +342,16 @@ public class FaceLandmarkerHelper extends HandlerThread {
                     currBlendshapes[i] = cat.score();
                     blendMap.put(cat.categoryName(), cat.score());
                 }
-                // Notify listener with named map
+                // Get the transformation matrix if available
+                float[] transformMatrix = null;
+                if (result.facialTransformationMatrixes().isPresent()
+                        && !result.facialTransformationMatrixes().get().isEmpty()) {
+                    transformMatrix = result.facialTransformationMatrixes().get().get(0);
+                }
+
+                // Notify listener with named map and transformation matrix
                 if (faceResultListener != null) {
-                    faceResultListener.onResult(blendMap, mediapipeTimeMs, true);
+                    faceResultListener.onResult(blendMap, transformMatrix, mediapipeTimeMs, true);
                 }
             }
 
@@ -353,7 +361,7 @@ public class FaceLandmarkerHelper extends HandlerThread {
             isFaceVisible = false;
             // Notify listener with empty map when no face detected
             if (faceResultListener != null) {
-                faceResultListener.onResult(new HashMap<>(), mediapipeTimeMs, false);
+                faceResultListener.onResult(new HashMap<>(), null, mediapipeTimeMs, false);
             }
         }
 
@@ -364,7 +372,7 @@ public class FaceLandmarkerHelper extends HandlerThread {
 
     /** Get user's head X, Y coordinate in image space. */
     public float[] getHeadCoordXY() {
-        return new float[] {currHeadX, currHeadY};
+        return new float[] { currHeadX, currHeadY };
     }
 
     public float[] getBlendshapes() {
@@ -382,7 +390,6 @@ public class FaceLandmarkerHelper extends HandlerThread {
         }
         isRunning = true;
     }
-
 
     /**
      * Completely pause the detection process.
