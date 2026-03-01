@@ -168,13 +168,14 @@ fun ExpressionTestScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     // 현재 카테고리에 따라 필터링된 blendshape 목록
+    // 표시 이름 기준 알파벳 순으로 고정 정렬 → 값 변화에 따라 순서가 바뀌지 않음
     val filteredBlendShapes = remember(uiState.blendShapeValues, uiState.selectedCategory) {
         uiState.blendShapeValues.entries
             .filter { (name, _) ->
                 uiState.selectedCategory == BlendShapeCategory.ALL ||
                     blendShapeCategory(name) == uiState.selectedCategory
             }
-            .sortedByDescending { it.value }
+            .sortedBy { (name, _) -> BLENDSHAPE_DISPLAY_NAMES[name] ?: name }
     }
 
     val topBlendShape = uiState.topExpressions.firstOrNull()
@@ -280,22 +281,77 @@ private fun FaceStatusBanner(isFaceVisible: Boolean, inferenceTimeMs: Long) {
 
 @Composable
 private fun TopExpressionsRow(expressions: List<Pair<String, Float>>) {
+    // 항상 3개 슬롯을 고정으로 렌더링해 레이아웃이 흔들리지 않도록 함
+    val slots = (expressions + List(3) { null }).take(3)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        expressions.forEach { (name, value) ->
-            SuggestionChip(
-                onClick = {},
-                label = {
-                    Text(
-                        text = "${BLENDSHAPE_DISPLAY_NAMES[name] ?: name}: ${"%.2f".format(value)}",
-                        style = MaterialTheme.typography.labelSmall
-                    )
+        slots.forEachIndexed { index, item ->
+            val rank = index + 1
+            Box(modifier = Modifier.weight(1f)) {
+                if (item != null) {
+                    val (name, value) = item
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = when (rank) {
+                                1 -> MaterialTheme.colorScheme.primaryContainer
+                                2 -> MaterialTheme.colorScheme.secondaryContainer
+                                else -> MaterialTheme.colorScheme.tertiaryContainer
+                            }
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "#$rank",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = BLENDSHAPE_DISPLAY_NAMES[name] ?: name,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "%.2f".format(value),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontFamily = FontFamily.Monospace,
+                                color = when (rank) {
+                                    1 -> MaterialTheme.colorScheme.onPrimaryContainer
+                                    2 -> MaterialTheme.colorScheme.onSecondaryContainer
+                                    else -> MaterialTheme.colorScheme.onTertiaryContainer
+                                }
+                            )
+                        }
+                    }
+                } else {
+                    // 빈 슬롯 — 크기 유지용
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(text = "#$rank", style = MaterialTheme.typography.labelSmall)
+                            Text(text = "—", style = MaterialTheme.typography.labelSmall)
+                            Text(text = "—", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
                 }
-            )
+            }
         }
     }
 }
