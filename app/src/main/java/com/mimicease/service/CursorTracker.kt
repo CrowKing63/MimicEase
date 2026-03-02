@@ -82,6 +82,16 @@ class CursorTracker {
     }
 
     /**
+     * HEAD_MOUSE 모드에서 HeadTracker가 계산한 커서 위치를 직접 설정합니다.
+     * 접근성 이벤트 없이도 ActionExecutor의 커서 액션이 올바른 위치를 참조할 수 있습니다.
+     */
+    fun updateFromHeadTracker(x: Float, y: Float) {
+        cursorX = x
+        cursorY = y
+        lastUpdateTimeMs = System.currentTimeMillis()
+    }
+
+    /**
      * 추적 상태를 초기화합니다.
      */
     fun reset() {

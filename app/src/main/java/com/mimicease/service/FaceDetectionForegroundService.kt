@@ -233,12 +233,15 @@ class FaceDetectionForegroundService : LifecycleService() {
         if (currentMode == InteractionMode.HEAD_MOUSE) {
             // Update logical cursor position
             val (cx, cy) = headTracker.updatePosition(yaw, pitch)
-            
+
+            // ActionExecutor의 커서 액션(TapAtCursor 등)이 HeadTracker 위치를 참조하도록 동기화
+            MimicAccessibilityService.instance?.cursorTracker?.updateFromHeadTracker(cx, cy)
+
             // Update Dwell progress
             val progress = if (::dwellClickController.isInitialized) {
                 dwellClickController.update(cx, cy, System.currentTimeMillis())
             } else 0f
-            
+
             // Draw overlay
             serviceScope.launch(Dispatchers.Main) {
                 if (cursorOverlayView.parent == null) {

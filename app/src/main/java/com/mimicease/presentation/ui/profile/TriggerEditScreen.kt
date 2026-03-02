@@ -570,48 +570,49 @@ fun ActionPickerSheet(
         ACTION_SYSTEM, ACTION_GESTURE, ACTION_MEDIA, ACTION_CURSOR, ACTION_SWITCH
     )
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        modifier = Modifier.fillMaxHeight(0.7f)
-    ) {
-        Text(
-            text = "액션 선택",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-        ScrollableTabRow(selectedTabIndex = selectedTab) {
-            tabs.forEachIndexed { index, label ->
-                Tab(
-                    selected = selectedTab == index,
-                    onClick = { selectedTab = index },
-                    text = { Text(label) }
-                )
-            }
-        }
-        when (selectedTab) {
-            5 -> AppPickerTab(onSelect = onSelect)  // 앱
-            6 -> LazyColumn(                         // 기타
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(bottom = 32.dp)
-            ) {
-                items(ACTION_OTHER) { action ->
-                    ListItem(
-                        headlineContent = { Text(actionDisplayName(action)) },
-                        modifier = Modifier.clickable { onSelect(action) }
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.fillMaxHeight(0.7f)) {
+            Text(
+                text = "액션 선택",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            ScrollableTabRow(selectedTabIndex = selectedTab) {
+                tabs.forEachIndexed { index, label ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = { Text(label) }
                     )
-                    HorizontalDivider()
                 }
             }
-            else -> LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(bottom = 32.dp)
-            ) {
-                items(staticActionsByTab[selectedTab]) { action ->
-                    ListItem(
-                        headlineContent = { Text(actionDisplayName(action)) },
-                        modifier = Modifier.clickable { onSelect(action) }
-                    )
-                    HorizontalDivider()
+            Box(modifier = Modifier.weight(1f)) {
+                when (selectedTab) {
+                    5 -> AppPickerTab(onSelect = onSelect)  // 앱
+                    6 -> LazyColumn(                         // 기타
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(bottom = 32.dp)
+                    ) {
+                        items(ACTION_OTHER) { action ->
+                            ListItem(
+                                headlineContent = { Text(actionDisplayName(action)) },
+                                modifier = Modifier.clickable { onSelect(action) }
+                            )
+                            HorizontalDivider()
+                        }
+                    }
+                    else -> LazyColumn(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(bottom = 32.dp)
+                    ) {
+                        items(staticActionsByTab[selectedTab]) { action ->
+                            ListItem(
+                                headlineContent = { Text(actionDisplayName(action)) },
+                                modifier = Modifier.clickable { onSelect(action) }
+                            )
+                            HorizontalDivider()
+                        }
+                    }
                 }
             }
         }
@@ -626,7 +627,12 @@ private fun AppPickerTab(onSelect: (Action) -> Unit) {
         val intent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
         @Suppress("DEPRECATION")
         pm.queryIntentActivities(intent, 0)
-            .map { it.activityInfo.packageName to pm.getApplicationLabel(it.activityInfo.applicationInfo).toString() }
+            .mapNotNull { resolve ->
+                val ai = resolve.activityInfo ?: return@mapNotNull null
+                val label = runCatching { pm.getApplicationLabel(ai.applicationInfo).toString() }
+                    .getOrDefault(ai.packageName)
+                ai.packageName to label
+            }
             .distinctBy { it.first }
             .sortedBy { it.second }
     }

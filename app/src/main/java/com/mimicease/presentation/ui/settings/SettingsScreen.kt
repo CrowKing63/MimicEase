@@ -16,7 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.mimicease.BuildConfig
@@ -106,15 +109,31 @@ fun SettingsScreen(
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
 
-    val isAccessibilityEnabled = remember {
-        MimicAccessibilityService.instance != null
+    var isAccessibilityEnabled by remember {
+        mutableStateOf(MimicAccessibilityService.instance != null)
     }
 
-    val isBatteryOptExcluded = remember {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val pm = context.getSystemService(PowerManager::class.java)
-            pm.isIgnoringBatteryOptimizations(context.packageName)
-        } else true
+    var isBatteryOptExcluded by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val pm = context.getSystemService(PowerManager::class.java)
+                pm.isIgnoringBatteryOptimizations(context.packageName)
+            } else true
+        )
+    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                isAccessibilityEnabled = MimicAccessibilityService.instance != null
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    val pm = context.getSystemService(PowerManager::class.java)
+                    isBatteryOptExcluded = pm.isIgnoringBatteryOptimizations(context.packageName)
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     Scaffold(
