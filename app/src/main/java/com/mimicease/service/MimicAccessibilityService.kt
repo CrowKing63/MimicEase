@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Build
 import android.os.IBinder
+import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.accessibility.AccessibilityEvent
@@ -42,10 +43,10 @@ class MimicAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         instance = this
 
-        // API 33+에서 BT 마우스의 정확한 포인터 좌표를 onMotionEvent()로 수신하기 위한 플래그 설정
+        // API 33+에서 BT 마우스의 정확한 포인터 좌표를 onMotionEvent()로 수신
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             serviceInfo = serviceInfo?.apply {
-                flags = flags or AccessibilityServiceInfo.FLAG_REQUEST_MOTION_EVENT_REPORTS
+                setMotionEventSources(InputDevice.SOURCE_MOUSE)
             }
         }
 
