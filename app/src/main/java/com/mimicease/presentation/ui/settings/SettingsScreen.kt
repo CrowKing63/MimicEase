@@ -21,6 +21,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.mimicease.BuildConfig
 import com.mimicease.data.local.AppSettings
+import com.mimicease.domain.model.InteractionMode
 import com.mimicease.domain.repository.SettingsRepository
 import com.mimicease.presentation.ui.home.MimicBottomNavigation
 import com.mimicease.service.MimicAccessibilityService
@@ -58,6 +59,42 @@ class SettingsViewModel @Inject constructor(
     fun toggleDeveloperMode(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.updateSettings { it.copy(isDeveloperMode = enabled) } }
     }
+
+    fun updateActiveMode(mode: InteractionMode) {
+        viewModelScope.launch { settingsRepository.updateSettings { it.copy(activeMode = mode) } }
+    }
+
+    fun updateHeadMouseSensitivity(v: Float) {
+        viewModelScope.launch { settingsRepository.updateSettings { it.copy(headMouseSensitivity = v) } }
+    }
+
+    fun updateHeadMouseDeadZone(v: Float) {
+        viewModelScope.launch { settingsRepository.updateSettings { it.copy(headMouseDeadZone = v) } }
+    }
+
+    fun toggleDwellClick(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.updateSettings { it.copy(dwellClickEnabled = enabled) } }
+    }
+
+    fun updateDwellClickTime(ms: Long) {
+        viewModelScope.launch { settingsRepository.updateSettings { it.copy(dwellClickTimeMs = ms) } }
+    }
+
+    fun updateDwellClickRadius(px: Float) {
+        viewModelScope.launch { settingsRepository.updateSettings { it.copy(dwellClickRadiusPx = px) } }
+    }
+
+    fun toggleByKeyCombo(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.updateSettings { it.copy(toggleByKeyCombo = enabled) } }
+    }
+
+    fun toggleByExpression(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.updateSettings { it.copy(toggleByExpression = enabled) } }
+    }
+
+    fun toggleByBroadcast(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.updateSettings { it.copy(toggleByBroadcast = enabled) } }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,6 +129,200 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // ── 상호작용 모드 ──────────────────────────────────────────────
+            SettingsSectionHeader("상호작용 모드")
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    val modeLabels = mapOf(
+                        InteractionMode.EXPRESSION_ONLY to "표정 전용",
+                        InteractionMode.CURSOR_CLICK    to "커서 + 표정 클릭",
+                        InteractionMode.HEAD_MOUSE      to "헤드 마우스"
+                    )
+                    val modeDescriptions = mapOf(
+                        InteractionMode.EXPRESSION_ONLY to "표정으로 고정 좌표 제스처 실행",
+                        InteractionMode.CURSOR_CLICK    to "블루투스 마우스로 커서 이동, 표정으로 클릭",
+                        InteractionMode.HEAD_MOUSE      to "머리 움직임으로 커서 제어, 드웰 클릭"
+                    )
+                    InteractionMode.entries.forEach { mode ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = settings.activeMode == mode,
+                                onClick = { viewModel.updateActiveMode(mode) }
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(modeLabels[mode] ?: mode.name, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    modeDescriptions[mode] ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── 헤드 마우스 ────────────────────────────────────────────────
+            SettingsSectionHeader("헤드 마우스")
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "감도: ${"%.1f".format(settings.headMouseSensitivity)}x",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Slider(
+                        value = settings.headMouseSensitivity,
+                        onValueChange = { viewModel.updateHeadMouseSensitivity(it) },
+                        valueRange = 0.5f..3.0f,
+                        steps = 24
+                    )
+
+                    HorizontalDivider()
+
+                    Text(
+                        "데드존: ${"%.2f".format(settings.headMouseDeadZone)} rad",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        "작을수록 미세한 움직임에도 반응",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Slider(
+                        value = settings.headMouseDeadZone,
+                        onValueChange = { viewModel.updateHeadMouseDeadZone(it) },
+                        valueRange = 0.0f..0.1f,
+                        steps = 9
+                    )
+                }
+            }
+
+            // ── 드웰 클릭 ─────────────────────────────────────────────────
+            SettingsSectionHeader("드웰 클릭 (헤드 마우스)")
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("드웰 클릭 활성화")
+                        Switch(
+                            checked = settings.dwellClickEnabled,
+                            onCheckedChange = { viewModel.toggleDwellClick(it) }
+                        )
+                    }
+
+                    HorizontalDivider()
+
+                    Text(
+                        "클릭 대기 시간: ${settings.dwellClickTimeMs}ms",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (settings.dwellClickEnabled) MaterialTheme.colorScheme.onSurface
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Slider(
+                        value = settings.dwellClickTimeMs.toFloat(),
+                        onValueChange = { viewModel.updateDwellClickTime(it.toLong()) },
+                        valueRange = 500f..3000f,
+                        steps = 24,
+                        enabled = settings.dwellClickEnabled
+                    )
+
+                    HorizontalDivider()
+
+                    Text(
+                        "클릭 허용 반경: ${settings.dwellClickRadiusPx.toInt()}px",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (settings.dwellClickEnabled) MaterialTheme.colorScheme.onSurface
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "이 범위 안에서 정지하면 클릭",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Slider(
+                        value = settings.dwellClickRadiusPx,
+                        onValueChange = { viewModel.updateDwellClickRadius(it) },
+                        valueRange = 10f..100f,
+                        steps = 17,
+                        enabled = settings.dwellClickEnabled
+                    )
+                }
+            }
+
+            // ── 글로벌 토글 ───────────────────────────────────────────────
+            SettingsSectionHeader("글로벌 토글")
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("볼륨 키 조합 (Up+Down 홀드)")
+                            Text(
+                                "${settings.toggleKeyHoldMs}ms 동안 누르면 토글",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = settings.toggleByKeyCombo,
+                            onCheckedChange = { viewModel.toggleByKeyCombo(it) }
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("표정 토글 (양쪽 눈 감기)")
+                            Text(
+                                "오발동 위험 — 신중히 활성화",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                        Switch(
+                            checked = settings.toggleByExpression,
+                            onCheckedChange = { viewModel.toggleByExpression(it) }
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("브로드캐스트 토글")
+                            Text(
+                                "AI 어시스턴트 / 외부 앱으로 제어",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = settings.toggleByBroadcast,
+                            onCheckedChange = { viewModel.toggleByBroadcast(it) }
+                        )
+                    }
+                }
+            }
+
             // ── 감지 설정 ─────────────────────────────────────────────────
             SettingsSectionHeader("감지 설정")
             Card(modifier = Modifier.fillMaxWidth()) {

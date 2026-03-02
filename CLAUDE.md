@@ -11,11 +11,17 @@ MimicEase/
 ├── app/                              # 메인 앱 모듈
 │   └── src/main/java/com/mimicease/
 │       ├── data/                     # 데이터 레이어 (Room DB, DataStore, Repository 구현체)
+│       │   ├── local/                # Room Entities, Daos, AppSettingsDataStore
+│       │   ├── model/                # ActionSerializer (Gson 직렬화)
+│       │   └── repository/           # ProfileRepositoryImpl, TriggerRepositoryImpl, SettingsRepositoryImpl
 │       ├── domain/                   # 도메인 레이어 (순수 Kotlin, Android 비의존)
+│       │   ├── model/                # Profile, Trigger, Action, InteractionMode, ModeManager
+│       │   └── repository/           # Repository 인터페이스
 │       ├── presentation/             # 프레젠테이션 레이어 (Compose UI + ViewModel)
-│       ├── service/                  # 백그라운드 서비스
+│       │   └── ui/                   # home, onboarding, profile, settings, test
+│       ├── service/                  # 백그라운드 서비스 및 핵심 로직
 │       ├── di/                       # Hilt DI 모듈
-│       ├── navigation/               # Compose 네비게이션 그래프
+│       ├── navigation/               # Compose 네비게이션 그래프 (MimicNavGraph)
 │       └── ui/theme/                 # Material3 테마 (Color, Theme, Type)
 ├── gameFace/                         # GameFace 라이브러리 모듈 (얼굴 인식 엔진)
 │   └── src/main/java/com/mimicease/gameface/
@@ -26,33 +32,59 @@ MimicEase/
 └── MimicEase_사양서.md               # 한국어 사양서
 ```
 
-### 핵심 서비스
+### 핵심 서비스 & 컴포넌트
 
 | 파일 | 역할 |
 |------|------|
-| `MimicAccessibilityService.kt` | Android 접근성 서비스 (제스처/액션 실행) |
-| `FaceDetectionForegroundService.kt` | 포그라운드 서비스 (카메라 + 얼굴 감지) |
-| `ExpressionAnalyzer.kt` | EMA 필터 + 연속 프레임 확인 |
-| `TriggerMatcher.kt` | 임계값 기반 트리거 매칭 + 쿨다운 |
-| `ActionExecutor.kt` | 접근성 액션 실행 |
+| `MimicAccessibilityService.kt` | Android 접근성 서비스 (제스처/액션 실행, FaceService 바인딩) |
+| `FaceDetectionForegroundService.kt` | 포그라운드 서비스 (카메라 + 얼굴 감지, Phase 3 통합) |
+| `ExpressionAnalyzer.kt` | EMA 필터 적용 (alpha 설정 가능, 연속 프레임 카운터 포함) |
+| `TriggerMatcher.kt` | 임계값 + holdDuration + 쿨다운 기반 트리거 매칭 |
+| `ActionExecutor.kt` | 접근성 액션 실행 (GestureDescription, Intent, AudioManager, 커서 액션) |
+| `GlobalToggleController.kt` | 다중 채널 글로벌 토글 (키조합/표정/브로드캐스트) + TTS/진동 피드백 |
+| `HeadTracker.kt` | 머리 yaw/pitch → 화면 커서 좌표 변환 (데드존 + 가속) |
+| `CursorOverlayView.kt` | HEAD_MOUSE 모드 오버레이 커서 UI |
+| `DwellClickController.kt` | 드웰 클릭 (일정 시간 정지 → 자동 탭) |
+| `SwitchAccessBridge.kt` | Switch Access 키 이벤트 주입 |
+| `CursorTracker.kt` | 접근성 이벤트로 현재 포커스 위치 추적 |
+| `ToggleBroadcastReceiver.kt` | 외부 앱/AI 어시스턴트 토글 브로드캐스트 수신 |
+| `ModeManager.kt` | 모드별 Action 허용/차단 필터링 로직 |
 
 ### 데이터 흐름
 
 ```
 Camera (ImageProxy)
   ↓
-FaceLandmarkerHelper (GameFace)  [52 BlendShapes]
+FaceLandmarkerHelper (GameFace)  [52 BlendShapes + transformMatrix]
   ↓
-ExpressionAnalyzer  [EMA 필터 + 연속 프레임 확인]
+ExpressionAnalyzer  [EMA 필터]
   ↓
-TriggerMatcher  [임계값 + 쿨다운 로직]
+GlobalToggleController.checkExpressionToggle()  [토글 먼저 확인]
   ↓
+TriggerMatcher  [임계값 + holdDuration + 쿨다운]
+  ↓ (EXPRESSION_ONLY 모드)
 ActionExecutor  [GestureDescription, Intent, AudioManager]
   ↓
 MimicAccessibilityService
   ↓
 시스템 액션 (뒤로가기, 홈, 제스처, 앱 실행, 미디어 제어)
+
+HEAD_MOUSE 모드 추가 경로:
+  ↓ (transformMatrix에서 yaw/pitch 추출)
+HeadTracker  [데드존 + 가속 + 화면 좌표 변환]
+  ↓
+DwellClickController  [드웰 진행도 계산]
+  ↓
+CursorOverlayView  [오버레이 커서 표시]
 ```
+
+### 상호작용 모드 (`InteractionMode`)
+
+| 모드 | 설명 | 차단되는 Action |
+|------|------|----------------|
+| `EXPRESSION_ONLY` | 기본 모드. 표정 → 고정좌표 제스처/시스템 액션 | TapAtCursor 계열 |
+| `CURSOR_CLICK` | BT 마우스로 커서 이동, 표정으로 클릭 | 없음 (전체 허용) |
+| `HEAD_MOUSE` | 머리 움직임으로 커서 제어 + 드웰 클릭 | TapCenter, TapCustom, DoubleTap, LongPress |
 
 ## 기술 스택
 
@@ -110,25 +142,53 @@ MimicAccessibilityService
 - 비동기 처리는 Coroutines + Flow 사용
 
 ### 주요 함정 (Gotchas)
-- **SystemClock 금지**: `service/` 레이어에서 `android.os.SystemClock` 사용 금지 — JVM 유닛 테스트에서 "not mocked" 예외 발생. `System.currentTimeMillis()` 사용
-- **ViewModel 위치**: ViewModel 클래스가 각 화면 파일과 동일한 `.kt` 파일에 정의됨 (예: `ExpressionTestScreen.kt` 내 `ExpressionTestViewModel`)
+
+- **SystemClock 금지**: `service/` 레이어에서 `android.os.SystemClock` 사용 금지 — JVM 유닛 테스트에서 "not mocked" 예외 발생. `System.currentTimeMillis()` 사용. `TriggerMatcher`, `ExpressionAnalyzer`, `DwellClickController`, `GlobalToggleController` 모두 수정 완료.
+- **ViewModel 위치**: ViewModel 클래스가 각 화면 파일과 동일한 `.kt` 파일에 정의됨 (예: `ExpressionTestScreen.kt` 내 `ExpressionTestViewModel`, `SettingsScreen.kt` 내 `SettingsViewModel`)
 - **Java 모듈**: `gameFace/` 모듈의 `FaceLandmarkerHelper`는 Java로 작성됨 (Kotlin 아님)
 - **TalkBack 공존**: `onAccessibilityEvent()`에서 이벤트를 consume하지 말 것 — TalkBack과 체인 유지
 - **카메라 충돌**: 다른 앱 카메라 사용 시 `CameraState.ERROR_CAMERA_IN_USE` 감지 후 `pauseAnalysis()` 호출
 - **서비스 재시작**: `onStartCommand()`에서 `intent`가 null일 수 있음 (`START_STICKY` 재시작 시)
+- **FaceDetectionForegroundService 초기화 순서**: `startForeground()`는 `onCreate()` 초반에 호출해야 5초 타임아웃 방지. MediaPipe 모델 로딩은 `Handler(faceLandmarkerHelper.looper).post { init() }`로 HandlerThread에서 비동기 실행
+- **Navigation triggerId**: `triggerEdit/{profileId}/{triggerId}` 라우트에서 `triggerId`는 `TriggerEditViewModel`의 `SavedStateHandle`에 Navigation이 자동 주입함. 명시적 추출 코드(`backStackEntry.arguments?.getString("triggerId")`)를 추가하여 null 라우팅 방지 완료.
 
 ### 주요 도메인 모델
-- `Profile` — 표정 프로필 (이름, 활성화 상태, 트리거 목록)
-- `Trigger` — 표정-액션 매핑 (BlendShape, 임계값, 쿨다운, 액션)
-- `Action` (sealed class) — 30+ 액션 타입 (시스템, 제스처, 앱 실행, 미디어 제어)
+
+- `Profile` — 표정 프로필 (이름, 활성화 상태, globalCooldownMs, 트리거 목록)
+- `Trigger` — 표정-액션 매핑 (BlendShape, threshold, holdDurationMs, cooldownMs, priority, action)
+- `Action` (sealed class) — 35+ 액션 타입 (시스템, 제스처, 커서, 앱 실행, 미디어 제어, 스위치)
+- `InteractionMode` — EXPRESSION_ONLY / CURSOR_CLICK / HEAD_MOUSE
+- `AppSettings` — DataStore 설정 (EMA, 모드, 글로벌 토글, 헤드마우스, 드웰 등)
 - **BlendShape 전체 목록**: `ExpressionTestScreen.kt`의 `BLENDSHAPE_DISPLAY_NAMES`가 52개 정규 출처 — 다른 파일에서 BlendShape 목록 유지 시 이 맵 기준으로 동기화
 
+### SettingsScreen 구성 (전체 섹션)
+
+1. **상호작용 모드** — RadioButton으로 EXPRESSION_ONLY / CURSOR_CLICK / HEAD_MOUSE 전환
+2. **헤드 마우스** — 감도(0.5~3.0x), 데드존(0.0~0.1 rad) 슬라이더
+3. **드웰 클릭** — 활성화 스위치, 대기시간(500~3000ms), 반경(10~100px) 슬라이더 (비활성 시 슬라이더 dim)
+4. **글로벌 토글** — 볼륨키 조합 / 표정(오발동 경고) / 브로드캐스트 스위치
+5. **감지 설정** — EMA α, 연속 프레임
+6. **알림 설정** — 포그라운드 알림 스위치
+7. **시스템** — 접근성 서비스 상태, 배터리 최적화 제외
+8. **기타** — 개발자 모드, 버전
+
 ### 권한
+
 앱은 다음 권한이 필요합니다:
 - `CAMERA` — 얼굴 감지
 - `FOREGROUND_SERVICE` — 백그라운드 실행
 - `FOREGROUND_SERVICE_CAMERA` — 포그라운드 카메라 사용
+- `VIBRATE` — 토글 시 진동 피드백
 - 접근성 서비스 활성화 — 사용자가 직접 설정에서 활성화 필요
+
+## 유닛 테스트 현황
+
+`app/src/test/java/com/mimicease/`에 3개의 테스트 존재:
+- `ExpressionAnalyzerTest` — EMA 필터 로직
+- `TriggerMatcherTest` — 임계값/쿨다운/holdDuration 매칭
+- `ActionSerializerTest` — Gson 직렬화/역직렬화
+
+`./gradlew :app:test` 전체 통과 확인됨.
 
 ## 문서 참조
 

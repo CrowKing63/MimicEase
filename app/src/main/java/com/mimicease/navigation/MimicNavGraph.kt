@@ -110,6 +110,8 @@ fun MimicNavGraph(
             )
         ) { backStackEntry ->
             val profileId = backStackEntry.arguments?.getString("profileId") ?: return@composable
+            // triggerId는 SavedStateHandle을 통해 TriggerEditViewModel로 자동 주입됨
+            backStackEntry.arguments?.getString("triggerId") ?: return@composable
             TriggerEditScreen(
                 navController = navController,
                 profileId = profileId

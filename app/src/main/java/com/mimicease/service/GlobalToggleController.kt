@@ -2,7 +2,6 @@ package com.mimicease.service
 
 import android.content.Context
 import android.os.Build
-import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -87,7 +86,7 @@ class GlobalToggleController(
 
         // 양쪽 동시 누르기 진행 중이면 이벤트 소비
         if (volumeUpPressed && volumeDownPressed) {
-            val elapsed = SystemClock.elapsedRealtime() - comboStartTime
+            val elapsed = System.currentTimeMillis() - comboStartTime
             if (elapsed >= settings.toggleKeyHoldMs) {
                 onToggle()
                 announceState()
@@ -101,7 +100,7 @@ class GlobalToggleController(
 
     private fun checkComboStart() {
         if (volumeUpPressed && volumeDownPressed && comboStartTime == 0L) {
-            comboStartTime = SystemClock.elapsedRealtime()
+            comboStartTime = System.currentTimeMillis()
         }
     }
 
@@ -130,9 +129,9 @@ class GlobalToggleController(
 
         if (leftEye > threshold && rightEye > threshold) {
             if (expressionHoldStart == 0L) {
-                expressionHoldStart = SystemClock.elapsedRealtime()
+                expressionHoldStart = System.currentTimeMillis()
             }
-            val elapsed = SystemClock.elapsedRealtime() - expressionHoldStart
+            val elapsed = System.currentTimeMillis() - expressionHoldStart
             if (elapsed >= settings.toggleExpressionHoldMs) {
                 onToggle()
                 announceState()

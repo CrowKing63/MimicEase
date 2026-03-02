@@ -1,13 +1,14 @@
 package com.mimicease.service
 
 import android.content.Context
+import android.os.Build
 import android.util.DisplayMetrics
 import android.view.WindowManager
 import kotlin.math.abs
 
 class HeadTracker(context: Context) {
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-    private val displayMetrics = DisplayMetrics()
+    private val displayMetrics = DisplayMetrics()  // API 29 폴백용
     
     // Configurable parameters
     var sensitivityX = 2500f // pixels per radian
@@ -33,9 +34,16 @@ class HeadTracker(context: Context) {
     }
     
     fun updateScreenDimensions() {
-        windowManager.defaultDisplay.getMetrics(displayMetrics)
-        screenWidth = displayMetrics.widthPixels
-        screenHeight = displayMetrics.heightPixels
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val bounds = windowManager.currentWindowMetrics.bounds
+            screenWidth = bounds.width()
+            screenHeight = bounds.height()
+        } else {
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay.getMetrics(displayMetrics)
+            screenWidth = displayMetrics.widthPixels
+            screenHeight = displayMetrics.heightPixels
+        }
     }
 
     /**
