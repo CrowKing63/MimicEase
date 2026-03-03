@@ -33,8 +33,7 @@ object ModeManager {
                 action !is Action.TapAtCursor &&
                 action !is Action.DoubleTapAtCursor &&
                 action !is Action.LongPressAtCursor &&
-                action !is Action.DragStartAtCursor &&
-                action !is Action.DragEndAtCursor
+                action !is Action.DragToggleAtCursor
             }
             InteractionMode.CURSOR_CLICK -> {
                 // 커서 클릭 모드: 모든 액션 허용 (기존 + 커서 기반 병행)

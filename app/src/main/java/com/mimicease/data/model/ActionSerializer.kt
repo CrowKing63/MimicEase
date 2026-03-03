@@ -76,8 +76,10 @@ object ActionSerializer {
             "TapAtCursor"      -> Action.TapAtCursor
             "DoubleTapAtCursor" -> Action.DoubleTapAtCursor
             "LongPressAtCursor" -> Action.LongPressAtCursor
-            "DragStartAtCursor" -> Action.DragStartAtCursor
-            "DragEndAtCursor"  -> Action.DragEndAtCursor
+            "DragToggleAtCursor" -> Action.DragToggleAtCursor
+            // 하위 호환: 구 타입 → DragToggleAtCursor로 자동 마이그레이션
+            "DragStartAtCursor",
+            "DragEndAtCursor"  -> Action.DragToggleAtCursor
             "SwitchKey"        -> Action.SwitchKey(
                 keyCode = (map["keyCode"] as? Double)?.toInt() ?: 0,
                 label = (map["label"] as? String) ?: ""

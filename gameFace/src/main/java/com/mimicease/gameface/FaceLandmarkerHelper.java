@@ -32,6 +32,7 @@ import androidx.camera.core.ImageProxy;
 import com.google.mediapipe.framework.image.BitmapImageBuilder;
 import com.google.mediapipe.framework.image.MPImage;
 import com.google.mediapipe.tasks.components.containers.Category;
+import com.google.mediapipe.tasks.components.containers.NormalizedLandmark;
 import com.google.mediapipe.tasks.core.BaseOptions;
 import com.google.mediapipe.tasks.core.Delegate;
 import com.google.mediapipe.tasks.vision.core.RunningMode;
@@ -48,7 +49,10 @@ public class FaceLandmarkerHelper extends HandlerThread {
 
     /** Callback interface for blendshape results. */
     public interface FaceResultListener {
-        void onResult(Map<String, Float> blendshapes, float[] transformationMatrix, long mediapipeTimeMs,
+        void onResult(Map<String, Float> blendshapes,
+                List<NormalizedLandmark> landmarks,
+                float[] transformationMatrix,
+                long mediapipeTimeMs,
                 boolean isFaceVisible);
     }
 
@@ -308,7 +312,7 @@ public class FaceLandmarkerHelper extends HandlerThread {
             default: // fall out
         }
         matrix.postRotate(matrixRotDegrees);
-        matrix.postScale(-mpWidthCorrected / widthCorrected, mpHeightCorrected / heightCorrected);
+        matrix.postScale(mpWidthCorrected / widthCorrected, mpHeightCorrected / heightCorrected);
         return matrix;
     }
 
@@ -330,8 +334,9 @@ public class FaceLandmarkerHelper extends HandlerThread {
 
         if (!result.faceLandmarks().isEmpty()) {
             isFaceVisible = true;
-            currHeadX = result.faceLandmarks().get(0).get(FOREHEAD_INDEX).x() * mpInputWidth;
-            currHeadY = result.faceLandmarks().get(0).get(FOREHEAD_INDEX).y() * mpInputHeight;
+            List<NormalizedLandmark> landmarks = result.faceLandmarks().get(0);
+            currHeadX = landmarks.get(FOREHEAD_INDEX).x() * mpInputWidth;
+            currHeadY = landmarks.get(FOREHEAD_INDEX).y() * mpInputHeight;
 
             if (result.faceBlendshapes().isPresent()) {
                 List<Category> categories = result.faceBlendshapes().get().get(0);
@@ -349,9 +354,9 @@ public class FaceLandmarkerHelper extends HandlerThread {
                     transformMatrix = result.facialTransformationMatrixes().get().get(0);
                 }
 
-                // Notify listener with named map and transformation matrix
+                // Notify listener with named map, landmarks, and transformation matrix
                 if (faceResultListener != null) {
-                    faceResultListener.onResult(blendMap, transformMatrix, mediapipeTimeMs, true);
+                    faceResultListener.onResult(blendMap, landmarks, transformMatrix, mediapipeTimeMs, true);
                 }
             }
 
@@ -359,9 +364,9 @@ public class FaceLandmarkerHelper extends HandlerThread {
             lastMeasurementTsMs = SystemClock.uptimeMillis();
         } else {
             isFaceVisible = false;
-            // Notify listener with empty map when no face detected
+            // Notify listener with empty data when no face detected
             if (faceResultListener != null) {
-                faceResultListener.onResult(new HashMap<>(), null, mediapipeTimeMs, false);
+                faceResultListener.onResult(new HashMap<>(), new java.util.ArrayList<>(), null, mediapipeTimeMs, false);
             }
         }
 

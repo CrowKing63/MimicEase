@@ -27,6 +27,9 @@ import androidx.navigation.NavController
 import com.mimicease.domain.model.Action
 import com.mimicease.domain.model.Trigger
 import com.mimicease.domain.repository.TriggerRepository
+import com.mimicease.presentation.ui.common.BlendShapeCategory
+import com.mimicease.presentation.ui.common.BLENDSHAPE_DISPLAY_NAMES
+import com.mimicease.presentation.ui.common.blendShapeCategory
 import com.mimicease.service.FaceDetectionForegroundService
 import com.mimicease.service.SwitchAccessBridge
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -73,8 +76,7 @@ fun actionDisplayName(action: Action): String = when (action) {
     is Action.TapAtCursor         -> "커서 위치 탭"
     is Action.DoubleTapAtCursor   -> "커서 위치 더블탭"
     is Action.LongPressAtCursor   -> "커서 위치 길게 누르기"
-    is Action.DragStartAtCursor   -> "커서 위치 드래그 시작"
-    is Action.DragEndAtCursor     -> "커서 위치 드래그 종료"
+    is Action.DragToggleAtCursor  -> "커서 위치 드래그 (토글)"
     is Action.SwitchKey           -> "스위치 입력: ${action.label}"
     else                          -> "알 수 없는 액션"
 }
@@ -97,7 +99,7 @@ private val ACTION_MEDIA = listOf(
 )
 private val ACTION_CURSOR = listOf(
     Action.TapAtCursor, Action.DoubleTapAtCursor, Action.LongPressAtCursor,
-    Action.DragStartAtCursor, Action.DragEndAtCursor
+    Action.DragToggleAtCursor
 )
 private val ACTION_SWITCH = SwitchAccessBridge.SUPPORTED_SWITCH_KEYS.map { info ->
     Action.SwitchKey(keyCode = info.keyCode, label = info.label)
@@ -241,14 +243,21 @@ class TriggerEditViewModel @Inject constructor(
 
     fun saveTrigger(onSuccess: () -> Unit) {
         val state = _uiState.value
-        if (state.name.isBlank() || state.selectedBlendShape.isBlank()) return
+        if (state.selectedBlendShape.isBlank()) return
+
+        // 이름이 비어 있으면 "표정 → 액션" 형식으로 자동 생성
+        val finalName = state.name.ifBlank {
+            val bsName = ALL_BLENDSHAPES.find { it.first == state.selectedBlendShape }?.second
+                ?: state.selectedBlendShape
+            "$bsName → ${actionDisplayName(state.selectedAction)}"
+        }
 
         _uiState.update { it.copy(isSaving = true) }
         viewModelScope.launch {
             val trigger = Trigger(
                 id = state.triggerId ?: UUID.randomUUID().toString(),
                 profileId = profileId,
-                name = state.name,
+                name = finalName,
                 blendShape = state.selectedBlendShape,
                 threshold = state.threshold,
                 holdDurationMs = state.holdDurationMs,
@@ -291,8 +300,7 @@ fun TriggerEditScreen(
                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     } else {
                         IconButton(
-                            onClick = { viewModel.saveTrigger { navController.popBackStack() } },
-                            enabled = uiState.name.isNotBlank()
+                            onClick = { viewModel.saveTrigger { navController.popBackStack() } }
                         ) {
                             Icon(Icons.Default.Check, contentDescription = "저장")
                         }
@@ -310,11 +318,16 @@ fun TriggerEditScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // ① 트리거 이름
+            val namePlaceholder = remember(uiState.selectedBlendShape, uiState.selectedAction) {
+                val bsName = ALL_BLENDSHAPES.find { it.first == uiState.selectedBlendShape }?.second
+                    ?: uiState.selectedBlendShape
+                "예: $bsName → ${actionDisplayName(uiState.selectedAction)}"
+            }
             OutlinedTextField(
                 value = uiState.name,
                 onValueChange = viewModel::updateName,
                 label = { Text("트리거 이름") },
-                placeholder = { Text("예: 오른쪽 윙크 → 뒤로가기") },
+                placeholder = { Text(namePlaceholder) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -522,34 +535,63 @@ fun BlendShapePickerSheet(
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    var selectedCategory by remember { mutableStateOf(BlendShapeCategory.ALL) }
+
+    // 선택된 카테고리에 따라 필터링
+    val filteredBlendShapes = remember(selectedCategory) {
+        ALL_BLENDSHAPES.filter { (id, _) ->
+            selectedCategory == BlendShapeCategory.ALL ||
+                blendShapeCategory(id) == selectedCategory
+        }
+    }
+
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Text(
-            text = "표정 선택",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(bottom = 32.dp)
-        ) {
-            items(ALL_BLENDSHAPES) { (id, displayName) ->
-                val liveValue = currentLiveValues[id] ?: currentBlendShapeValues[id] ?: 0f
-                ListItem(
-                    headlineContent = { Text(displayName) },
-                    supportingContent = {
-                        Column {
-                            Text(id, style = MaterialTheme.typography.labelSmall,
-                                fontFamily = FontFamily.Monospace, fontSize = 10.sp)
-                            LinearProgressIndicator(
-                                progress = { liveValue.coerceIn(0f, 1f) },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    },
-                    modifier = Modifier.clickable { onSelect(id) }
-                )
-                HorizontalDivider()
+        Column(modifier = Modifier.fillMaxHeight(0.85f)) {
+            Text(
+                text = "표정 선택",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 카테고리 탭
+            ScrollableTabRow(
+                selectedTabIndex = selectedCategory.ordinal,
+                edgePadding = 0.dp
+            ) {
+                BlendShapeCategory.entries.forEachIndexed { index, category ->
+                    Tab(
+                        selected = selectedCategory.ordinal == index,
+                        onClick = { selectedCategory = category },
+                        text = { Text(category.label) }
+                    )
+                }
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentPadding = PaddingValues(bottom = 32.dp)
+            ) {
+                items(filteredBlendShapes) { (id, displayName) ->
+                    val liveValue = currentLiveValues[id] ?: currentBlendShapeValues[id] ?: 0f
+                    ListItem(
+                        headlineContent = { Text(displayName) },
+                        supportingContent = {
+                            Column {
+                                Text(id, style = MaterialTheme.typography.labelSmall,
+                                    fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+                                LinearProgressIndicator(
+                                    progress = { liveValue.coerceIn(0f, 1f) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        },
+                        modifier = Modifier.clickable { onSelect(id) }
+                    )
+                    HorizontalDivider()
+                }
             }
         }
     }

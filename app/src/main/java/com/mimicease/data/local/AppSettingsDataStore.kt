@@ -38,7 +38,14 @@ data class AppSettings(
     val headMouseDeadZone: Float = 0.02f,      // 데드존 (0.0 ~ 0.1)
     val dwellClickEnabled: Boolean = true,
     val dwellClickTimeMs: Long = 1000L,        // 드웰 클릭 시간 (500~3000)
-    val dwellClickRadiusPx: Float = 30f        // 드웰 영역 반경
+    val dwellClickRadiusPx: Float = 30f,       // 드웰 영역 반경
+
+    // ── 부팅 시 자동 서비스 시작 (기본 opt-out) ──
+    val autoStartOnBoot: Boolean = false,
+
+    // ── 음성 관용구 (AI 어시스턴트 연동) ──
+    val voiceCommandStop: String = "표정 인식 정지",
+    val voiceCommandStart: String = "표정 인식 시작"
 )
 
 // DataStore Keys
@@ -68,4 +75,11 @@ object AppSettingsKeys {
     val DWELL_CLICK_ENABLED    = booleanPreferencesKey("dwell_click_enabled")
     val DWELL_CLICK_TIME_MS    = longPreferencesKey("dwell_click_time_ms")
     val DWELL_CLICK_RADIUS_PX  = floatPreferencesKey("dwell_click_radius_px")
+
+    // 부팅 자동 시작
+    val AUTO_START_ON_BOOT     = booleanPreferencesKey("auto_start_on_boot")
+
+    // 음성 관용구
+    val VOICE_CMD_STOP         = stringPreferencesKey("voice_cmd_stop")
+    val VOICE_CMD_START        = stringPreferencesKey("voice_cmd_start")
 }

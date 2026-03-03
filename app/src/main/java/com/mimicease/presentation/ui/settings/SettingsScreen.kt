@@ -98,6 +98,18 @@ class SettingsViewModel @Inject constructor(
     fun toggleByBroadcast(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.updateSettings { it.copy(toggleByBroadcast = enabled) } }
     }
+
+    fun toggleAutoStartOnBoot(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.updateSettings { it.copy(autoStartOnBoot = enabled) } }
+    }
+
+    fun updateVoiceCommandStop(cmd: String) {
+        viewModelScope.launch { settingsRepository.updateSettings { it.copy(voiceCommandStop = cmd) } }
+    }
+
+    fun updateVoiceCommandStart(cmd: String) {
+        viewModelScope.launch { settingsRepository.updateSettings { it.copy(voiceCommandStart = cmd) } }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -400,6 +412,57 @@ fun SettingsScreen(
                 }
             }
 
+            // ── 부팅 자동 시작 ─────────────────────────────────────────────
+            SettingsSectionHeader("서비스 자동 시작")
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("부팅 시 자동 시작")
+                            Text(
+                                "기기 재시작 후 서비스를 자동으로 실행합니다",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = settings.autoStartOnBoot,
+                            onCheckedChange = { viewModel.toggleAutoStartOnBoot(it) }
+                        )
+                    }
+                }
+            }
+
+            // ── 음성 명령 설정 ─────────────────────────────────────────────
+            SettingsSectionHeader("음성 명령 설정")
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "AI 어시스턴트(Google, Bixby 등)에서 사용할 관용구를 설정합니다. Bixby Routines 또는 Tasker로 브로드캐스트를 연동하세요.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = settings.voiceCommandStop,
+                        onValueChange = { viewModel.updateVoiceCommandStop(it) },
+                        label = { Text("정지 관용구") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = settings.voiceCommandStart,
+                        onValueChange = { viewModel.updateVoiceCommandStart(it) },
+                        label = { Text("시작 관용구") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
             // ── 시스템 ────────────────────────────────────────────────────
             SettingsSectionHeader("시스템")
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -482,6 +545,24 @@ fun SettingsScreen(
                     ) {
                         Text("버전")
                         Text(BuildConfig.VERSION_NAME, style = MaterialTheme.typography.bodySmall)
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("튜토리얼")
+                            Text(
+                                "앱 사용 방법을 단계별로 확인합니다",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        TextButton(onClick = { navController.navigate("tutorial") }) {
+                            Text("다시 보기")
+                        }
                     }
                 }
             }

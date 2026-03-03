@@ -51,8 +51,7 @@ sealed class Action {
     object TapAtCursor : Action()
     object DoubleTapAtCursor : Action()
     object LongPressAtCursor : Action()
-    object DragStartAtCursor : Action()
-    object DragEndAtCursor : Action()
+    object DragToggleAtCursor : Action() // 토글: 첫 발동 → 드래그 시작, 두 번째 → 드래그 종료
 
     // ── 스위치 제어 (모든 모드에서 사용 가능) ──────────
     data class SwitchKey(val keyCode: Int, val label: String = "") : Action()

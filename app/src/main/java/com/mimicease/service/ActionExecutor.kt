@@ -15,6 +15,7 @@ class ActionExecutor(private val service: MimicAccessibilityService) {
 
     private var dragStartX: Float? = null
     private var dragStartY: Float? = null
+    private var isDragging: Boolean = false
 
     fun execute(action: Action) {
         when (action) {
@@ -92,26 +93,32 @@ class ActionExecutor(private val service: MimicAccessibilityService) {
                     executeLongPress(x, y)
                 } ?: Timber.w("LongPressAtCursor: no cursor position available")
             }
-            is Action.DragStartAtCursor -> {
-                service.cursorTracker.getCurrentPosition()?.let { (x, y) ->
-                    dragStartX = x
-                    dragStartY = y
-                    Timber.d("DragStartAtCursor: saved start position ($x, $y)")
-                } ?: Timber.w("DragStartAtCursor: no cursor position available")
-            }
-            is Action.DragEndAtCursor -> {
-                val sx = dragStartX
-                val sy = dragStartY
-                service.cursorTracker.getCurrentPosition()?.let { (ex, ey) ->
-                    if (sx != null && sy != null) {
-                        executeAbsoluteSwipe(sx, sy, ex, ey, 500L)
-                        Timber.d("DragEndAtCursor: executed swipe from ($sx, $sy) to ($ex, $ey)")
-                        dragStartX = null
-                        dragStartY = null
-                    } else {
-                        Timber.w("DragEndAtCursor: drag start position not set")
-                    }
-                } ?: Timber.w("DragEndAtCursor: no cursor position available")
+            is Action.DragToggleAtCursor -> {
+                if (!isDragging) {
+                    // 드래그 시작: 현재 커서 위치 저장
+                    service.cursorTracker.getCurrentPosition()?.let { (x, y) ->
+                        dragStartX = x
+                        dragStartY = y
+                        isDragging = true
+                        Timber.d("DragToggleAtCursor: drag START saved at ($x, $y)")
+                    } ?: Timber.w("DragToggleAtCursor: no cursor position for drag start")
+                } else {
+                    // 드래그 종료: 저장된 시작 위치 → 현재 커서까지 스와이프
+                    val sx = dragStartX
+                    val sy = dragStartY
+                    service.cursorTracker.getCurrentPosition()?.let { (ex, ey) ->
+                        if (sx != null && sy != null) {
+                            executeAbsoluteSwipe(sx, sy, ex, ey, 500L)
+                            Timber.d("DragToggleAtCursor: drag END swipe ($sx,$sy) → ($ex,$ey)")
+                        } else {
+                            Timber.w("DragToggleAtCursor: drag start position missing")
+                        }
+                    } ?: Timber.w("DragToggleAtCursor: no cursor position for drag end")
+                    // 상태 초기화 (성공/실패 무관)
+                    dragStartX = null
+                    dragStartY = null
+                    isDragging = false
+                }
             }
             // ── 스위치 제어 ──
             is Action.SwitchKey -> {

@@ -43,7 +43,10 @@ class SettingsRepositoryImpl @Inject constructor(
                 headMouseDeadZone = preferences[AppSettingsKeys.HEAD_MOUSE_DEAD_ZONE] ?: 0.02f,
                 dwellClickEnabled = preferences[AppSettingsKeys.DWELL_CLICK_ENABLED] ?: true,
                 dwellClickTimeMs = preferences[AppSettingsKeys.DWELL_CLICK_TIME_MS] ?: 1000L,
-                dwellClickRadiusPx = preferences[AppSettingsKeys.DWELL_CLICK_RADIUS_PX] ?: 30f
+                dwellClickRadiusPx = preferences[AppSettingsKeys.DWELL_CLICK_RADIUS_PX] ?: 30f,
+                autoStartOnBoot = preferences[AppSettingsKeys.AUTO_START_ON_BOOT] ?: false,
+                voiceCommandStop = preferences[AppSettingsKeys.VOICE_CMD_STOP] ?: "표정 인식 정지",
+                voiceCommandStart = preferences[AppSettingsKeys.VOICE_CMD_START] ?: "표정 인식 시작"
             )
         }
     }
@@ -71,7 +74,10 @@ class SettingsRepositoryImpl @Inject constructor(
                 headMouseDeadZone = preferences[AppSettingsKeys.HEAD_MOUSE_DEAD_ZONE] ?: 0.02f,
                 dwellClickEnabled = preferences[AppSettingsKeys.DWELL_CLICK_ENABLED] ?: true,
                 dwellClickTimeMs = preferences[AppSettingsKeys.DWELL_CLICK_TIME_MS] ?: 1000L,
-                dwellClickRadiusPx = preferences[AppSettingsKeys.DWELL_CLICK_RADIUS_PX] ?: 30f
+                dwellClickRadiusPx = preferences[AppSettingsKeys.DWELL_CLICK_RADIUS_PX] ?: 30f,
+                autoStartOnBoot = preferences[AppSettingsKeys.AUTO_START_ON_BOOT] ?: false,
+                voiceCommandStop = preferences[AppSettingsKeys.VOICE_CMD_STOP] ?: "표정 인식 정지",
+                voiceCommandStart = preferences[AppSettingsKeys.VOICE_CMD_START] ?: "표정 인식 시작"
             )
             
             val updated = updateParams(current)
@@ -99,6 +105,9 @@ class SettingsRepositoryImpl @Inject constructor(
             preferences[AppSettingsKeys.DWELL_CLICK_ENABLED] = updated.dwellClickEnabled
             preferences[AppSettingsKeys.DWELL_CLICK_TIME_MS] = updated.dwellClickTimeMs
             preferences[AppSettingsKeys.DWELL_CLICK_RADIUS_PX] = updated.dwellClickRadiusPx
+            preferences[AppSettingsKeys.AUTO_START_ON_BOOT] = updated.autoStartOnBoot
+            preferences[AppSettingsKeys.VOICE_CMD_STOP] = updated.voiceCommandStop
+            preferences[AppSettingsKeys.VOICE_CMD_START] = updated.voiceCommandStart
         }
     }
 }

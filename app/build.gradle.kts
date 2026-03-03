@@ -47,6 +47,7 @@ android {
 
 dependencies {
     implementation(project(":gameFace"))
+    implementation("com.google.mediapipe:tasks-vision:0.10.8")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.service)

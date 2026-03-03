@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".MimicEaseApp"
@@ -63,6 +65,15 @@
                 <action android:name="com.mimicease.ACTION_TOGGLE" />
                 <action android:name="com.mimicease.ACTION_ENABLE" />
                 <action android:name="com.mimicease.ACTION_DISABLE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- 부팅 완료 시 자동 서비스 시작 (autoStartOnBoot 설정에 따라 실행) -->
+        <receiver
+            android:name=".service.BootCompletedReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 

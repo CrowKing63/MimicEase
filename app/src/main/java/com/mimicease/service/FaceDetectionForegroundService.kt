@@ -16,6 +16,7 @@ import android.os.IBinder
 import android.util.Size
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -24,6 +25,7 @@ import com.mimicease.MainActivity
 import com.mimicease.domain.model.Action
 import com.mimicease.domain.repository.ProfileRepository
 import com.mimicease.domain.repository.SettingsRepository
+import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import com.mimicease.gameface.FaceLandmarkerHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -54,10 +56,15 @@ class FaceDetectionForegroundService : LifecycleService() {
 
         const val ACTION_PAUSE = "com.mimicease.ACTION_PAUSE"
         const val ACTION_RESUME = "com.mimicease.ACTION_RESUME"
+        const val ACTION_STOP = "com.mimicease.ACTION_STOP"
 
         // SharedFlow exposed for UI screens to observe real-time blendshapes
         private val _blendShapeFlow = MutableSharedFlow<Map<String, Float>>(replay = 1)
         val blendShapeFlow: SharedFlow<Map<String, Float>> = _blendShapeFlow.asSharedFlow()
+
+        // SharedFlow for face mesh landmark coordinates (for FaceMeshOverlay)
+        private val _faceLandmarksFlow = MutableSharedFlow<List<NormalizedLandmark>>(replay = 1)
+        val faceLandmarksFlow: SharedFlow<List<NormalizedLandmark>> = _faceLandmarksFlow.asSharedFlow()
 
         private val _inferenceTimeMs = MutableStateFlow(0L)
         val inferenceTimeMs: StateFlow<Long> = _inferenceTimeMs.asStateFlow()
@@ -67,6 +74,17 @@ class FaceDetectionForegroundService : LifecycleService() {
 
         private val _isPaused = MutableStateFlow(false)
         val isPaused: StateFlow<Boolean> = _isPaused.asStateFlow()
+
+        // Service instance for direct Preview SurfaceProvider attachment (test screen only)
+        private var _instance: FaceDetectionForegroundService? = null
+
+        fun attachPreviewSurfaceProvider(surfaceProvider: Preview.SurfaceProvider) {
+            _instance?.previewUseCase?.setSurfaceProvider(surfaceProvider)
+        }
+
+        fun detachPreviewSurfaceProvider() {
+            _instance?.previewUseCase?.setSurfaceProvider(null)
+        }
 
         fun createNotificationChannel(context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -106,12 +124,17 @@ class FaceDetectionForegroundService : LifecycleService() {
     private var activeProfileName: String? = null
     private var currentMode: InteractionMode = InteractionMode.EXPRESSION_ONLY
     private var globalToggleController: GlobalToggleController? = null
+    private var cameraProvider: ProcessCameraProvider? = null
+
+    // Preview UseCase: SurfaceProvider가 없으면 프리뷰 미표시, 테스트 화면에서 연결 가능
+    private val previewUseCase: Preview = Preview.Builder().build()
 
     @Inject lateinit var profileRepository: ProfileRepository
     @Inject lateinit var settingsRepository: SettingsRepository
 
     override fun onCreate() {
         super.onCreate()
+        _instance = this
         createNotificationChannel(this)
 
         // On Android 14+ (targetSdk >= 34), startForeground() with FOREGROUND_SERVICE_TYPE_CAMERA
@@ -156,16 +179,20 @@ class FaceDetectionForegroundService : LifecycleService() {
         super.onStartCommand(intent, flags, startId)
         when (intent?.action) {
             ACTION_PAUSE -> {
+                pauseAnalysis()
+            }
+            ACTION_RESUME -> {
+                resumeAnalysis()
+            }
+            ACTION_STOP -> {
+                // 카메라 해제 후 서비스 자체 종료 (BIND_AUTO_CREATE 바인딩이 해제되면 완전 종료)
+                unbindCamera()
                 isAnalyzing = false
                 _isPaused.value = true
                 faceLandmarkerHelper.pauseThread()
-                updateNotification()
-            }
-            ACTION_RESUME -> {
-                isAnalyzing = true
-                _isPaused.value = false
-                faceLandmarkerHelper.resumeThread()
-                updateNotification()
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+                return START_NOT_STICKY
             }
             else -> updateNotification()
         }
@@ -189,19 +216,22 @@ class FaceDetectionForegroundService : LifecycleService() {
     private fun initFaceLandmarker() {
         faceLandmarkerHelper = FaceLandmarkerHelper()
         faceLandmarkerHelper.start()  // Start HandlerThread
-        faceLandmarkerHelper.setFaceResultListener { blendshapes, transformMatrix, mediapipeMs, faceVisible ->
+        faceLandmarkerHelper.setFaceResultListener { blendshapes, landmarks, transformMatrix, mediapipeMs, faceVisible ->
             _isFaceVisible.value = faceVisible
             _inferenceTimeMs.value = mediapipeMs
             if (faceVisible && blendshapes.isNotEmpty()) {
                 serviceScope.launch { _blendShapeFlow.emit(blendshapes) }
-                
+                if (landmarks.isNotEmpty()) {
+                    serviceScope.launch { _faceLandmarksFlow.emit(landmarks) }
+                }
+
                 var yaw = 0f
                 var pitch = 0f
                 if (transformMatrix != null) {
                     yaw = Math.atan2(transformMatrix[2].toDouble(), transformMatrix[10].toDouble()).toFloat()
                     pitch = Math.asin(-transformMatrix[6].toDouble()).toFloat()
                 }
-                
+
                 processResults(blendshapes, yaw, pitch)
             }
         }
@@ -325,7 +355,8 @@ class FaceDetectionForegroundService : LifecycleService() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
             try {
-                val cameraProvider = cameraProviderFuture.get()
+                val provider = cameraProviderFuture.get()
+                cameraProvider = provider
 
                 val cameraSelector = CameraSelector.Builder()
                     .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
@@ -344,11 +375,12 @@ class FaceDetectionForegroundService : LifecycleService() {
                         }
                     }
 
-                cameraProvider.unbindAll()
-                val camera = cameraProvider.bindToLifecycle(
+                provider.unbindAll()
+                val camera = provider.bindToLifecycle(
                     this,
                     cameraSelector,
-                    imageAnalysis
+                    imageAnalysis,
+                    previewUseCase
                 )
                 // Monitor camera state errors (e.g. another app using camera)
                 camera.cameraInfo.cameraState.observe(this) { state ->
@@ -362,6 +394,11 @@ class FaceDetectionForegroundService : LifecycleService() {
                 Timber.e(e, "CameraX binding failed")
             }
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    /** CameraX 언바인드: 카메라 하드웨어를 실제로 해제하여 다른 앱이 사용할 수 있도록 합니다. */
+    private fun unbindCamera() {
+        cameraProvider?.unbindAll()
     }
 
     private fun registerScreenStateReceiver() {
@@ -385,6 +422,11 @@ class FaceDetectionForegroundService : LifecycleService() {
         isAnalyzing = false
         _isPaused.value = true
         faceLandmarkerHelper.pauseThread()
+        // CameraX 언바인드: 카메라 하드웨어를 실제로 해제해야 다른 앱(잠금 해제 등)이 카메라 사용 가능
+        unbindCamera()
+        serviceScope.launch(Dispatchers.Main) {
+            cursorOverlayView.hide()
+        }
         updateNotification()
     }
 
@@ -392,6 +434,8 @@ class FaceDetectionForegroundService : LifecycleService() {
         isAnalyzing = true
         _isPaused.value = false
         faceLandmarkerHelper.resumeThread()
+        // CameraX 재바인드: 카메라를 다시 열어 감지 재개
+        setupCamera()
         updateNotification()
     }
 
@@ -420,6 +464,14 @@ class FaceDetectionForegroundService : LifecycleService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val stopIntent = PendingIntent.getService(
+            this, 2,
+            Intent(this, FaceDetectionForegroundService::class.java).apply {
+                action = ACTION_STOP
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_camera)
             .setContentTitle("MimicEase")
@@ -440,11 +492,17 @@ class FaceDetectionForegroundService : LifecycleService() {
                 "앱 열기",
                 openIntent
             )
+            .addAction(
+                android.R.drawable.ic_menu_close_clear_cancel,
+                "정지",
+                stopIntent
+            )
             .build()
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        if (_instance == this) _instance = null
         serviceScope.cancel()
         cameraExecutor.shutdown()
         unregisterReceiver(screenStateReceiver)

@@ -1,5 +1,6 @@
 package com.mimicease.presentation.ui.test
 
+import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,10 +20,15 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
+import com.mimicease.presentation.ui.common.BlendShapeCategory
+import com.mimicease.presentation.ui.common.BLENDSHAPE_DISPLAY_NAMES
+import com.mimicease.presentation.ui.common.blendShapeCategory
 import com.mimicease.presentation.ui.home.MimicBottomNavigation
 import com.mimicease.service.FaceDetectionForegroundService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,86 +39,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// ─── BlendShape 카테고리 분류 ────────────────────────────────────────────
-
-enum class BlendShapeCategory(val label: String) {
-    ALL("전체"),
-    EYES("눈"),
-    BROWS("눈썹"),
-    MOUTH("입/턱"),
-    CHEEK("볼/코")
-}
-
-// BlendShape 이름을 카테고리별로 분류
-private fun blendShapeCategory(name: String): BlendShapeCategory = when {
-    name.startsWith("eyeBlink") || name.startsWith("eyeWide") ||
-    name.startsWith("eyeSquint") || name.startsWith("eyeLook") -> BlendShapeCategory.EYES
-
-    name.startsWith("brow") -> BlendShapeCategory.BROWS
-
-    name.startsWith("mouth") || name.startsWith("jaw") ||
-    name == "tongueOut" -> BlendShapeCategory.MOUTH
-
-    name.startsWith("cheek") || name.startsWith("noseSneer") -> BlendShapeCategory.CHEEK
-
-    else -> BlendShapeCategory.ALL
-}
-
-// 사람이 읽기 쉬운 표정 이름 매핑
-private val BLENDSHAPE_DISPLAY_NAMES = mapOf(
-    "eyeBlinkLeft" to "눈 깜빡임 (왼쪽)",
-    "eyeBlinkRight" to "눈 깜빡임 (오른쪽)",
-    "eyeWideLeft" to "눈 크게 (왼쪽)",
-    "eyeWideRight" to "눈 크게 (오른쪽)",
-    "eyeSquintLeft" to "눈 찡그림 (왼쪽)",
-    "eyeSquintRight" to "눈 찡그림 (오른쪽)",
-    "eyeLookUpLeft" to "눈 위로 (왼쪽)",
-    "eyeLookUpRight" to "눈 위로 (오른쪽)",
-    "eyeLookDownLeft" to "눈 아래로 (왼쪽)",
-    "eyeLookDownRight" to "눈 아래로 (오른쪽)",
-    "eyeLookInLeft" to "눈 안쪽 (왼쪽)",
-    "eyeLookInRight" to "눈 안쪽 (오른쪽)",
-    "eyeLookOutLeft" to "눈 바깥쪽 (왼쪽)",
-    "eyeLookOutRight" to "눈 바깥쪽 (오른쪽)",
-    "browInnerUp" to "눈썹 안쪽 올리기",
-    "browOuterUpLeft" to "눈썹 바깥쪽 올리기 (왼)",
-    "browOuterUpRight" to "눈썹 바깥쪽 올리기 (오)",
-    "browDownLeft" to "눈썹 내리기 (왼쪽)",
-    "browDownRight" to "눈썹 내리기 (오른쪽)",
-    "jawOpen" to "입 벌리기",
-    "jawLeft" to "턱 왼쪽",
-    "jawRight" to "턱 오른쪽",
-    "jawForward" to "턱 앞으로",
-    "mouthSmileLeft" to "미소 (왼쪽)",
-    "mouthSmileRight" to "미소 (오른쪽)",
-    "mouthFrownLeft" to "입꼬리 내리기 (왼)",
-    "mouthFrownRight" to "입꼬리 내리기 (오)",
-    "mouthPucker" to "입술 오므리기",
-    "mouthFunnel" to "입 모으기",
-    "mouthLeft" to "입 왼쪽",
-    "mouthRight" to "입 오른쪽",
-    "mouthRollLower" to "아랫입술 말기",
-    "mouthRollUpper" to "윗입술 말기",
-    "mouthShrugLower" to "아랫입술 올리기",
-    "mouthShrugUpper" to "윗입술 올리기",
-    "mouthClose" to "입 다물기",
-    "mouthUpperUpLeft" to "윗입술 위로 (왼)",
-    "mouthUpperUpRight" to "윗입술 위로 (오)",
-    "mouthLowerDownLeft" to "아랫입술 아래로 (왼)",
-    "mouthLowerDownRight" to "아랫입술 아래로 (오)",
-    "mouthDimpleLeft" to "보조개 (왼쪽)",
-    "mouthDimpleRight" to "보조개 (오른쪽)",
-    "mouthPressLeft" to "입술 누르기 (왼)",
-    "mouthPressRight" to "입술 누르기 (오)",
-    "mouthStretchLeft" to "입 늘리기 (왼쪽)",
-    "mouthStretchRight" to "입 늘리기 (오른쪽)",
-    "cheekPuff" to "볼 부풀리기",
-    "cheekSquintLeft" to "볼 찡그림 (왼쪽)",
-    "cheekSquintRight" to "볼 찡그림 (오른쪽)",
-    "noseSneerLeft" to "코 찡그림 (왼쪽)",
-    "noseSneerRight" to "코 찡그림 (오른쪽)"
-)
-
 // ─── ViewModel ───────────────────────────────────────────────────────────
 
 data class ExpressionTestUiState(
@@ -120,7 +46,8 @@ data class ExpressionTestUiState(
     val selectedCategory: BlendShapeCategory = BlendShapeCategory.ALL,
     val topExpressions: List<Pair<String, Float>> = emptyList(),
     val isFaceVisible: Boolean = false,
-    val inferenceTimeMs: Long = 0L
+    val inferenceTimeMs: Long = 0L,
+    val faceLandmarks: List<NormalizedLandmark> = emptyList()
 )
 
 @HiltViewModel
@@ -150,6 +77,11 @@ class ExpressionTestViewModel @Inject constructor() : ViewModel() {
                 _uiState.update { it.copy(inferenceTimeMs = ms) }
             }
         }
+        viewModelScope.launch {
+            FaceDetectionForegroundService.faceLandmarksFlow.collect { landmarks ->
+                _uiState.update { it.copy(faceLandmarks = landmarks) }
+            }
+        }
     }
 
     fun selectCategory(category: BlendShapeCategory) {
@@ -168,7 +100,6 @@ fun ExpressionTestScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     // 현재 카테고리에 따라 필터링된 blendshape 목록
-    // 표시 이름 기준 알파벳 순으로 고정 정렬 → 값 변화에 따라 순서가 바뀌지 않음
     val filteredBlendShapes = remember(uiState.blendShapeValues, uiState.selectedCategory) {
         uiState.blendShapeValues.entries
             .filter { (name, _) ->
@@ -191,8 +122,6 @@ fun ExpressionTestScreen(
                     text = { Text("이 표정으로 트리거 만들기") },
                     icon = { Icon(Icons.Default.Add, null) },
                     onClick = {
-                        val bs = topBlendShape.first
-                        val threshold = (topBlendShape.second * 0.85f).coerceIn(0.1f, 0.95f)
                         navController.navigate("profiles")
                     }
                 )
@@ -204,6 +133,14 @@ fun ExpressionTestScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            // ── 카메라 피드 + 메쉬 오버레이 (화면 상단 1/3) ────────────────
+            CameraPreviewWithMesh(
+                landmarks = uiState.faceLandmarks,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.33f)
+            )
+
             // ── 얼굴 감지 상태 표시 ─────────────────────
             FaceStatusBanner(
                 isFaceVisible = uiState.isFaceVisible,
@@ -255,6 +192,43 @@ fun ExpressionTestScreen(
     }
 }
 
+// ─── 카메라 프리뷰 + 메쉬 오버레이 ──────────────────────────────────────
+
+@Composable
+private fun CameraPreviewWithMesh(
+    landmarks: List<NormalizedLandmark>,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier.background(Color.Black)) {
+        // CameraX PreviewView (서비스의 Preview UseCase에 SurfaceProvider 연결)
+        AndroidView(
+            factory = { ctx ->
+                PreviewView(ctx).apply {
+                    implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                    scaleType = PreviewView.ScaleType.FILL_CENTER
+                }
+            },
+            update = { previewView ->
+                FaceDetectionForegroundService.attachPreviewSurfaceProvider(previewView.surfaceProvider)
+            },
+            onRelease = {
+                FaceDetectionForegroundService.detachPreviewSurfaceProvider()
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // 얼굴 메쉬 오버레이
+        if (landmarks.isNotEmpty()) {
+            FaceMeshOverlay(
+                landmarks = landmarks,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
+}
+
+// ─── 기존 컴포저블 ────────────────────────────────────────────────────────
+
 @Composable
 private fun FaceStatusBanner(isFaceVisible: Boolean, inferenceTimeMs: Long) {
     val (color, text) = if (isFaceVisible) {
@@ -281,7 +255,6 @@ private fun FaceStatusBanner(isFaceVisible: Boolean, inferenceTimeMs: Long) {
 
 @Composable
 private fun TopExpressionsRow(expressions: List<Pair<String, Float>>) {
-    // 항상 3개 슬롯을 고정으로 렌더링해 레이아웃이 흔들리지 않도록 함
     val slots = (expressions + List(3) { null }).take(3)
 
     Row(
@@ -334,7 +307,6 @@ private fun TopExpressionsRow(expressions: List<Pair<String, Float>>) {
                         }
                     }
                 } else {
-                    // 빈 슬롯 — 크기 유지용
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
@@ -376,7 +348,6 @@ private fun BlendShapeRow(name: String, value: Float) {
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 이름
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = BLENDSHAPE_DISPLAY_NAMES[name] ?: name,
@@ -392,7 +363,6 @@ private fun BlendShapeRow(name: String, value: Float) {
                 )
             }
 
-            // 수치
             Text(
                 text = "%.2f".format(animatedValue),
                 style = MaterialTheme.typography.labelLarge,
@@ -402,7 +372,6 @@ private fun BlendShapeRow(name: String, value: Float) {
                         else MaterialTheme.colorScheme.onSurface
             )
 
-            // 게이지 바
             Box(
                 modifier = Modifier
                     .width(120.dp)
@@ -417,7 +386,6 @@ private fun BlendShapeRow(name: String, value: Float) {
                         .clip(RoundedCornerShape(6.dp))
                         .background(barColor)
                 )
-                // 임계값 마커 (expanded 상태에서만)
                 if (expanded) {
                     Box(
                         modifier = Modifier
@@ -430,7 +398,6 @@ private fun BlendShapeRow(name: String, value: Float) {
             }
         }
 
-        // 펼침: 임계값 슬라이더
         if (expanded) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(

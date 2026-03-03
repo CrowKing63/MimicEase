@@ -101,8 +101,11 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.updateSettings { it.copy(isServiceEnabled = false) }
         }
-        val intent = Intent(appContext, FaceDetectionForegroundService::class.java)
-        appContext.stopService(intent)
+        // ACTION_STOP: 카메라 해제 후 stopSelf() 호출 → 바인딩이 모두 해제되면 서비스 완전 종료
+        val intent = Intent(appContext, FaceDetectionForegroundService::class.java).apply {
+            action = FaceDetectionForegroundService.ACTION_STOP
+        }
+        appContext.startService(intent)
     }
 
     fun toggleTriggerEnabled(trigger: Trigger, isEnabled: Boolean) {

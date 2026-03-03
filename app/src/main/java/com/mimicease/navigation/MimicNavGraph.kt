@@ -21,6 +21,7 @@ import com.mimicease.presentation.ui.profile.TriggerEditScreen
 import com.mimicease.presentation.ui.profile.TriggerListScreen
 import com.mimicease.presentation.ui.settings.SettingsScreen
 import com.mimicease.presentation.ui.test.ExpressionTestScreen
+import com.mimicease.presentation.ui.tutorial.TutorialScreen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -129,6 +130,10 @@ fun MimicNavGraph(
 
         composable("settings") {
             SettingsScreen(navController = navController)
+        }
+
+        composable("tutorial") {
+            TutorialScreen(navController = navController)
         }
     }
 }

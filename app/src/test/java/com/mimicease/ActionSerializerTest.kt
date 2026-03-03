@@ -89,11 +89,30 @@ class ActionSerializerTest {
             Action.TapCenter, Action.ScrollUp, Action.ScrollDown,
             Action.PinchIn, Action.PinchOut,
             Action.MediaPlayPause, Action.MediaNext, Action.MediaPrev,
-            Action.VolumeUp, Action.VolumeDown, Action.MimicPause
+            Action.VolumeUp, Action.VolumeDown, Action.MimicPause,
+            Action.TapAtCursor, Action.DoubleTapAtCursor, Action.LongPressAtCursor,
+            Action.DragToggleAtCursor
         )
         noParamActions.forEach { action ->
             val result = roundTrip(action)
             assertEquals("${action::class.simpleName} 타입 불일치", action, result)
         }
+    }
+
+    @Test
+    fun `DragToggleAtCursor 직렬화 후 역직렬화`() {
+        assertEquals(Action.DragToggleAtCursor, roundTrip(Action.DragToggleAtCursor))
+    }
+
+    @Test
+    fun `레거시 DragStartAtCursor → DragToggleAtCursor 마이그레이션`() {
+        val result = ActionSerializer.deserialize("DragStartAtCursor", "{}")
+        assertEquals(Action.DragToggleAtCursor, result)
+    }
+
+    @Test
+    fun `레거시 DragEndAtCursor → DragToggleAtCursor 마이그레이션`() {
+        val result = ActionSerializer.deserialize("DragEndAtCursor", "{}")
+        assertEquals(Action.DragToggleAtCursor, result)
     }
 }
