@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -214,7 +215,10 @@ private fun CameraPreviewWithMesh(
     imageSize: Pair<Int, Int>,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier.background(Color.Black)) {
+    // clipToBounds(): FaceMeshOverlay Canvas의 FILL_CENTER 좌표 변환 결과가 뷰 높이를 초과할 수 있음.
+    // 예) 세로 모드에서 offsetY = -272px → 턱/입 랜드마크가 캔버스 하단 밖(탭 영역)으로 삐져나옴.
+    // Compose의 Canvas는 기본적으로 경계 클리핑을 보장하지 않으므로 반드시 명시적으로 지정해야 함.
+    Box(modifier = modifier.background(Color.Black).clipToBounds()) {
         // CameraX PreviewView (서비스의 Preview UseCase에 SurfaceProvider 연결)
         AndroidView(
             factory = { ctx ->
