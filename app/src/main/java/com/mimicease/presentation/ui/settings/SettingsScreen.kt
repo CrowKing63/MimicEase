@@ -1,5 +1,6 @@
 package com.mimicease.presentation.ui.settings
 
+import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -122,7 +123,9 @@ fun SettingsScreen(
     val context = LocalContext.current
 
     var isAccessibilityEnabled by remember {
-        mutableStateOf(MimicAccessibilityService.instance != null)
+        // instance != null 대신 시스템 접근성 설정을 확인.
+        // 앱 프로세스가 재시작된 직후 instance가 일시적으로 null이 되더라도 올바른 상태를 표시.
+        mutableStateOf(context.isMimicAccessibilityServiceEnabled())
     }
 
     var isBatteryOptExcluded by remember {
@@ -137,7 +140,7 @@ fun SettingsScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                isAccessibilityEnabled = MimicAccessibilityService.instance != null
+                isAccessibilityEnabled = context.isMimicAccessibilityServiceEnabled()
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     val pm = context.getSystemService(PowerManager::class.java)
                     isBatteryOptExcluded = pm.isIgnoringBatteryOptimizations(context.packageName)
@@ -579,4 +582,23 @@ private fun SettingsSectionHeader(title: String) {
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.primary
     )
+}
+
+/**
+ * 시스템 접근성 설정에서 MimicAccessibilityService가 실제로 활성화되어 있는지 확인.
+ * MimicAccessibilityService.instance != null 대신 이 함수를 사용하면
+ * 앱 프로세스 재시작 시 발생하는 일시적 null 상태에서도 올바른 결과를 반환.
+ */
+private fun android.content.Context.isMimicAccessibilityServiceEnabled(): Boolean {
+    val enabledServices = Settings.Secure.getString(
+        contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+    ) ?: return false
+    val myComponent = ComponentName(this, MimicAccessibilityService::class.java)
+    return enabledServices.split(':').any {
+        try {
+            ComponentName.unflattenFromString(it.trim()) == myComponent
+        } catch (e: Exception) {
+            false
+        }
+    }
 }

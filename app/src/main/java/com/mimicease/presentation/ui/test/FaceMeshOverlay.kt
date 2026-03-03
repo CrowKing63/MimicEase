@@ -52,7 +52,11 @@ private val RIGHT_EYEBROW_CONNECTIONS = listOf(
 fun FaceMeshOverlay(
     landmarks: List<NormalizedLandmark>,
     modifier: Modifier = Modifier,
-    meshAlpha: Float = 0.6f
+    meshAlpha: Float = 0.6f,
+    // MediaPipe 처리 이미지 크기 (mpInputWidth × mpInputHeight).
+    // PreviewView가 FILL_CENTER 스케일 타입을 사용하므로 이미지가 크롭될 수 있음.
+    // 이 값을 이용해 실제 표시 영역의 offset과 scale을 계산하여 정확한 랜드마크 좌표를 구함.
+    imageSize: Pair<Int, Int> = Pair(0, 0)
 ) {
     if (landmarks.isEmpty()) return
 
@@ -61,13 +65,29 @@ fun FaceMeshOverlay(
     val ovalColor = Color(0xFF69F0AE).copy(alpha = meshAlpha)
 
     Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
+        val viewW = size.width
+        val viewH = size.height
+
+        // FILL_CENTER 변환: 이미지를 뷰에 꽉 채우도록 스케일 후 중앙 정렬 (초과 부분 크롭)
+        // PreviewView ScaleType.FILL_CENTER와 동일한 변환을 Canvas에 적용하여 메쉬 정렬
+        val (imgW, imgH) = imageSize
+        val scaleToFill = if (imgW > 0 && imgH > 0) {
+            // 두 축 중 더 큰 스케일로 맞춰야 뷰를 꽉 채울 수 있음 (한 쪽은 크롭됨)
+            maxOf(viewW / imgW.toFloat(), viewH / imgH.toFloat())
+        } else 1f
+        val displayW = if (imgW > 0) imgW * scaleToFill else viewW
+        val displayH = if (imgH > 0) imgH * scaleToFill else viewH
+        // offset이 음수이면 해당 방향으로 크롭된 것 (랜드마크가 뷰 밖으로 벗어날 수 있음)
+        val offsetX = (viewW - displayW) / 2f
+        val offsetY = (viewH - displayH) / 2f
 
         fun landmark(index: Int): Offset? {
             if (index >= landmarks.size) return null
             val lm = landmarks[index]
-            return Offset(lm.x() * w, lm.y() * h)
+            return Offset(
+                offsetX + lm.x() * displayW,
+                offsetY + lm.y() * displayH
+            )
         }
 
         fun drawConnections(connections: List<Pair<Int, Int>>, color: Color, strokeWidth: Float = 1.5f) {

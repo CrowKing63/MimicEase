@@ -47,7 +47,9 @@ data class ExpressionTestUiState(
     val topExpressions: List<Pair<String, Float>> = emptyList(),
     val isFaceVisible: Boolean = false,
     val inferenceTimeMs: Long = 0L,
-    val faceLandmarks: List<NormalizedLandmark> = emptyList()
+    val faceLandmarks: List<NormalizedLandmark> = emptyList(),
+    // MediaPipe 처리 이미지 크기 — FaceMeshOverlay FILL_CENTER 좌표 보정에 사용
+    val imageSize: Pair<Int, Int> = Pair(0, 0)
 )
 
 @HiltViewModel
@@ -80,6 +82,11 @@ class ExpressionTestViewModel @Inject constructor() : ViewModel() {
         viewModelScope.launch {
             FaceDetectionForegroundService.faceLandmarksFlow.collect { landmarks ->
                 _uiState.update { it.copy(faceLandmarks = landmarks) }
+            }
+        }
+        viewModelScope.launch {
+            FaceDetectionForegroundService.imageSizeFlow.collect { size ->
+                _uiState.update { it.copy(imageSize = size) }
             }
         }
     }
@@ -136,6 +143,7 @@ fun ExpressionTestScreen(
             // ── 카메라 피드 + 메쉬 오버레이 (화면 상단 1/3) ────────────────
             CameraPreviewWithMesh(
                 landmarks = uiState.faceLandmarks,
+                imageSize = uiState.imageSize,
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.33f)
@@ -167,9 +175,13 @@ fun ExpressionTestScreen(
             }
 
             // ── BlendShape 목록 ──────────────────────────
+            // weight(1f): 남은 공간을 채우되 다른 콘텐츠와 겹치지 않도록 함
+            // fillMaxSize() 사용 시 Column 내에서 무한 높이 제약 오류 발생
             if (uiState.blendShapeValues.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -180,7 +192,9 @@ fun ExpressionTestScreen(
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
                     items(filteredBlendShapes, key = { it.key }) { (name, value) ->
@@ -197,6 +211,7 @@ fun ExpressionTestScreen(
 @Composable
 private fun CameraPreviewWithMesh(
     landmarks: List<NormalizedLandmark>,
+    imageSize: Pair<Int, Int>,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.background(Color.Black)) {
@@ -217,10 +232,11 @@ private fun CameraPreviewWithMesh(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 얼굴 메쉬 오버레이
+        // 얼굴 메쉬 오버레이 — imageSize를 전달하여 FILL_CENTER 크롭 보정
         if (landmarks.isNotEmpty()) {
             FaceMeshOverlay(
                 landmarks = landmarks,
+                imageSize = imageSize,
                 modifier = Modifier.fillMaxSize()
             )
         }

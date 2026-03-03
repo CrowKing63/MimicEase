@@ -13,6 +13,7 @@ import android.os.Binder
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
+import android.provider.Settings
 import android.util.Size
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -65,6 +66,10 @@ class FaceDetectionForegroundService : LifecycleService() {
         // SharedFlow for face mesh landmark coordinates (for FaceMeshOverlay)
         private val _faceLandmarksFlow = MutableSharedFlow<List<NormalizedLandmark>>(replay = 1)
         val faceLandmarksFlow: SharedFlow<List<NormalizedLandmark>> = _faceLandmarksFlow.asSharedFlow()
+
+        // MediaPipe 처리 이미지 크기 — FaceMeshOverlay 좌표 보정에 사용
+        private val _imageSizeFlow = MutableStateFlow(Pair(0, 0))
+        val imageSizeFlow: StateFlow<Pair<Int, Int>> = _imageSizeFlow.asStateFlow()
 
         private val _inferenceTimeMs = MutableStateFlow(0L)
         val inferenceTimeMs: StateFlow<Long> = _inferenceTimeMs.asStateFlow()
@@ -219,6 +224,12 @@ class FaceDetectionForegroundService : LifecycleService() {
         faceLandmarkerHelper.setFaceResultListener { blendshapes, landmarks, transformMatrix, mediapipeMs, faceVisible ->
             _isFaceVisible.value = faceVisible
             _inferenceTimeMs.value = mediapipeMs
+            // MediaPipe 처리 이미지 크기 업데이트 (랜드마크 오버레이 좌표 보정용)
+            val iw = faceLandmarkerHelper.mpInputWidth
+            val ih = faceLandmarkerHelper.mpInputHeight
+            if (iw > 0 && ih > 0) {
+                _imageSizeFlow.value = Pair(iw, ih)
+            }
             if (faceVisible && blendshapes.isNotEmpty()) {
                 serviceScope.launch { _blendShapeFlow.emit(blendshapes) }
                 if (landmarks.isNotEmpty()) {
@@ -272,12 +283,17 @@ class FaceDetectionForegroundService : LifecycleService() {
                 dwellClickController.update(cx, cy, System.currentTimeMillis())
             } else 0f
 
-            // Draw overlay
+            // Draw overlay — SYSTEM_ALERT_WINDOW 권한이 런타임에 허용된 경우에만 오버레이 표시
+            // 미허용 시 windowManager.addView()가 SecurityException을 던져 앱이 꺼짐
             serviceScope.launch(Dispatchers.Main) {
-                if (cursorOverlayView.parent == null) {
-                    cursorOverlayView.show()
+                if (Settings.canDrawOverlays(this@FaceDetectionForegroundService)) {
+                    if (cursorOverlayView.parent == null) {
+                        cursorOverlayView.show()
+                    }
+                    cursorOverlayView.update(cx, cy, progress)
+                } else {
+                    Timber.w("Overlay permission not granted — cursor overlay skipped. Go to Settings > Apps > Special app access > Display over other apps")
                 }
-                cursorOverlayView.update(cx, cy, progress)
             }
         } else {
             // Hide overlay if not in mode
