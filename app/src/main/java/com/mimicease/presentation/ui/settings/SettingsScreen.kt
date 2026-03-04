@@ -136,6 +136,11 @@ fun SettingsScreen(
             } else true
         )
     }
+
+    // HEAD_MOUSE 모드에서 커서 오버레이를 표시하려면 SYSTEM_ALERT_WINDOW 권한 필요.
+    // Settings.canDrawOverlays()로 실시간 확인하고 ON_RESUME에서 갱신.
+    var isOverlayPermGranted by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
+
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -145,6 +150,7 @@ fun SettingsScreen(
                     val pm = context.getSystemService(PowerManager::class.java)
                     isBatteryOptExcluded = pm.isIgnoringBatteryOptimizations(context.packageName)
                 }
+                isOverlayPermGranted = Settings.canDrawOverlays(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -195,6 +201,53 @@ fun SettingsScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                        }
+                    }
+                }
+            }
+
+            // ── 헤드 마우스 오버레이 권한 경고 ──────────────────────────────
+            // HEAD_MOUSE를 선택했으나 SYSTEM_ALERT_WINDOW 권한이 없으면
+            // CursorOverlayView.show()가 WindowManager에서 SecurityException을 던져
+            // 커서가 화면에 전혀 표시되지 않음. 사용자가 직접 권한을 허용해야 함.
+            if (settings.activeMode == InteractionMode.HEAD_MOUSE && !isOverlayPermGranted) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "오버레이 권한 필요",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Text(
+                                "헤드 마우스 커서를 화면에 표시하려면 '다른 앱 위에 표시' 권한이 필요합니다.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TextButton(
+                            onClick = {
+                                context.startActivity(
+                                    Intent(
+                                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                        Uri.parse("package:${context.packageName}")
+                                    )
+                                )
+                            }
+                        ) {
+                            Text("권한 허용", color = MaterialTheme.colorScheme.onErrorContainer)
                         }
                     }
                 }

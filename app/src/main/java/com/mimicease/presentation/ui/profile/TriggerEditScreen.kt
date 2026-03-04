@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -37,7 +38,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 import kotlin.math.roundToInt
@@ -612,8 +615,17 @@ fun ActionPickerSheet(
         ACTION_SYSTEM, ACTION_GESTURE, ACTION_MEDIA, ACTION_CURSOR, ACTION_SWITCH
     )
 
+    // ModalBottomSheet은 초기 레이아웃 패스에서 무한 높이 제약을 전달할 수 있음.
+    // fillMaxHeight(fraction)은 무한 * fraction = 무한이 되어 weight()가 동작 실패.
+    // heightIn(max = 절대값)을 사용해 Column이 항상 유한한 최대 높이를 갖도록 보장.
+    val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.7f
+
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.fillMaxHeight(0.7f)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = maxSheetHeight)
+        ) {
             Text(
                 text = "액션 선택",
                 style = MaterialTheme.typography.titleLarge,
@@ -647,7 +659,8 @@ fun ActionPickerSheet(
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = PaddingValues(bottom = 32.dp)
                     ) {
-                        items(staticActionsByTab[selectedTab]) { action ->
+                        // 안전 접근: selectedTab이 0-4 범위를 벗어날 경우 빈 목록으로 폴백
+                        items(staticActionsByTab.getOrNull(selectedTab) ?: emptyList()) { action ->
                             ListItem(
                                 headlineContent = { Text(actionDisplayName(action)) },
                                 modifier = Modifier.clickable { onSelect(action) }
@@ -664,37 +677,71 @@ fun ActionPickerSheet(
 @Composable
 private fun AppPickerTab(onSelect: (Action) -> Unit) {
     val context = LocalContext.current
-    val apps = remember {
-        val pm = context.packageManager
-        val intent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
-        @Suppress("DEPRECATION")
-        pm.queryIntentActivities(intent, 0)
-            .mapNotNull { resolve ->
-                val ai = resolve.activityInfo ?: return@mapNotNull null
-                val label = runCatching { pm.getApplicationLabel(ai.applicationInfo).toString() }
-                    .getOrDefault(ai.packageName)
-                ai.packageName to label
-            }
-            .distinctBy { it.first }
-            .sortedBy { it.second }
+    var isLoading by remember { mutableStateOf(true) }
+    var apps by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        // queryIntentActivities()를 IO 스레드에서 비동기 실행.
+        // 컴포지션(메인) 스레드에서 동기 호출하면 Android 14+(targetSdk=35) 에서
+        // StrictMode 위반 또는 SecurityException이 발생해 앱이 종료될 수 있음.
+        val result = withContext(Dispatchers.IO) {
+            runCatching {
+                val pm = context.packageManager
+                val intent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
+                @Suppress("DEPRECATION")
+                pm.queryIntentActivities(intent, 0)
+                    .mapNotNull { resolve ->
+                        val ai = resolve.activityInfo ?: return@mapNotNull null
+                        val label = runCatching {
+                            pm.getApplicationLabel(ai.applicationInfo).toString()
+                        }.getOrDefault(ai.packageName)
+                        ai.packageName to label
+                    }
+                    .distinctBy { it.first }
+                    .sortedBy { it.second }
+            }.getOrElse { emptyList() }
+        }
+        apps = result
+        isLoading = false
     }
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(bottom = 32.dp)
-    ) {
-        items(apps) { (pkg, name) ->
-            ListItem(
-                headlineContent = { Text(name) },
-                supportingContent = {
-                    Text(
-                        text = pkg,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace
-                    )
-                },
-                modifier = Modifier.clickable { onSelect(Action.OpenApp(pkg)) }
+
+    when {
+        isLoading -> Box(
+            // fillMaxSize() 대신 fillMaxWidth() 사용 — 높이는 부모(weight Box)가 결정
+            // fillMaxSize()는 무한 높이 제약 상황에서 크래시를 일으킬 수 있음
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        apps.isEmpty() -> Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "설치된 앱을 불러올 수 없습니다",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            HorizontalDivider()
+        }
+        else -> LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(bottom = 32.dp)
+        ) {
+            items(apps) { (pkg, name) ->
+                ListItem(
+                    headlineContent = { Text(name) },
+                    supportingContent = {
+                        Text(
+                            text = pkg,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    },
+                    modifier = Modifier.clickable { onSelect(Action.OpenApp(pkg)) }
+                )
+                HorizontalDivider()
+            }
         }
     }
 }

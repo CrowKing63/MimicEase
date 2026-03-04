@@ -254,6 +254,22 @@ class FaceDetectionForegroundService : LifecycleService() {
         Handler(faceLandmarkerHelper.looper).post {
             try {
                 faceLandmarkerHelper.init(this@FaceDetectionForegroundService)
+                // 최초 설치 직후 GPU/CPU 델리게이트가 모두 실패하는 경우,
+                // faceLandmarker가 null로 남아 얼굴 감지가 안 될 수 있음.
+                // 동일 HandlerThread에서 3초 뒤 재시도 → 서비스 재시작 없이 자동 복구.
+                if (!faceLandmarkerHelper.isModelLoaded()) {
+                    Timber.w("MediaPipe: 모델 로드 실패, 3초 후 재시도")
+                    Handler(faceLandmarkerHelper.looper).postDelayed({
+                        if (!faceLandmarkerHelper.isModelLoaded()) {
+                            try {
+                                Timber.i("MediaPipe 초기화 재시도...")
+                                faceLandmarkerHelper.init(this@FaceDetectionForegroundService)
+                            } catch (t: Throwable) {
+                                Timber.e(t, "FaceLandmarkerHelper 재시도 실패")
+                            }
+                        }
+                    }, 3000L)
+                }
             } catch (t: Throwable) {
                 Timber.e(t, "FaceLandmarkerHelper init failed on HandlerThread")
             }
@@ -261,45 +277,36 @@ class FaceDetectionForegroundService : LifecycleService() {
     }
 
     private fun processResults(rawValues: Map<String, Float>, yaw: Float = 0f, pitch: Float = 0f) {
-        if (!isAnalyzing || !::triggerMatcher.isInitialized || !::actionExecutor.isInitialized) return
+        if (!isAnalyzing) return
+
+        // HEAD_MOUSE 커서 오버레이: triggerMatcher/actionExecutor 초기화와 독립적으로 동작
+        // (커서는 프로필 미설정 상태나 접근성 서비스 바인딩 전에도 표시되어야 함)
+        if (currentMode == InteractionMode.HEAD_MOUSE) {
+            val (cx, cy) = headTracker.updatePosition(yaw, pitch)
+            MimicAccessibilityService.instance?.cursorTracker?.updateFromHeadTracker(cx, cy)
+            val progress = if (::dwellClickController.isInitialized) {
+                dwellClickController.update(cx, cy, System.currentTimeMillis())
+            } else 0f
+            serviceScope.launch(Dispatchers.Main) {
+                if (Settings.canDrawOverlays(this@FaceDetectionForegroundService)) {
+                    if (cursorOverlayView.parent == null) cursorOverlayView.show()
+                    cursorOverlayView.update(cx, cy, progress)
+                } else {
+                    Timber.w("Overlay permission not granted — cursor overlay skipped.")
+                }
+            }
+        } else {
+            serviceScope.launch(Dispatchers.Main) { cursorOverlayView.hide() }
+        }
+
+        // 트리거 매칭/액션 실행은 triggerMatcher + actionExecutor 초기화 후에만 가능
+        if (!::triggerMatcher.isInitialized || !::actionExecutor.isInitialized) return
 
         val smoothed = expressionAnalyzer.processSmoothed(rawValues)
 
         // 글로벌 토글: 표정 채널 검사 (트리거 매칭보다 먼저)
         if (globalToggleController?.checkExpressionToggle(smoothed) == true) {
             return  // 토글이 발동되면 이번 프레임의 다른 트리거는 무시
-        }
-
-        // Phase 3: Head Tracking
-        if (currentMode == InteractionMode.HEAD_MOUSE) {
-            // Update logical cursor position
-            val (cx, cy) = headTracker.updatePosition(yaw, pitch)
-
-            // ActionExecutor의 커서 액션(TapAtCursor 등)이 HeadTracker 위치를 참조하도록 동기화
-            MimicAccessibilityService.instance?.cursorTracker?.updateFromHeadTracker(cx, cy)
-
-            // Update Dwell progress
-            val progress = if (::dwellClickController.isInitialized) {
-                dwellClickController.update(cx, cy, System.currentTimeMillis())
-            } else 0f
-
-            // Draw overlay — SYSTEM_ALERT_WINDOW 권한이 런타임에 허용된 경우에만 오버레이 표시
-            // 미허용 시 windowManager.addView()가 SecurityException을 던져 앱이 꺼짐
-            serviceScope.launch(Dispatchers.Main) {
-                if (Settings.canDrawOverlays(this@FaceDetectionForegroundService)) {
-                    if (cursorOverlayView.parent == null) {
-                        cursorOverlayView.show()
-                    }
-                    cursorOverlayView.update(cx, cy, progress)
-                } else {
-                    Timber.w("Overlay permission not granted — cursor overlay skipped. Go to Settings > Apps > Special app access > Display over other apps")
-                }
-            }
-        } else {
-            // Hide overlay if not in mode
-            serviceScope.launch(Dispatchers.Main) {
-                cursorOverlayView.hide()
-            }
         }
 
         val actions = triggerMatcher.match(smoothed)

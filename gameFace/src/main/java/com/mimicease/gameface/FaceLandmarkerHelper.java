@@ -384,6 +384,15 @@ public class FaceLandmarkerHelper extends HandlerThread {
         return currBlendshapes;
     }
 
+    /**
+     * Returns true if the FaceLandmarker model was successfully loaded.
+     * On first launch, both GPU and CPU delegates may fail transiently,
+     * leaving faceLandmarker null even after init() returns.
+     */
+    public boolean isModelLoaded() {
+        return faceLandmarker != null;
+    }
+
     /** Recreates {@link FaceLandmarker} and resume the process. */
     public void resumeThread() {
         if (options != null && context != null) {
