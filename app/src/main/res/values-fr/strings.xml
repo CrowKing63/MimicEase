@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MimicEase</string>
+    <string name="accessibility_service_description">MimicEase utilise les services d\'accessibilité pour vous aider à interagir avec votre appareil via des expressions faciales et des gestes.</string>
+
+    <!-- Étiquettes des raccourcis -->
+    <string name="shortcut_toggle_short">Basculer</string>
+    <string name="shortcut_toggle_long">Activer/Désactiver MimicEase</string>
+    <string name="shortcut_enable_short">Activer</string>
+    <string name="shortcut_enable_long">Activer MimicEase</string>
+    <string name="shortcut_disable_short">Désactiver</string>
+    <string name="shortcut_disable_long">Désactiver MimicEase</string>
+
+    <!-- Étiquettes des tuiles de paramètres rapides -->
+    <string name="tile_label">MimicEase</string>
+    <string name="tile_active">MimicEase Actif</string>
+    <string name="tile_paused">MimicEase en Pause</string>
+    <string name="tile_unavailable">MimicEase Non Démarré</string>
+</resources>

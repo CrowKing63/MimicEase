@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MimicEase</string>
+    <string name="accessibility_service_description">MimicEaseは、顔の表情とジェスチャーでデバイスを操作できるようにユーザー補助サービスを使用します。</string>
+
+    <!-- アプリショートカットラベル -->
+    <string name="shortcut_toggle_short">切替</string>
+    <string name="shortcut_toggle_long">MimicEase オン/オフ切替</string>
+    <string name="shortcut_enable_short">有効化</string>
+    <string name="shortcut_enable_long">MimicEase を有効にする</string>
+    <string name="shortcut_disable_short">無効化</string>
+    <string name="shortcut_disable_long">MimicEase を無効にする</string>
+
+    <!-- クイック設定タイルラベル -->
+    <string name="tile_label">MimicEase</string>
+    <string name="tile_active">MimicEase 有効</string>
+    <string name="tile_paused">MimicEase 一時停止</string>
+    <string name="tile_unavailable">MimicEase 未起動</string>
+</resources>

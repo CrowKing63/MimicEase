@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MimicEase</string>
+    <string name="accessibility_service_description">MimicEase 使用無障礙服務，協助您透過臉部表情和手勢與裝置互動。</string>
+
+    <!-- 應用程式捷徑標籤 -->
+    <string name="shortcut_toggle_short">切換</string>
+    <string name="shortcut_toggle_long">切換 MimicEase 開/關</string>
+    <string name="shortcut_enable_short">開啟</string>
+    <string name="shortcut_enable_long">開啟 MimicEase</string>
+    <string name="shortcut_disable_short">關閉</string>
+    <string name="shortcut_disable_long">關閉 MimicEase</string>
+
+    <!-- 快速設定磚標籤 -->
+    <string name="tile_label">MimicEase</string>
+    <string name="tile_active">MimicEase 已啟用</string>
+    <string name="tile_paused">MimicEase 已暫停</string>
+    <string name="tile_unavailable">MimicEase 未執行</string>
+</resources>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MimicEase</string>
+    <string name="accessibility_service_description">MimicEase nutzt Bedienungshilfen, damit Sie Ihr Gerät durch Gesichtsausdrücke und Gesten steuern können.</string>
+
+    <!-- App-Verknüpfungsbezeichnungen -->
+    <string name="shortcut_toggle_short">Umschalten</string>
+    <string name="shortcut_toggle_long">MimicEase Ein/Aus</string>
+    <string name="shortcut_enable_short">Aktivieren</string>
+    <string name="shortcut_enable_long">MimicEase aktivieren</string>
+    <string name="shortcut_disable_short">Deaktivieren</string>
+    <string name="shortcut_disable_long">MimicEase deaktivieren</string>
+
+    <!-- Schnelleinstellungs-Kachelbezeichnungen -->
+    <string name="tile_label">MimicEase</string>
+    <string name="tile_active">MimicEase Aktiv</string>
+    <string name="tile_paused">MimicEase Pausiert</string>
+    <string name="tile_unavailable">MimicEase Nicht Gestartet</string>
+</resources>

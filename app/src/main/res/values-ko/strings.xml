@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">미믹이즈</string>
+    <string name="accessibility_service_description">미믹이즈는 접근성 서비스를 사용하여 얼굴 표정과 제스처로 기기를 제어할 수 있도록 도와줍니다.</string>
+
+    <!-- 앱 단축키 레이블 (Bixby 루틴 / 제미나이 / 앱 아이콘 길게 누르기) -->
+    <string name="shortcut_toggle_short">토글</string>
+    <string name="shortcut_toggle_long">미믹이즈 켜기/끄기</string>
+    <string name="shortcut_enable_short">켜기</string>
+    <string name="shortcut_enable_long">미믹이즈 켜기</string>
+    <string name="shortcut_disable_short">끄기</string>
+    <string name="shortcut_disable_long">미믹이즈 끄기</string>
+
+    <!-- 빠른 설정 타일 레이블 -->
+    <string name="tile_label">미믹이즈</string>
+    <string name="tile_active">미믹이즈 활성</string>
+    <string name="tile_paused">미믹이즈 일시정지</string>
+    <string name="tile_unavailable">미믹이즈 미실행</string>
+</resources>
