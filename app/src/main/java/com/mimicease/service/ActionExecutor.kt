@@ -111,6 +111,9 @@ class ActionExecutor(private val service: MimicAccessibilityService) {
                     svc.faceDetectionService?.togglePause()
                 }
             }
+            is Action.RecenterCursor -> {
+                MimicAccessibilityService.instance?.faceDetectionService?.recenterCursor()
+            }
             // ── 커서 위치 액션 (CursorTracker 연동) ──
             is Action.TapAtCursor -> {
                 service.cursorTracker.getCurrentPosition()?.let { (x, y) ->

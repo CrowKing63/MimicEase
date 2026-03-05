@@ -38,7 +38,6 @@ class SettingsRepositoryImpl @Inject constructor(
                 toggleExpressionHoldMs = preferences[AppSettingsKeys.TOGGLE_EXPRESSION_HOLD_MS] ?: 3000,
                 toggleByKeyCombo = preferences[AppSettingsKeys.TOGGLE_BY_KEY_COMBO] ?: true,
                 toggleKeyHoldMs = preferences[AppSettingsKeys.TOGGLE_KEY_HOLD_MS] ?: 2000,
-                toggleByBroadcast = preferences[AppSettingsKeys.TOGGLE_BY_BROADCAST] ?: true,
                 headMouseSensitivity = preferences[AppSettingsKeys.HEAD_MOUSE_SENSITIVITY] ?: 1.0f,
                 headMouseDeadZone = preferences[AppSettingsKeys.HEAD_MOUSE_DEAD_ZONE] ?: 0.02f,
                 dwellClickEnabled = preferences[AppSettingsKeys.DWELL_CLICK_ENABLED] ?: true,
@@ -69,7 +68,6 @@ class SettingsRepositoryImpl @Inject constructor(
                 toggleExpressionHoldMs = preferences[AppSettingsKeys.TOGGLE_EXPRESSION_HOLD_MS] ?: 3000,
                 toggleByKeyCombo = preferences[AppSettingsKeys.TOGGLE_BY_KEY_COMBO] ?: true,
                 toggleKeyHoldMs = preferences[AppSettingsKeys.TOGGLE_KEY_HOLD_MS] ?: 2000,
-                toggleByBroadcast = preferences[AppSettingsKeys.TOGGLE_BY_BROADCAST] ?: true,
                 headMouseSensitivity = preferences[AppSettingsKeys.HEAD_MOUSE_SENSITIVITY] ?: 1.0f,
                 headMouseDeadZone = preferences[AppSettingsKeys.HEAD_MOUSE_DEAD_ZONE] ?: 0.02f,
                 dwellClickEnabled = preferences[AppSettingsKeys.DWELL_CLICK_ENABLED] ?: true,
@@ -99,7 +97,6 @@ class SettingsRepositoryImpl @Inject constructor(
             preferences[AppSettingsKeys.TOGGLE_EXPRESSION_HOLD_MS] = updated.toggleExpressionHoldMs
             preferences[AppSettingsKeys.TOGGLE_BY_KEY_COMBO] = updated.toggleByKeyCombo
             preferences[AppSettingsKeys.TOGGLE_KEY_HOLD_MS] = updated.toggleKeyHoldMs
-            preferences[AppSettingsKeys.TOGGLE_BY_BROADCAST] = updated.toggleByBroadcast
             preferences[AppSettingsKeys.HEAD_MOUSE_SENSITIVITY] = updated.headMouseSensitivity
             preferences[AppSettingsKeys.HEAD_MOUSE_DEAD_ZONE] = updated.headMouseDeadZone
             preferences[AppSettingsKeys.DWELL_CLICK_ENABLED] = updated.dwellClickEnabled

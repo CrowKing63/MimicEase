@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 정적 앱 단축키 (Static App Shortcuts)
+    - 앱 아이콘 길게 눌러 확인 가능
+    - Bixby 루틴: "앱 단축키 실행" 기능으로 연결
+    - 제미나이: "MimicEase [단축키 이름] 열기" 음성 명령으로 연결
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 미믹이즈 토글 (켜기/끄기 전환) -->
+    <shortcut
+        android:shortcutId="mimicease_toggle"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_toggle_short"
+        android:shortcutLongLabel="@string/shortcut_toggle_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="mimicease://toggle"
+            android:targetPackage="com.mimicease"
+            android:targetClass="com.mimicease.ToggleActionActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <!-- 미믹이즈 켜기 -->
+    <shortcut
+        android:shortcutId="mimicease_enable"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_enable_short"
+        android:shortcutLongLabel="@string/shortcut_enable_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="mimicease://enable"
+            android:targetPackage="com.mimicease"
+            android:targetClass="com.mimicease.ToggleActionActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <!-- 미믹이즈 끄기 -->
+    <shortcut
+        android:shortcutId="mimicease_disable"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_disable_short"
+        android:shortcutLongLabel="@string/shortcut_disable_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="mimicease://disable"
+            android:targetPackage="com.mimicease"
+            android:targetClass="com.mimicease.ToggleActionActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+</shortcuts>

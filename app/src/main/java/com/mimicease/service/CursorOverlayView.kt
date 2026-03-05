@@ -7,6 +7,7 @@ import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.RectF
 import android.os.Build
+import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 
@@ -61,6 +62,9 @@ class CursorOverlayView(context: Context) : View(context) {
         val size = ((cursorRadius + strokeWidth) * 2).toInt()
         layoutParams.width = size
         layoutParams.height = size
+        // gravity를 TOP|LEFT로 설정해야 x, y가 절대 픽셀 좌표로 동작함
+        // 미설정 시 기본값 Gravity.CENTER → 화면 중앙 기준 오프셋이 되어 커서가 화면 밖으로 밀림
+        layoutParams.gravity = Gravity.TOP or Gravity.LEFT
         layoutParams.x = 0
         layoutParams.y = 0
     }

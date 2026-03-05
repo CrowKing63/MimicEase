@@ -80,6 +80,7 @@ fun actionDisplayName(action: Action): String = when (action) {
     is Action.DoubleTapAtCursor   -> "커서 위치 더블탭"
     is Action.LongPressAtCursor   -> "커서 위치 길게 누르기"
     is Action.DragToggleAtCursor  -> "커서 위치 드래그 (토글)"
+    is Action.RecenterCursor      -> "커서 중앙으로"
     is Action.SwitchKey           -> "스위치 입력: ${action.label}"
     else                          -> "알 수 없는 액션"
 }
@@ -102,7 +103,7 @@ private val ACTION_MEDIA = listOf(
 )
 private val ACTION_CURSOR = listOf(
     Action.TapAtCursor, Action.DoubleTapAtCursor, Action.LongPressAtCursor,
-    Action.DragToggleAtCursor
+    Action.DragToggleAtCursor, Action.RecenterCursor
 )
 private val ACTION_SWITCH = SwitchAccessBridge.SUPPORTED_SWITCH_KEYS.map { info ->
     Action.SwitchKey(keyCode = info.keyCode, label = info.label)

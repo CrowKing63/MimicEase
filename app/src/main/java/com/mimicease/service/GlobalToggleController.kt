@@ -150,19 +150,16 @@ class GlobalToggleController(
     // ═══════════════════════════════════════════════════
 
     fun handleBroadcastToggle() {
-        if (!settings.toggleByBroadcast) return
         onToggle()
         announceState()
     }
 
     fun handleBroadcastEnable() {
-        if (!settings.toggleByBroadcast) return
         onEnable()
         announceState()
     }
 
     fun handleBroadcastDisable() {
-        if (!settings.toggleByBroadcast) return
         onDisable()
         announceState()
     }

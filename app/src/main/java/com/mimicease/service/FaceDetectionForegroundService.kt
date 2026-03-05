@@ -83,6 +83,9 @@ class FaceDetectionForegroundService : LifecycleService() {
         // Service instance for direct Preview SurfaceProvider attachment (test screen only)
         private var _instance: FaceDetectionForegroundService? = null
 
+        /** QS 타일 등 외부에서 서비스 실행 여부 확인용 */
+        val isRunning: Boolean get() = _instance != null
+
         fun attachPreviewSurfaceProvider(surfaceProvider: Preview.SurfaceProvider) {
             _instance?.previewUseCase?.setSurfaceProvider(surfaceProvider)
         }
@@ -230,6 +233,11 @@ class FaceDetectionForegroundService : LifecycleService() {
 
     fun setGlobalToggleController(controller: GlobalToggleController) {
         globalToggleController = controller
+    }
+
+    /** HEAD_MOUSE 커서를 화면 중앙으로 리셋합니다. */
+    fun recenterCursor() {
+        if (::headTracker.isInitialized) headTracker.recenter()
     }
 
     private fun initFaceLandmarker() {

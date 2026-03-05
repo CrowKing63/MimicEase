@@ -77,6 +77,7 @@ object ActionSerializer {
             "DoubleTapAtCursor" -> Action.DoubleTapAtCursor
             "LongPressAtCursor" -> Action.LongPressAtCursor
             "DragToggleAtCursor" -> Action.DragToggleAtCursor
+            "RecenterCursor"   -> Action.RecenterCursor
             // 하위 호환: 구 타입 → DragToggleAtCursor로 자동 마이그레이션
             "DragStartAtCursor",
             "DragEndAtCursor"  -> Action.DragToggleAtCursor

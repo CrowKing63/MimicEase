@@ -84,8 +84,10 @@ fun FaceMeshOverlay(
         fun landmark(index: Int): Offset? {
             if (index >= landmarks.size) return null
             val lm = landmarks[index]
+            // PreviewView는 셀피 카메라를 자동 미러링하지만 MediaPipe 랜드마크는
+            // 미러링되지 않은 원본 이미지 좌표이므로 X축을 반전하여 일치시킴
             return Offset(
-                offsetX + lm.x() * displayW,
+                offsetX + (1f - lm.x()) * displayW,
                 offsetY + lm.y() * displayH
             )
         }

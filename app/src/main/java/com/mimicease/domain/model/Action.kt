@@ -52,6 +52,7 @@ sealed class Action {
     object DoubleTapAtCursor : Action()
     object LongPressAtCursor : Action()
     object DragToggleAtCursor : Action() // 토글: 첫 발동 → 드래그 시작, 두 번째 → 드래그 종료
+    object RecenterCursor : Action()     // HEAD_MOUSE 커서를 화면 중앙으로 리셋
 
     // ── 스위치 제어 (모든 모드에서 사용 가능) ──────────
     data class SwitchKey(val keyCode: Int, val label: String = "") : Action()

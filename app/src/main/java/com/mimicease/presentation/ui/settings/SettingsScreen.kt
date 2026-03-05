@@ -1,12 +1,18 @@
 package com.mimicease.presentation.ui.settings
 
+import android.annotation.SuppressLint
+import android.app.StatusBarManager
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
+import com.mimicease.R
+import com.mimicease.service.MimicToggleTileService
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -94,10 +100,6 @@ class SettingsViewModel @Inject constructor(
 
     fun toggleByExpression(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.updateSettings { it.copy(toggleByExpression = enabled) } }
-    }
-
-    fun toggleByBroadcast(enabled: Boolean) {
-        viewModelScope.launch { settingsRepository.updateSettings { it.copy(toggleByBroadcast = enabled) } }
     }
 
     fun toggleAutoStartOnBoot(enabled: Boolean) {
@@ -387,24 +389,80 @@ fun SettingsScreen(
                         )
                     }
 
+                }
+            }
+
+            // ── AI 어시스턴트 연동 ─────────────────────────────────────────
+            SettingsSectionHeader("AI 어시스턴트 연동")
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+
+                    // 빠른 설정 타일
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text("빠른 설정 타일")
+                        Text(
+                            "알림 창 → 편집(연필 아이콘) → 미믹이즈 타일을 드래그해 추가",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            TextButton(
+                                onClick = { addQsTileIfSupported(context) },
+                                contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp)
+                            ) {
+                                Text("시스템 대화상자로 바로 추가")
+                            }
+                        }
+                    }
+
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
+                    // 빅스비 루틴
+                    var bixbyNotFound by remember { mutableStateOf(false) }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
-                            Text("브로드캐스트 토글")
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("빅스비 루틴")
                             Text(
-                                "AI 어시스턴트 / 외부 앱으로 제어",
+                                "동작 추가 → 빠른 설정 → 미믹이즈",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            if (bixbyNotFound) {
+                                Text(
+                                    "빅스비 루틴 앱을 찾을 수 없습니다 (삼성 기기 전용)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
                         }
-                        Switch(
-                            checked = settings.toggleByBroadcast,
-                            onCheckedChange = { viewModel.toggleByBroadcast(it) }
+                        TextButton(onClick = {
+                            val intent = context.packageManager.getLaunchIntentForPackage(
+                                "com.samsung.android.app.routines"
+                            )
+                            if (intent != null) {
+                                bixbyNotFound = false
+                                context.startActivity(intent)
+                            } else {
+                                bixbyNotFound = true
+                            }
+                        }) {
+                            Text("루틴 앱 열기")
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // 제미나이
+                    Column {
+                        Text("제미나이")
+                        Text(
+                            "앱 아이콘을 길게 눌러 단축키를 제미나이에 연결하거나, \"미믹이즈 켜기\"라고 말해보세요.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -626,6 +684,23 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
+}
+
+/**
+ * QS 타일 추가 요청.
+ * - API 33+: 시스템 대화상자를 표시하여 사용자가 타일을 추가하도록 안내
+ * - API < 33: 아무 동작 없음 (호출 지점에서 API 체크 후 호출)
+ */
+@SuppressLint("NewApi")
+private fun addQsTileIfSupported(context: Context) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+    val sbm = context.getSystemService(StatusBarManager::class.java) ?: return
+    sbm.requestAddTileService(
+        ComponentName(context, MimicToggleTileService::class.java),
+        "미믹이즈",
+        Icon.createWithResource(context, R.mipmap.ic_launcher),
+        context.mainExecutor
+    ) { /* result ignored */ }
 }
 
 @Composable
