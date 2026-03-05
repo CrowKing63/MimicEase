@@ -4,11 +4,13 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.service.quicksettings.TileService
 import android.os.Binder
 import android.os.Build
 import android.os.Handler
@@ -474,6 +476,7 @@ class FaceDetectionForegroundService : LifecycleService() {
             cursorOverlayView.hide()
         }
         updateNotification()
+        requestTileUpdate()
     }
 
     fun resumeAnalysis() {
@@ -483,6 +486,19 @@ class FaceDetectionForegroundService : LifecycleService() {
         // CameraX 재바인드: 카메라를 다시 열어 감지 재개
         setupCamera()
         updateNotification()
+        requestTileUpdate()
+    }
+
+    /** QS 타일에 상태 변경을 알려 Bixby 등 외부 도구가 최신 상태를 읽을 수 있게 함. */
+    private fun requestTileUpdate() {
+        try {
+            TileService.requestListeningState(
+                this,
+                ComponentName(this, MimicToggleTileService::class.java)
+            )
+        } catch (e: Exception) {
+            Timber.w(e, "QS 타일 갱신 요청 실패")
+        }
     }
 
     fun togglePause() {
@@ -549,6 +565,8 @@ class FaceDetectionForegroundService : LifecycleService() {
     override fun onDestroy() {
         super.onDestroy()
         if (_instance == this) _instance = null
+        // 서비스 종료 → QS 타일을 "미실행" 상태로 갱신
+        requestTileUpdate()
         serviceScope.cancel()
         cameraExecutor.shutdown()
         unregisterReceiver(screenStateReceiver)
