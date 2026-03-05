@@ -74,7 +74,8 @@ In **Head Mouse** mode, the head-pose transformation matrix is additionally rout
 
 ### From Releases (recommended)
 
-1. Download the latest `.apk` from the [Releases](../../releases) page.
+1. Download the latest .apk from the Releases page.
+(MimicEase is currently distributed via GitHub instead of Google Play. No account or store needed — just download and install.)
 2. Enable **Install from unknown sources** in your Android settings.
 3. Install the APK.
 4. Open MimicEase and follow the onboarding flow.
