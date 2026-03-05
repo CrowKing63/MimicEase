@@ -17,6 +17,40 @@ class ActionExecutor(private val service: MimicAccessibilityService) {
     private var dragStartY: Float? = null
     private var isDragging: Boolean = false
 
+    // 진행 중인 dispatchGesture() 완료 상태 추적.
+    // Android는 제스처 dispatch 중 실제 터치/마우스 이벤트를 차단할 수 있으므로
+    // 콜백으로 완료 시점을 명시적으로 처리해야 한다.
+    @Volatile private var isDispatchingGesture = false
+
+    private val gestureCallback = object : AccessibilityService.GestureResultCallback() {
+        override fun onCompleted(gestureDescription: GestureDescription) {
+            isDispatchingGesture = false
+        }
+        override fun onCancelled(gestureDescription: GestureDescription) {
+            isDispatchingGesture = false
+            Timber.w("dispatchGesture cancelled by system")
+        }
+    }
+
+    /**
+     * 드래그 상태를 초기화하고 다음 제스처 실행을 허용합니다.
+     * 앱 정지·일시정지·onInterrupt 등 서비스 전환 시 호출합니다.
+     *
+     * Android AccessibilityService는 진행 중인 dispatchGesture()를 조기 취소하는
+     * 공식 API를 제공하지 않습니다. 제스처는 지정된 duration 후 자동으로 완료되며,
+     * GestureResultCallback(onCompleted/onCancelled)이 호출되어 isDispatchingGesture가
+     * 정상화됩니다. 이 메서드는 isDragging 등 앱 내부 상태만 초기화합니다.
+     */
+    fun cancelCurrentGesture() {
+        isDispatchingGesture = false
+        dragStartX = null
+        dragStartY = null
+        isDragging = false
+    }
+
+    /** MimicAccessibilityService의 onMotionEvent에서 표정 제스처 충돌 방지용 */
+    fun isGestureDispatching(): Boolean = isDispatchingGesture
+
     fun execute(action: Action) {
         when (action) {
             is Action.GlobalHome ->
@@ -135,31 +169,37 @@ class ActionExecutor(private val service: MimicAccessibilityService) {
     }
 
     private fun executeTap(x: Float, y: Float) {
+        if (isDispatchingGesture) { Timber.d("tap skipped: gesture dispatching"); return }
         val path = Path().apply { moveTo(x, y) }
         val stroke = GestureDescription.StrokeDescription(path, 0L, 50L)
+        isDispatchingGesture = true
         service.dispatchGesture(
-            GestureDescription.Builder().addStroke(stroke).build(), null, null
+            GestureDescription.Builder().addStroke(stroke).build(), gestureCallback, null
         )
     }
 
     private fun executeDoubleTap(x: Float, y: Float) {
+        if (isDispatchingGesture) { Timber.d("doubleTap skipped: gesture dispatching"); return }
         val path = Path().apply { moveTo(x, y) }
         val stroke1 = GestureDescription.StrokeDescription(path, 0L, 50L)
         val stroke2 = GestureDescription.StrokeDescription(path, 150L, 50L)
+        isDispatchingGesture = true
         service.dispatchGesture(
             GestureDescription.Builder()
                 .addStroke(stroke1)
                 .addStroke(stroke2)
                 .build(),
-            null, null
+            gestureCallback, null
         )
     }
 
     private fun executeLongPress(x: Float, y: Float) {
+        if (isDispatchingGesture) { Timber.d("longPress skipped: gesture dispatching"); return }
         val path = Path().apply { moveTo(x, y) }
         val stroke = GestureDescription.StrokeDescription(path, 0L, 800L)
+        isDispatchingGesture = true
         service.dispatchGesture(
-            GestureDescription.Builder().addStroke(stroke).build(), null, null
+            GestureDescription.Builder().addStroke(stroke).build(), gestureCallback, null
         )
     }
 
@@ -170,10 +210,12 @@ class ActionExecutor(private val service: MimicAccessibilityService) {
     }
 
     private fun executeAbsoluteSwipe(asx: Float, asy: Float, aex: Float, aey: Float, durationMs: Long) {
+        if (isDispatchingGesture) { Timber.d("swipe skipped: gesture dispatching"); return }
         val path = Path().apply { moveTo(asx, asy); lineTo(aex, aey) }
         val stroke = GestureDescription.StrokeDescription(path, 0L, durationMs)
+        isDispatchingGesture = true
         service.dispatchGesture(
-            GestureDescription.Builder().addStroke(stroke).build(), null, null
+            GestureDescription.Builder().addStroke(stroke).build(), gestureCallback, null
         )
     }
 
@@ -202,12 +244,14 @@ class ActionExecutor(private val service: MimicAccessibilityService) {
         val stroke1 = GestureDescription.StrokeDescription(path1, 0L, duration)
         val stroke2 = GestureDescription.StrokeDescription(path2, 0L, duration)
 
+        if (isDispatchingGesture) { Timber.d("pinch skipped: gesture dispatching"); return }
+        isDispatchingGesture = true
         service.dispatchGesture(
             GestureDescription.Builder()
                 .addStroke(stroke1)
                 .addStroke(stroke2)
                 .build(),
-            null, null
+            gestureCallback, null
         )
     }
 

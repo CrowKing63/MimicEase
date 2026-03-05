@@ -190,6 +190,7 @@ class FaceDetectionForegroundService : LifecycleService() {
                 resumeAnalysis()
             }
             ACTION_STOP -> {
+                if (::actionExecutor.isInitialized) actionExecutor.cancelCurrentGesture()
                 // 카메라 해제 후 서비스 자체 종료 (BIND_AUTO_CREATE 바인딩이 해제되면 완전 종료)
                 unbindCamera()
                 isAnalyzing = false
@@ -212,7 +213,20 @@ class FaceDetectionForegroundService : LifecycleService() {
     fun setAccessibilityService(service: MimicAccessibilityService) {
         actionExecutor = ActionExecutor(service)
         dwellClickController = DwellClickController(actionExecutor)
+        // setMotionEventSources는 onServiceConnected()에서 항상 ON — 여기서 별도 호출 불필요
     }
+
+    /** 진행 중인 제스처를 취소합니다. MimicAccessibilityService의 onInterrupt 등에서 호출됩니다. */
+    fun cancelCurrentGesture() {
+        if (::actionExecutor.isInitialized) actionExecutor.cancelCurrentGesture()
+    }
+
+    /**
+     * 표정 트리거 제스처 진행 여부를 반환합니다.
+     * MimicAccessibilityService.onMotionEvent()에서 BT 마우스 클릭 재주입 충돌 방지에 사용됩니다.
+     */
+    fun isGestureDispatching(): Boolean =
+        if (::actionExecutor.isInitialized) actionExecutor.isGestureDispatching() else false
 
     fun setGlobalToggleController(controller: GlobalToggleController) {
         globalToggleController = controller
@@ -442,6 +456,7 @@ class FaceDetectionForegroundService : LifecycleService() {
     }
 
     fun pauseAnalysis() {
+        if (::actionExecutor.isInitialized) actionExecutor.cancelCurrentGesture()
         isAnalyzing = false
         _isPaused.value = true
         faceLandmarkerHelper.pauseThread()

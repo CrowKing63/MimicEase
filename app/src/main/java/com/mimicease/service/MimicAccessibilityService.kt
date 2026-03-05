@@ -1,21 +1,23 @@
 package com.mimicease.service
 
 import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.AccessibilityServiceInfo
+import android.accessibilityservice.GestureDescription
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.graphics.Path
 import android.os.Build
 import android.os.IBinder
 import android.view.InputDevice
-import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import timber.log.Timber
 
 class MimicAccessibilityService : AccessibilityService() {
 
@@ -39,11 +41,24 @@ class MimicAccessibilityService : AccessibilityService() {
     // Switch Access Bridge (SwitchKey 액션 → 접근성 동작 변환)
     val switchAccessBridge by lazy { SwitchAccessBridge(this) }
 
+    /**
+     * BT 마우스 클릭을 dispatchGesture()로 재주입할 때 사용하는 콜백.
+     * 표정 트리거 제스처와 별도로 관리되므로 gestureCallback과 분리합니다.
+     */
+    private val mouseClickCallback = object : GestureResultCallback() {
+        override fun onCompleted(gestureDescription: GestureDescription) {}
+        override fun onCancelled(gestureDescription: GestureDescription) {
+            Timber.w("Mouse click replay cancelled by system")
+        }
+    }
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
 
-        // API 33+에서 BT 마우스의 정확한 포인터 좌표를 onMotionEvent()로 수신
+        // SOURCE_MOUSE를 항상 인터셉트합니다.
+        // — 클릭은 onMotionEvent(ACTION_DOWN)에서 dispatchGesture()로 재주입하여 앱에 전달합니다.
+        // — 별도의 enable/disable 전환 없이 접근성 활성·비활성만으로 ON/OFF됩니다.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             serviceInfo = serviceInfo?.apply {
                 setMotionEventSources(InputDevice.SOURCE_MOUSE)
@@ -88,21 +103,37 @@ class MimicAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
-        // 커서 위치 추적 (hover + focus 이벤트) — API 32 미만 폴백
+        // 커서 위치 추적 (hover + focus 이벤트)
         cursorTracker.onAccessibilityEvent(event)
     }
 
     /**
-     * BT 마우스 등 포인터 장치의 실제 좌표를 수신합니다 (API 32+).
-     * API 33+에서 FLAG_REQUEST_MOTION_EVENT_REPORTS 플래그가 설정된 경우에만 호출됩니다.
-     * hover 이벤트 기반 추적보다 훨씬 정확한 실시간 마우스 포인터 좌표를 제공합니다.
+     * SOURCE_MOUSE 이벤트를 수신합니다. (onServiceConnected에서 항상 활성화)
+     *
+     * Android는 SOURCE_MOUSE를 인터셉트하면 원본 클릭/드래그 이벤트가 앱에 전달되지 않습니다.
+     * 따라서 ACTION_DOWN을 dispatchGesture(tap, 50ms)로 재주입하여 앱이 클릭을 수신하도록 합니다.
+     *
+     * 표정 트리거 제스처가 진행 중일 때(isGestureDispatching == true)는 재주입을 건너뛰어
+     * 제스처 충돌을 방지합니다.
      */
     override fun onMotionEvent(event: MotionEvent) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            when (event.action) {
-                MotionEvent.ACTION_HOVER_MOVE,
-                MotionEvent.ACTION_HOVER_ENTER -> {
-                    cursorTracker.updateFromHeadTracker(event.x, event.y)
+        when (event.action) {
+            MotionEvent.ACTION_HOVER_MOVE,
+            MotionEvent.ACTION_HOVER_ENTER -> {
+                cursorTracker.updateFromHeadTracker(event.x, event.y)
+            }
+            MotionEvent.ACTION_DOWN -> {
+                cursorTracker.updateFromHeadTracker(event.x, event.y)
+                // 표정 트리거 제스처가 진행 중이면 충돌 방지를 위해 재주입 건너뜀
+                val isExpressionGestureActive = faceDetectionService?.isGestureDispatching() ?: false
+                if (!isExpressionGestureActive) {
+                    val path = Path().apply { moveTo(event.x, event.y) }
+                    val stroke = GestureDescription.StrokeDescription(path, 0L, 50L)
+                    dispatchGesture(
+                        GestureDescription.Builder().addStroke(stroke).build(),
+                        mouseClickCallback,
+                        null
+                    )
                 }
             }
         }
@@ -118,6 +149,8 @@ class MimicAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() {
+        // 인터럽트 발생 시 진행 중인 제스처를 먼저 취소해야 BT 마우스가 풀립니다.
+        faceDetectionService?.cancelCurrentGesture()
         faceDetectionService?.pauseAnalysis()
     }
 
@@ -138,4 +171,3 @@ class MimicAccessibilityService : AccessibilityService() {
         return super.onUnbind(intent)
     }
 }
-
