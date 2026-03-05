@@ -106,10 +106,6 @@
             </intent-filter>
         </service>
 
-        <!-- Google Assistant App Actions -->
-        <meta-data
-            android:name="com.google.android.actions"
-            android:resource="@xml/actions" />
     </application>
 
 </manifest>
