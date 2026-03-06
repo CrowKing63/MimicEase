@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,6 +28,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
+import com.mimicease.R
 import com.mimicease.presentation.ui.common.BlendShapeCategory
 import com.mimicease.presentation.ui.common.BLENDSHAPE_DISPLAY_NAMES
 import com.mimicease.presentation.ui.common.blendShapeCategory
@@ -49,7 +51,6 @@ data class ExpressionTestUiState(
     val isFaceVisible: Boolean = false,
     val inferenceTimeMs: Long = 0L,
     val faceLandmarks: List<NormalizedLandmark> = emptyList(),
-    // MediaPipe 처리 이미지 크기 — FaceMeshOverlay FILL_CENTER 좌표 보정에 사용
     val imageSize: Pair<Int, Int> = Pair(0, 0)
 )
 
@@ -107,7 +108,6 @@ fun ExpressionTestScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // 현재 카테고리에 따라 필터링된 blendshape 목록
     val filteredBlendShapes = remember(uiState.blendShapeValues, uiState.selectedCategory) {
         uiState.blendShapeValues.entries
             .filter { (name, _) ->
@@ -121,17 +121,15 @@ fun ExpressionTestScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("표정 테스트") })
+            TopAppBar(title = { Text(stringResource(R.string.test_title)) })
         },
         bottomBar = { MimicBottomNavigation(navController) },
         floatingActionButton = {
             if (topBlendShape != null) {
                 ExtendedFloatingActionButton(
-                    text = { Text("이 표정으로 트리거 만들기") },
+                    text = { Text(stringResource(R.string.test_create_trigger_fab)) },
                     icon = { Icon(Icons.Default.Add, null) },
-                    onClick = {
-                        navController.navigate("profiles")
-                    }
+                    onClick = { navController.navigate("profiles") }
                 )
             }
         }
@@ -141,7 +139,7 @@ fun ExpressionTestScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // ── 카메라 피드 + 메쉬 오버레이 (화면 상단 1/3) ────────────────
+            // Camera feed + mesh overlay (top 1/3 of screen)
             CameraPreviewWithMesh(
                 landmarks = uiState.faceLandmarks,
                 imageSize = uiState.imageSize,
@@ -150,18 +148,18 @@ fun ExpressionTestScreen(
                     .fillMaxHeight(0.33f)
             )
 
-            // ── 얼굴 감지 상태 표시 ─────────────────────
+            // Face detection status banner
             FaceStatusBanner(
                 isFaceVisible = uiState.isFaceVisible,
                 inferenceTimeMs = uiState.inferenceTimeMs
             )
 
-            // ── 상위 3개 표정 요약 ─────────────────────
+            // Top 3 expressions summary
             if (uiState.topExpressions.isNotEmpty()) {
                 TopExpressionsRow(expressions = uiState.topExpressions)
             }
 
-            // ── 카테고리 탭 ──────────────────────────────
+            // Category tabs
             ScrollableTabRow(
                 selectedTabIndex = uiState.selectedCategory.ordinal,
                 edgePadding = 0.dp
@@ -170,32 +168,26 @@ fun ExpressionTestScreen(
                     Tab(
                         selected = uiState.selectedCategory.ordinal == index,
                         onClick = { viewModel.selectCategory(category) },
-                        text = { Text(category.label) }
+                        text = { Text(stringResource(category.labelRes)) }
                     )
                 }
             }
 
-            // ── BlendShape 목록 ──────────────────────────
-            // weight(1f): 남은 공간을 채우되 다른 콘텐츠와 겹치지 않도록 함
-            // fillMaxSize() 사용 시 Column 내에서 무한 높이 제약 오류 발생
+            // BlendShape list
             if (uiState.blendShapeValues.isEmpty()) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                    modifier = Modifier.fillMaxWidth().weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "카메라 서비스를 실행해주세요",
+                        text = stringResource(R.string.test_start_service_hint),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                    modifier = Modifier.fillMaxWidth().weight(1f),
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
                     items(filteredBlendShapes, key = { it.key }) { (name, value) ->
@@ -207,7 +199,7 @@ fun ExpressionTestScreen(
     }
 }
 
-// ─── 카메라 프리뷰 + 메쉬 오버레이 ──────────────────────────────────────
+// ─── Camera preview + mesh overlay ───────────────────────────────────────
 
 @Composable
 private fun CameraPreviewWithMesh(
@@ -215,11 +207,9 @@ private fun CameraPreviewWithMesh(
     imageSize: Pair<Int, Int>,
     modifier: Modifier = Modifier
 ) {
-    // clipToBounds(): FaceMeshOverlay Canvas의 FILL_CENTER 좌표 변환 결과가 뷰 높이를 초과할 수 있음.
-    // 예) 세로 모드에서 offsetY = -272px → 턱/입 랜드마크가 캔버스 하단 밖(탭 영역)으로 삐져나옴.
-    // Compose의 Canvas는 기본적으로 경계 클리핑을 보장하지 않으므로 반드시 명시적으로 지정해야 함.
+    // clipToBounds(): FaceMeshOverlay Canvas coordinates from FILL_CENTER transform can exceed
+    // view height. Compose Canvas doesn't clip by default so must be explicit.
     Box(modifier = modifier.background(Color.Black).clipToBounds()) {
-        // CameraX PreviewView (서비스의 Preview UseCase에 SurfaceProvider 연결)
         AndroidView(
             factory = { ctx ->
                 PreviewView(ctx).apply {
@@ -236,7 +226,6 @@ private fun CameraPreviewWithMesh(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 얼굴 메쉬 오버레이 — imageSize를 전달하여 FILL_CENTER 크롭 보정
         if (landmarks.isNotEmpty()) {
             FaceMeshOverlay(
                 landmarks = landmarks,
@@ -247,14 +236,16 @@ private fun CameraPreviewWithMesh(
     }
 }
 
-// ─── 기존 컴포저블 ────────────────────────────────────────────────────────
+// ─── Sub-composables ──────────────────────────────────────────────────────
 
 @Composable
 private fun FaceStatusBanner(isFaceVisible: Boolean, inferenceTimeMs: Long) {
     val (color, text) = if (isFaceVisible) {
-        MaterialTheme.colorScheme.primaryContainer to "얼굴 감지 중 • 추론: ${inferenceTimeMs}ms"
+        MaterialTheme.colorScheme.primaryContainer to
+            stringResource(R.string.test_face_detecting, inferenceTimeMs)
     } else {
-        MaterialTheme.colorScheme.errorContainer to "얼굴이 감지되지 않습니다"
+        MaterialTheme.colorScheme.errorContainer to
+            stringResource(R.string.test_no_face)
     }
     Box(
         modifier = Modifier
@@ -421,7 +412,7 @@ private fun BlendShapeRow(name: String, value: Float) {
         if (expanded) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "임계값 미리보기: ${"%.2f".format(previewThreshold)}",
+                text = stringResource(R.string.test_threshold_preview, "%.2f".format(previewThreshold)),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -433,7 +424,7 @@ private fun BlendShapeRow(name: String, value: Float) {
             )
             if (isAboveThreshold) {
                 Text(
-                    text = "✓ 현재 값이 임계값을 초과합니다",
+                    text = stringResource(R.string.test_threshold_exceeded),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )

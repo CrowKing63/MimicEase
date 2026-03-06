@@ -16,4 +16,281 @@
     <string name="tile_active">미믹이즈 활성</string>
     <string name="tile_paused">미믹이즈 일시정지</string>
     <string name="tile_unavailable">미믹이즈 미실행</string>
+
+    <!-- BlendShape 카테고리 -->
+    <string name="category_all">전체</string>
+    <string name="category_eyes">눈</string>
+    <string name="category_brows">눈썹</string>
+    <string name="category_mouth">입/턱</string>
+    <string name="category_cheek">볼/코</string>
+    <string name="category_tongue">혀</string>
+
+    <!-- 하단 내비게이션 -->
+    <string name="nav_home">홈</string>
+    <string name="nav_test">테스트</string>
+    <string name="nav_profiles">프로필</string>
+    <string name="nav_settings">설정</string>
+
+    <!-- 홈 화면 -->
+    <string name="home_service_status">서비스 상태</string>
+    <string name="home_service_stopped">서비스 꺼짐</string>
+    <string name="home_service_paused">일시정지됨</string>
+    <string name="home_service_running">표정 감지 중</string>
+    <string name="home_fps_info">FPS: %1$d  추론시간: %2$dms</string>
+    <string name="home_start_service">서비스 시작</string>
+    <string name="home_resume">재개</string>
+    <string name="home_pause">일시정지</string>
+    <string name="home_stop_service">서비스 종료</string>
+    <string name="home_current_profile">현재 프로필</string>
+    <string name="home_triggers_active">트리거 %1$d개 활성</string>
+    <string name="home_no_profile">프로필 없음</string>
+    <string name="home_create_profile_hint">프로필을 만들어 트리거를 설정하세요</string>
+    <string name="home_change_profile">프로필 변경 ›</string>
+    <string name="home_quick_triggers">빠른 트리거</string>
+
+    <!-- 액션 이름 -->
+    <string name="action_home">홈 버튼</string>
+    <string name="action_back">뒤로가기</string>
+    <string name="action_recents">최근 앱</string>
+    <string name="action_notifications">알림 패널</string>
+    <string name="action_quick_settings">빠른 설정</string>
+    <string name="action_screen_lock">화면 잠금</string>
+    <string name="action_screenshot">스크린샷</string>
+    <string name="action_power_dialog">전원 메뉴</string>
+    <string name="action_tap_center">화면 중앙 탭</string>
+    <string name="action_tap_custom">커스텀 탭</string>
+    <string name="action_double_tap">더블 탭</string>
+    <string name="action_long_press">길게 누르기</string>
+    <string name="action_swipe_up">위로 스와이프</string>
+    <string name="action_swipe_down">아래로 스와이프</string>
+    <string name="action_swipe_left">왼쪽으로 스와이프</string>
+    <string name="action_swipe_right">오른쪽으로 스와이프</string>
+    <string name="action_scroll_up">위로 스크롤</string>
+    <string name="action_scroll_down">아래로 스크롤</string>
+    <string name="action_drag">드래그</string>
+    <string name="action_pinch_in">핀치 인 (축소)</string>
+    <string name="action_pinch_out">핀치 아웃 (확대)</string>
+    <string name="action_open_app">앱 열기: %1$s</string>
+    <string name="action_media_play_pause">재생/일시정지</string>
+    <string name="action_media_next">다음 곡</string>
+    <string name="action_media_prev">이전 곡</string>
+    <string name="action_volume_up">볼륨 올리기</string>
+    <string name="action_volume_down">볼륨 내리기</string>
+    <string name="action_mimic_pause">MimicEase 일시정지</string>
+    <string name="action_tap_at_cursor">커서 위치 탭</string>
+    <string name="action_double_tap_at_cursor">커서 위치 더블탭</string>
+    <string name="action_long_press_at_cursor">커서 위치 길게 누르기</string>
+    <string name="action_drag_toggle_at_cursor">커서 위치 드래그 (토글)</string>
+    <string name="action_recenter_cursor">커서 중앙으로</string>
+    <string name="action_switch_key">스위치 입력: %1$s</string>
+    <string name="action_unknown">알 수 없는 액션</string>
+
+    <!-- 온보딩 -->
+    <string name="onboarding_welcome_title">MimicEase에 오신 것을\n환영합니다</string>
+    <string name="onboarding_welcome_desc">표정만으로 스마트폰을 자유롭게 제어하세요.</string>
+    <string name="onboarding_get_started">시작하기</string>
+    <string name="onboarding_camera_title">카메라 권한 필요</string>
+    <string name="onboarding_camera_desc">표정을 인식하기 위해 전면 카메라 접근 권한이 필요합니다. 사진이나 영상은 외부로 전송되지 않습니다.</string>
+    <string name="onboarding_camera_allow">권한 허용하기</string>
+    <string name="onboarding_accessibility_title">접근성 서비스 활성화</string>
+    <string name="onboarding_accessibility_desc">화면의 버튼을 누르거나 스크롤하는 동작을 대신 수행하기 위해 접근성 서비스 권한이 필요합니다.</string>
+    <string name="onboarding_go_to_settings">설정으로 이동</string>
+    <string name="onboarding_skip">건너뛰기 (나중에 설정)</string>
+    <string name="onboarding_test_title">표정 테스트 모드</string>
+    <string name="onboarding_test_desc">앱이 내 표정을 얼마나 잘 인식하는지 실시간으로 테스트해 볼 수 있습니다.</string>
+    <string name="onboarding_next">다음</string>
+    <string name="onboarding_profile_title">프로필 생성</string>
+    <string name="onboarding_profile_desc">자주 쓰는 4가지 제스처가 포함된 기본 프로필을 바로 생성할까요?</string>
+    <string name="onboarding_auto_create">기본 프로필 만들기 (추천)</string>
+    <string name="onboarding_manual_create">직접 설정하기</string>
+
+    <!-- 기본 프로필 / 트리거 (온보딩에서 생성) -->
+    <string name="default_profile_name">기본 프로필</string>
+    <string name="default_trigger_wink_right">오른쪽 윙크</string>
+    <string name="default_trigger_wink_left">왼쪽 윙크</string>
+    <string name="default_trigger_mouth_open">입 벌리기</string>
+    <string name="default_trigger_eyebrow_raise">눈썹 올리기</string>
+
+    <!-- 프로필 목록 -->
+    <string name="profiles_title">프로필</string>
+    <string name="profiles_add">프로필 추가</string>
+    <string name="profiles_empty">프로필이 없습니다</string>
+    <string name="profiles_create_button">+ 프로필 만들기</string>
+    <string name="profiles_trigger_count">트리거 %1$d개</string>
+    <string name="profiles_active_suffix"> · 활성됨</string>
+    <string name="profiles_select">선택</string>
+    <string name="profiles_active_check">활성됨 ✓</string>
+    <string name="profiles_delete">삭제</string>
+    <string name="profiles_delete_title">프로필 삭제</string>
+    <string name="profiles_delete_message">\'%1$s\' 프로필과 모든 트리거를 삭제할까요?</string>
+    <string name="profiles_cancel">취소</string>
+    <string name="profiles_create_dialog_title">새 프로필 만들기</string>
+    <string name="profiles_name_label">이름</string>
+    <string name="profiles_icon_label">아이콘</string>
+    <string name="profiles_create_confirm">만들기</string>
+
+    <!-- 프로필 편집 -->
+    <string name="profile_edit_title">프로필 편집</string>
+    <string name="profile_edit_back">뒤로</string>
+    <string name="profile_edit_save">저장</string>
+    <string name="profile_edit_name">프로필 이름</string>
+    <string name="profile_edit_icon">아이콘</string>
+    <string name="profile_edit_sensitivity">감도: %1$s×</string>
+    <string name="profile_edit_sensitivity_desc">높을수록 약한 표정에도 트리거가 발동됩니다</string>
+    <string name="profile_edit_slow">느림 (0.5×)</string>
+    <string name="profile_edit_fast">빠름 (2.0×)</string>
+    <string name="profile_edit_cooldown">전역 쿨다운: %1$dms</string>
+    <string name="profile_edit_cooldown_desc">어떤 트리거든 발동 후 전체 일시 대기 시간</string>
+
+    <!-- 트리거 목록 -->
+    <string name="trigger_list_fallback_title">트리거 목록</string>
+    <string name="trigger_list_back">뒤로</string>
+    <string name="trigger_list_edit_profile">프로필 편집</string>
+    <string name="trigger_list_add">트리거 추가</string>
+    <string name="trigger_list_empty">트리거가 없습니다</string>
+    <string name="trigger_list_add_button">+ 트리거 추가</string>
+    <string name="trigger_threshold_label">임계값: %1$s</string>
+    <string name="trigger_hold_label">홀드: %1$dms</string>
+    <string name="trigger_edit">편집</string>
+    <string name="trigger_delete">삭제</string>
+    <string name="trigger_delete_title">트리거 삭제</string>
+    <string name="trigger_delete_message">\'%1$s\' 트리거를 삭제할까요?</string>
+
+    <!-- 트리거 편집 -->
+    <string name="trigger_edit_add_title">트리거 추가</string>
+    <string name="trigger_edit_edit_title">트리거 편집</string>
+    <string name="trigger_edit_back">뒤로</string>
+    <string name="trigger_edit_save">저장</string>
+    <string name="trigger_name_label">트리거 이름</string>
+    <string name="trigger_name_example">예: %1$s → %2$s</string>
+    <string name="trigger_expression_section">표정 선택</string>
+    <string name="trigger_live_section">실시간 현재값</string>
+    <string name="trigger_current_value">현재: %1$s</string>
+    <string name="trigger_threshold_section">임계값: %1$s</string>
+    <string name="trigger_hold_section">유지 시간 (홀드): %1$dms</string>
+    <string name="trigger_cooldown_section">쿨다운: %1$dms</string>
+    <string name="trigger_action_section">수행할 액션</string>
+    <string name="trigger_change">변경 ></string>
+    <string name="trigger_tap_x">탭 위치 X: %1$s  (왼쪽 0.0 → 오른쪽 1.0)</string>
+    <string name="trigger_tap_y">탭 위치 Y: %1$s  (위 0.0 → 아래 1.0)</string>
+    <string name="trigger_drag_start_x">시작 X: %1$s</string>
+    <string name="trigger_drag_start_y">시작 Y: %1$s</string>
+    <string name="trigger_drag_end_x">끝 X: %1$s</string>
+    <string name="trigger_drag_end_y">끝 Y: %1$s</string>
+    <string name="trigger_drag_duration">드래그 시간: %1$dms</string>
+
+    <!-- BlendShape 선택기 -->
+    <string name="blendshape_picker_title">표정 선택</string>
+
+    <!-- 액션 선택기 -->
+    <string name="action_picker_title">액션 선택</string>
+    <string name="action_tab_system">시스템</string>
+    <string name="action_tab_gesture">제스처</string>
+    <string name="action_tab_media">미디어</string>
+    <string name="action_tab_cursor">커서</string>
+    <string name="action_tab_switch">스위치</string>
+    <string name="action_tab_app">앱</string>
+    <string name="action_tab_other">기타</string>
+    <string name="action_apps_load_error">설치된 앱을 불러올 수 없습니다</string>
+
+    <!-- 표정 테스트 -->
+    <string name="test_title">표정 테스트</string>
+    <string name="test_create_trigger_fab">이 표정으로 트리거 만들기</string>
+    <string name="test_start_service_hint">카메라 서비스를 실행해주세요</string>
+    <string name="test_face_detecting">얼굴 감지 중 • 추론: %1$dms</string>
+    <string name="test_no_face">얼굴이 감지되지 않습니다</string>
+    <string name="test_threshold_preview">임계값 미리보기: %1$s</string>
+    <string name="test_threshold_exceeded">✓ 현재 값이 임계값을 초과합니다</string>
+
+    <!-- 설정 화면 -->
+    <string name="settings_title">설정</string>
+    <string name="settings_interaction_mode">상호작용 모드</string>
+    <string name="settings_mode_expression_only">표정 전용</string>
+    <string name="settings_mode_expression_only_desc">표정으로 고정 좌표 제스처 실행</string>
+    <string name="settings_mode_cursor_click">커서 + 표정 클릭</string>
+    <string name="settings_mode_cursor_click_desc">블루투스 마우스로 커서 이동, 표정으로 클릭</string>
+    <string name="settings_mode_head_mouse">헤드 마우스</string>
+    <string name="settings_mode_head_mouse_desc">머리 움직임으로 커서 제어, 드웰 클릭</string>
+    <string name="settings_overlay_permission_title">오버레이 권한 필요</string>
+    <string name="settings_overlay_permission_desc">헤드 마우스 커서를 화면에 표시하려면 \'다른 앱 위에 표시\' 권한이 필요합니다.</string>
+    <string name="settings_overlay_allow">권한 허용</string>
+    <string name="settings_head_mouse_section">헤드 마우스</string>
+    <string name="settings_sensitivity">감도: %1$s×</string>
+    <string name="settings_dead_zone">데드존: %1$s rad</string>
+    <string name="settings_dead_zone_desc">작을수록 미세한 움직임에도 반응</string>
+    <string name="settings_dwell_section">드웰 클릭 (헤드 마우스)</string>
+    <string name="settings_dwell_enable">드웰 클릭 활성화</string>
+    <string name="settings_dwell_time">클릭 대기 시간: %1$dms</string>
+    <string name="settings_dwell_radius">클릭 허용 반경: %1$dpx</string>
+    <string name="settings_dwell_radius_desc">이 범위 안에서 정지하면 클릭</string>
+    <string name="settings_global_toggle_section">글로벌 토글</string>
+    <string name="settings_volume_key_combo">볼륨 키 조합 (Up+Down 홀드)</string>
+    <string name="settings_volume_key_desc">%1$dms 동안 누르면 토글</string>
+    <string name="settings_expression_toggle">표정 토글 (양쪽 눈 감기)</string>
+    <string name="settings_expression_toggle_warning">오발동 위험 — 신중히 활성화</string>
+    <string name="settings_ai_assistant_section">AI 어시스턴트 연동</string>
+    <string name="settings_qs_tile">빠른 설정 타일</string>
+    <string name="settings_qs_tile_desc">알림 창 → 편집(연필 아이콘) → 미믹이즈 타일을 드래그해 추가</string>
+    <string name="settings_qs_tile_add">시스템 대화상자로 바로 추가</string>
+    <string name="settings_bixby_routines">빅스비 루틴</string>
+    <string name="settings_bixby_routines_desc">동작 추가 → 빠른 설정 → 미믹이즈</string>
+    <string name="settings_bixby_not_found">빅스비 루틴 앱을 찾을 수 없습니다 (삼성 기기 전용)</string>
+    <string name="settings_bixby_open">루틴 앱 열기</string>
+    <string name="settings_gemini">제미나이</string>
+    <string name="settings_gemini_desc">앱 아이콘을 길게 눌러 단축키를 제미나이에 연결하거나, \"미믹이즈 켜기\"라고 말해보세요.</string>
+    <string name="settings_detection_section">감지 설정</string>
+    <string name="settings_ema_alpha">표정 평활화 (EMA α): %1$s</string>
+    <string name="settings_ema_alpha_desc">높을수록 빠른 반응, 낮을수록 부드럽게</string>
+    <string name="settings_ema_slow">느림</string>
+    <string name="settings_ema_fast">빠름</string>
+    <string name="settings_consecutive_frames">연속 확정 프레임: %1$d프레임</string>
+    <string name="settings_notification_section">알림 설정</string>
+    <string name="settings_show_notification">포그라운드 알림 표시</string>
+    <string name="settings_auto_start_section">서비스 자동 시작</string>
+    <string name="settings_auto_start_on_boot">부팅 시 자동 시작</string>
+    <string name="settings_auto_start_on_boot_desc">기기 재시작 후 서비스를 자동으로 실행합니다</string>
+    <string name="settings_system_section">시스템</string>
+    <string name="settings_accessibility_service">접근성 서비스</string>
+    <string name="settings_accessibility_enabled">활성화됨 ✓</string>
+    <string name="settings_accessibility_disabled">비활성화됨</string>
+    <string name="settings_go_to_settings">설정으로 이동</string>
+    <string name="settings_battery_optimization">배터리 최적화 제외</string>
+    <string name="settings_battery_excluded">제외됨 ✓</string>
+    <string name="settings_battery_included">최적화 대상</string>
+    <string name="settings_battery_request">제외 요청</string>
+    <string name="settings_other_section">기타</string>
+    <string name="settings_developer_mode">개발자 모드</string>
+    <string name="settings_version">버전</string>
+    <string name="settings_tutorial">튜토리얼</string>
+    <string name="settings_tutorial_desc">앱 사용 방법을 단계별로 확인합니다</string>
+    <string name="settings_tutorial_view">다시 보기</string>
+
+    <!-- 튜토리얼 -->
+    <string name="tutorial_title">튜토리얼 (%1$d / %2$d)</string>
+    <string name="tutorial_skip">건너뛰기</string>
+    <string name="tutorial_previous">이전</string>
+    <string name="tutorial_done">완료</string>
+    <string name="tutorial_step1_title">프로필 만들기</string>
+    <string name="tutorial_step1_desc">표정-액션 매핑 묶음인 \'프로필\'을 먼저 만들어야 합니다.\n이름을 입력하고 \'만들기\' 버튼을 눌러보세요.</string>
+    <string name="tutorial_step1_cta">만들기</string>
+    <string name="tutorial_step1_name_hint">프로필 이름 미리 정해보기</string>
+    <string name="tutorial_step1_placeholder">예: 내 첫 번째 프로필</string>
+    <string name="tutorial_step1_name_editable">이름은 나중에 언제든지 수정할 수 있습니다.</string>
+    <string name="tutorial_step2_title">트리거 추가하기</string>
+    <string name="tutorial_step2_desc">프로필에 트리거를 추가합니다.\n트리거란 \'어떤 표정을 지으면 어떤 동작을 할지\'를 정의한 규칙입니다.</string>
+    <string name="tutorial_step2_cta">트리거 추가</string>
+    <string name="tutorial_step3_title">표정 선택</string>
+    <string name="tutorial_step3_desc">인식할 표정을 선택합니다.\n예: 웃기(mouthSmileLeft) — 가볍게 웃는 표정으로도 트리거가 동작해요!</string>
+    <string name="tutorial_step3_cta">표정 선택</string>
+    <string name="tutorial_step4_title">액션 설정</string>
+    <string name="tutorial_step4_desc">표정을 지었을 때 실행될 동작을 선택합니다.\n예: 뒤로가기, 탭, 스크롤 등 다양한 시스템 액션을 매핑할 수 있습니다.</string>
+    <string name="tutorial_step4_cta">액션 선택</string>
+    <string name="tutorial_step5_title">저장 완료!</string>
+    <string name="tutorial_step5_desc">트리거를 저장했습니다. 🎉\n저장 버튼을 눌러 설정을 확정하면 목록에 추가됩니다.</string>
+    <string name="tutorial_step5_cta">저장</string>
+    <string name="tutorial_step6_title">서비스 시작</string>
+    <string name="tutorial_step6_desc">홈 화면에서 \'서비스 시작\' 버튼을 눌러 표정 인식을 활성화하세요.\n이제 설정한 표정을 지으면 앱이 자동으로 반응합니다!</string>
+    <string name="tutorial_step6_cta">완료</string>
+    <string name="tutorial_completion_title">훌륭해요!</string>
+    <string name="tutorial_completion_desc">이제 표정만으로 스마트폰을 자유롭게 조작할 수 있습니다.</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.mimicease.presentation.ui.profile
 
+import android.content.Context
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
@@ -17,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,6 +27,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import com.mimicease.R
 import com.mimicease.domain.model.Action
 import com.mimicease.domain.model.Trigger
 import com.mimicease.domain.repository.TriggerRepository
@@ -45,47 +48,48 @@ import java.util.UUID
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
-// ─── 액션 표시 이름 ─────────────────────────────────────────────────────
+// ─── Action display name (locale-aware) ──────────────────────────────────
 
-fun actionDisplayName(action: Action): String = when (action) {
-    is Action.GlobalHome          -> "홈 버튼"
-    is Action.GlobalBack          -> "뒤로가기"
-    is Action.GlobalRecents       -> "최근 앱"
-    is Action.GlobalNotifications -> "알림 패널"
-    is Action.GlobalQuickSettings -> "빠른 설정"
-    is Action.ScreenLock          -> "화면 잠금"
-    is Action.TakeScreenshot      -> "스크린샷"
-    is Action.PowerDialog         -> "전원 메뉴"
-    is Action.TapCenter           -> "화면 중앙 탭"
-    is Action.TapCustom           -> "커스텀 탭"
-    is Action.DoubleTap           -> "더블 탭"
-    is Action.LongPress           -> "길게 누르기"
-    is Action.SwipeUp             -> "위로 스와이프"
-    is Action.SwipeDown           -> "아래로 스와이프"
-    is Action.SwipeLeft           -> "왼쪽으로 스와이프"
-    is Action.SwipeRight          -> "오른쪽으로 스와이프"
-    is Action.ScrollUp            -> "위로 스크롤"
-    is Action.ScrollDown          -> "아래로 스크롤"
-    is Action.Drag                -> "드래그"
-    is Action.PinchIn             -> "핀치 인 (축소)"
-    is Action.PinchOut            -> "핀치 아웃 (확대)"
-    is Action.OpenApp             -> "앱 열기: ${action.packageName}"
-    is Action.MediaPlayPause      -> "재생/일시정지"
-    is Action.MediaNext           -> "다음 곡"
-    is Action.MediaPrev           -> "이전 곡"
-    is Action.VolumeUp            -> "볼륨 올리기"
-    is Action.VolumeDown          -> "볼륨 내리기"
-    is Action.MimicPause          -> "MimicEase 일시정지"
-    is Action.TapAtCursor         -> "커서 위치 탭"
-    is Action.DoubleTapAtCursor   -> "커서 위치 더블탭"
-    is Action.LongPressAtCursor   -> "커서 위치 길게 누르기"
-    is Action.DragToggleAtCursor  -> "커서 위치 드래그 (토글)"
-    is Action.RecenterCursor      -> "커서 중앙으로"
-    is Action.SwitchKey           -> "스위치 입력: ${action.label}"
-    else                          -> "알 수 없는 액션"
+fun actionDisplayName(action: Action, context: Context): String = when (action) {
+    is Action.GlobalHome          -> context.getString(R.string.action_home)
+    is Action.GlobalBack          -> context.getString(R.string.action_back)
+    is Action.GlobalRecents       -> context.getString(R.string.action_recents)
+    is Action.GlobalNotifications -> context.getString(R.string.action_notifications)
+    is Action.GlobalQuickSettings -> context.getString(R.string.action_quick_settings)
+    is Action.ScreenLock          -> context.getString(R.string.action_screen_lock)
+    is Action.TakeScreenshot      -> context.getString(R.string.action_screenshot)
+    is Action.PowerDialog         -> context.getString(R.string.action_power_dialog)
+    is Action.TapCenter           -> context.getString(R.string.action_tap_center)
+    is Action.TapCustom           -> context.getString(R.string.action_tap_custom)
+    is Action.DoubleTap           -> context.getString(R.string.action_double_tap)
+    is Action.LongPress           -> context.getString(R.string.action_long_press)
+    is Action.SwipeUp             -> context.getString(R.string.action_swipe_up)
+    is Action.SwipeDown           -> context.getString(R.string.action_swipe_down)
+    is Action.SwipeLeft           -> context.getString(R.string.action_swipe_left)
+    is Action.SwipeRight          -> context.getString(R.string.action_swipe_right)
+    is Action.ScrollUp            -> context.getString(R.string.action_scroll_up)
+    is Action.ScrollDown          -> context.getString(R.string.action_scroll_down)
+    is Action.Drag                -> context.getString(R.string.action_drag)
+    is Action.PinchIn             -> context.getString(R.string.action_pinch_in)
+    is Action.PinchOut            -> context.getString(R.string.action_pinch_out)
+    is Action.OpenApp             -> context.getString(R.string.action_open_app, action.packageName)
+    is Action.MediaPlayPause      -> context.getString(R.string.action_media_play_pause)
+    is Action.MediaNext           -> context.getString(R.string.action_media_next)
+    is Action.MediaPrev           -> context.getString(R.string.action_media_prev)
+    is Action.VolumeUp            -> context.getString(R.string.action_volume_up)
+    is Action.VolumeDown          -> context.getString(R.string.action_volume_down)
+    is Action.MimicPause          -> context.getString(R.string.action_mimic_pause)
+    is Action.TapAtCursor         -> context.getString(R.string.action_tap_at_cursor)
+    is Action.DoubleTapAtCursor   -> context.getString(R.string.action_double_tap_at_cursor)
+    is Action.LongPressAtCursor   -> context.getString(R.string.action_long_press_at_cursor)
+    is Action.DragToggleAtCursor  -> context.getString(R.string.action_drag_toggle_at_cursor)
+    is Action.RecenterCursor      -> context.getString(R.string.action_recenter_cursor)
+    is Action.SwitchKey           -> context.getString(R.string.action_switch_key, action.label)
+    else                          -> context.getString(R.string.action_unknown)
 }
 
-// 액션 카테고리
+// ─── Action category lists ────────────────────────────────────────────────
+
 private val ACTION_SYSTEM = listOf(
     Action.GlobalHome, Action.GlobalBack, Action.GlobalRecents,
     Action.GlobalNotifications, Action.GlobalQuickSettings,
@@ -110,76 +114,10 @@ private val ACTION_SWITCH = SwitchAccessBridge.SUPPORTED_SWITCH_KEYS.map { info 
 }
 private val ACTION_OTHER = listOf(Action.MimicPause)
 
-// BlendShape 정보 (MediaPipe Face Landmarker 52개 전체)
-private val ALL_BLENDSHAPES = listOf(
-    // 눈 깜빡임 / 크기
-    "eyeBlinkLeft"       to "눈 깜빡임 (왼)",
-    "eyeBlinkRight"      to "눈 깜빡임 (오)",
-    "eyeWideLeft"        to "눈 크게 (왼)",
-    "eyeWideRight"       to "눈 크게 (오)",
-    "eyeSquintLeft"      to "눈 찡그림 (왼)",
-    "eyeSquintRight"     to "눈 찡그림 (오)",
-    // 눈 시선
-    "eyeLookUpLeft"      to "눈 위로 (왼)",
-    "eyeLookUpRight"     to "눈 위로 (오)",
-    "eyeLookDownLeft"    to "눈 아래로 (왼)",
-    "eyeLookDownRight"   to "눈 아래로 (오)",
-    "eyeLookInLeft"      to "눈 안쪽 (왼)",
-    "eyeLookInRight"     to "눈 안쪽 (오)",
-    "eyeLookOutLeft"     to "눈 바깥쪽 (왼)",
-    "eyeLookOutRight"    to "눈 바깥쪽 (오)",
-    // 눈썹
-    "browInnerUp"        to "눈썹 안쪽 올리기",
-    "browOuterUpLeft"    to "눈썹 바깥 올리기 (왼)",
-    "browOuterUpRight"   to "눈썹 바깥 올리기 (오)",
-    "browDownLeft"       to "눈썹 내리기 (왼)",
-    "browDownRight"      to "눈썹 내리기 (오)",
-    // 턱
-    "jawOpen"            to "입 벌리기",
-    "jawLeft"            to "턱 왼쪽",
-    "jawRight"           to "턱 오른쪽",
-    "jawForward"         to "턱 앞으로",
-    // 미소 / 입꼬리
-    "mouthSmileLeft"     to "미소 (왼)",
-    "mouthSmileRight"    to "미소 (오)",
-    "mouthFrownLeft"     to "입꼬리 내리기 (왼)",
-    "mouthFrownRight"    to "입꼬리 내리기 (오)",
-    // 입 모양
-    "mouthPucker"        to "입술 오므리기",
-    "mouthFunnel"        to "입 모으기",
-    "mouthLeft"          to "입 왼쪽",
-    "mouthRight"         to "입 오른쪽",
-    "mouthClose"         to "입 다물기",
-    // 입술 말기 / 올리기
-    "mouthRollLower"     to "아랫입술 말기",
-    "mouthRollUpper"     to "윗입술 말기",
-    "mouthShrugLower"    to "아랫입술 올리기",
-    "mouthShrugUpper"    to "윗입술 올리기",
-    // 입술 세부
-    "mouthUpperUpLeft"   to "윗입술 위로 (왼)",
-    "mouthUpperUpRight"  to "윗입술 위로 (오)",
-    "mouthLowerDownLeft" to "아랫입술 아래로 (왼)",
-    "mouthLowerDownRight" to "아랫입술 아래로 (오)",
-    "mouthDimpleLeft"    to "보조개 (왼)",
-    "mouthDimpleRight"   to "보조개 (오)",
-    "mouthPressLeft"     to "입술 누르기 (왼)",
-    "mouthPressRight"    to "입술 누르기 (오)",
-    "mouthStretchLeft"   to "입 늘리기 (왼)",
-    "mouthStretchRight"  to "입 늘리기 (오)",
-    // 볼 / 코
-    "cheekPuff"          to "볼 부풀리기",
-    "cheekSquintLeft"    to "볼 찡그림 (왼)",
-    "cheekSquintRight"   to "볼 찡그림 (오)",
-    "noseSneerLeft"      to "코 찡그림 (왼)",
-    "noseSneerRight"     to "코 찡그림 (오)",
-    // 혀
-    "tongueOut"          to "혀 내밀기"
-)
-
 // ─── ViewModel ───────────────────────────────────────────────────────────
 
 data class TriggerEditUiState(
-    val triggerId: String? = null,   // null = 신규 생성
+    val triggerId: String? = null,
     val name: String = "",
     val selectedBlendShape: String = "eyeBlinkRight",
     val threshold: Float = 0.5f,
@@ -204,7 +142,6 @@ class TriggerEditViewModel @Inject constructor(
     val uiState: StateFlow<TriggerEditUiState> = _uiState.asStateFlow()
 
     init {
-        // 기존 트리거 로드 (triggerId 인수가 있을 경우)
         if (!triggerIdArg.isNullOrBlank()) {
             viewModelScope.launch {
                 triggerRepository.getTriggersByProfile(profileId).collect { triggers ->
@@ -229,7 +166,6 @@ class TriggerEditViewModel @Inject constructor(
             _uiState.update { it.copy(isLoaded = true) }
         }
 
-        // 실시간 블렌드쉐이프 값 관찰
         viewModelScope.launch {
             FaceDetectionForegroundService.blendShapeFlow.collect { values ->
                 val value = values[_uiState.value.selectedBlendShape] ?: 0f
@@ -245,16 +181,12 @@ class TriggerEditViewModel @Inject constructor(
     fun updateCooldown(ms: Int) = _uiState.update { it.copy(cooldownMs = ms) }
     fun updateAction(action: Action) = _uiState.update { it.copy(selectedAction = action) }
 
-    fun saveTrigger(onSuccess: () -> Unit) {
+    // autoName is computed in Composable layer (needs Context for locale-aware strings)
+    fun saveTrigger(autoName: String, onSuccess: () -> Unit) {
         val state = _uiState.value
         if (state.selectedBlendShape.isBlank()) return
 
-        // 이름이 비어 있으면 "표정 → 액션" 형식으로 자동 생성
-        val finalName = state.name.ifBlank {
-            val bsName = ALL_BLENDSHAPES.find { it.first == state.selectedBlendShape }?.second
-                ?: state.selectedBlendShape
-            "$bsName → ${actionDisplayName(state.selectedAction)}"
-        }
+        val finalName = state.name.ifBlank { autoName }
 
         _uiState.update { it.copy(isSaving = true) }
         viewModelScope.launch {
@@ -287,16 +219,30 @@ fun TriggerEditScreen(
     viewModel: TriggerEditViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
     var showActionPicker by remember { mutableStateOf(false) }
     var showBlendShapePicker by remember { mutableStateOf(false) }
+
+    // Auto-name computed in Composable for locale-aware strings
+    val autoName = remember(uiState.selectedBlendShape, uiState.selectedAction) {
+        val bsName = BLENDSHAPE_DISPLAY_NAMES[uiState.selectedBlendShape] ?: uiState.selectedBlendShape
+        "$bsName → ${actionDisplayName(uiState.selectedAction, context)}"
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (uiState.triggerId == null) "트리거 추가" else "트리거 편집") },
+                title = {
+                    Text(
+                        if (uiState.triggerId == null)
+                            stringResource(R.string.trigger_edit_add_title)
+                        else
+                            stringResource(R.string.trigger_edit_edit_title)
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "뒤로")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.trigger_edit_back))
                     }
                 },
                 actions = {
@@ -304,9 +250,9 @@ fun TriggerEditScreen(
                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     } else {
                         IconButton(
-                            onClick = { viewModel.saveTrigger { navController.popBackStack() } }
+                            onClick = { viewModel.saveTrigger(autoName) { navController.popBackStack() } }
                         ) {
-                            Icon(Icons.Default.Check, contentDescription = "저장")
+                            Icon(Icons.Default.Check, contentDescription = stringResource(R.string.trigger_edit_save))
                         }
                     }
                 }
@@ -321,23 +267,23 @@ fun TriggerEditScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // ① 트리거 이름
-            val namePlaceholder = remember(uiState.selectedBlendShape, uiState.selectedAction) {
-                val bsName = ALL_BLENDSHAPES.find { it.first == uiState.selectedBlendShape }?.second
-                    ?: uiState.selectedBlendShape
-                "예: $bsName → ${actionDisplayName(uiState.selectedAction)}"
-            }
+            // ① Trigger name
+            val namePlaceholder = stringResource(
+                R.string.trigger_name_example,
+                BLENDSHAPE_DISPLAY_NAMES[uiState.selectedBlendShape] ?: uiState.selectedBlendShape,
+                actionDisplayName(uiState.selectedAction, context)
+            )
             OutlinedTextField(
                 value = uiState.name,
                 onValueChange = viewModel::updateName,
-                label = { Text("트리거 이름") },
+                label = { Text(stringResource(R.string.trigger_name_label)) },
                 placeholder = { Text(namePlaceholder) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
 
-            // ② 표정(BlendShape) 선택
-            SectionLabel("표정 선택")
+            // ② BlendShape selection
+            SectionLabel(stringResource(R.string.trigger_expression_section))
             OutlinedCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -350,7 +296,7 @@ fun TriggerEditScreen(
                 ) {
                     Column {
                         Text(
-                            text = ALL_BLENDSHAPES.find { it.first == uiState.selectedBlendShape }?.second
+                            text = BLENDSHAPE_DISPLAY_NAMES[uiState.selectedBlendShape]
                                 ?: uiState.selectedBlendShape,
                             style = MaterialTheme.typography.bodyLarge
                         )
@@ -362,19 +308,19 @@ fun TriggerEditScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Text("변경 >", color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.trigger_change), color = MaterialTheme.colorScheme.primary)
                 }
             }
 
-            // ③ 실시간 미리보기
-            SectionLabel("실시간 현재값")
+            // ③ Live preview
+            SectionLabel(stringResource(R.string.trigger_live_section))
             Column {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("현재: ${"%.3f".format(uiState.currentBlendShapeValue)}")
-                    Text("임계값: ${"%.2f".format(uiState.threshold)}")
+                    Text(stringResource(R.string.trigger_current_value, "%.3f".format(uiState.currentBlendShapeValue)))
+                    Text(stringResource(R.string.trigger_threshold_section, "%.2f".format(uiState.threshold)))
                 }
                 LinearProgressIndicator(
                     progress = { uiState.currentBlendShapeValue.coerceIn(0f, 1f) },
@@ -385,8 +331,8 @@ fun TriggerEditScreen(
                 )
             }
 
-            // ④ 임계값 슬라이더
-            SectionLabel("임계값: ${"%.2f".format(uiState.threshold)}")
+            // ④ Threshold slider
+            SectionLabel(stringResource(R.string.trigger_threshold_section, "%.2f".format(uiState.threshold)))
             Slider(
                 value = uiState.threshold,
                 onValueChange = viewModel::updateThreshold,
@@ -394,8 +340,8 @@ fun TriggerEditScreen(
                 steps = 17
             )
 
-            // ⑤ 유지 시간 슬라이더
-            SectionLabel("유지 시간 (홀드): ${uiState.holdDurationMs}ms")
+            // ⑤ Hold duration slider
+            SectionLabel(stringResource(R.string.trigger_hold_section, uiState.holdDurationMs))
             Slider(
                 value = uiState.holdDurationMs.toFloat(),
                 onValueChange = { viewModel.updateHoldDuration(it.roundToInt()) },
@@ -403,8 +349,8 @@ fun TriggerEditScreen(
                 steps = 39
             )
 
-            // ⑥ 쿨다운 슬라이더
-            SectionLabel("쿨다운: ${uiState.cooldownMs}ms")
+            // ⑥ Cooldown slider
+            SectionLabel(stringResource(R.string.trigger_cooldown_section, uiState.cooldownMs))
             Slider(
                 value = uiState.cooldownMs.toFloat(),
                 onValueChange = { viewModel.updateCooldown(it.roundToInt()) },
@@ -412,8 +358,8 @@ fun TriggerEditScreen(
                 steps = 48
             )
 
-            // ⑦ 액션 선택
-            SectionLabel("수행할 액션")
+            // ⑦ Action selection
+            SectionLabel(stringResource(R.string.trigger_action_section))
             OutlinedCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -425,25 +371,25 @@ fun TriggerEditScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = actionDisplayName(uiState.selectedAction),
+                        text = actionDisplayName(uiState.selectedAction, context),
                         style = MaterialTheme.typography.bodyLarge
                     )
-                    Text("변경 >", color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.trigger_change), color = MaterialTheme.colorScheme.primary)
                 }
             }
 
-            // ⑧ 파라미터 편집 (TapCustom)
+            // ⑧ TapCustom parameters
             AnimatedVisibility(visible = uiState.selectedAction is Action.TapCustom) {
                 val action = uiState.selectedAction as? Action.TapCustom
                 if (action != null) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        SectionLabel("탭 위치 X: ${"%.2f".format(action.x)}  (왼쪽 0.0 → 오른쪽 1.0)")
+                        SectionLabel(stringResource(R.string.trigger_tap_x, "%.2f".format(action.x)))
                         Slider(
                             value = action.x,
                             onValueChange = { viewModel.updateAction(action.copy(x = it)) },
                             valueRange = 0f..1f
                         )
-                        SectionLabel("탭 위치 Y: ${"%.2f".format(action.y)}  (위 0.0 → 아래 1.0)")
+                        SectionLabel(stringResource(R.string.trigger_tap_y, "%.2f".format(action.y)))
                         Slider(
                             value = action.y,
                             onValueChange = { viewModel.updateAction(action.copy(y = it)) },
@@ -453,36 +399,36 @@ fun TriggerEditScreen(
                 }
             }
 
-            // ⑧ 파라미터 편집 (Drag)
+            // ⑨ Drag parameters
             AnimatedVisibility(visible = uiState.selectedAction is Action.Drag) {
                 val action = uiState.selectedAction as? Action.Drag
                 if (action != null) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        SectionLabel("시작 X: ${"%.2f".format(action.startX)}")
+                        SectionLabel(stringResource(R.string.trigger_drag_start_x, "%.2f".format(action.startX)))
                         Slider(
                             value = action.startX,
                             onValueChange = { viewModel.updateAction(action.copy(startX = it)) },
                             valueRange = 0f..1f
                         )
-                        SectionLabel("시작 Y: ${"%.2f".format(action.startY)}")
+                        SectionLabel(stringResource(R.string.trigger_drag_start_y, "%.2f".format(action.startY)))
                         Slider(
                             value = action.startY,
                             onValueChange = { viewModel.updateAction(action.copy(startY = it)) },
                             valueRange = 0f..1f
                         )
-                        SectionLabel("끝 X: ${"%.2f".format(action.endX)}")
+                        SectionLabel(stringResource(R.string.trigger_drag_end_x, "%.2f".format(action.endX)))
                         Slider(
                             value = action.endX,
                             onValueChange = { viewModel.updateAction(action.copy(endX = it)) },
                             valueRange = 0f..1f
                         )
-                        SectionLabel("끝 Y: ${"%.2f".format(action.endY)}")
+                        SectionLabel(stringResource(R.string.trigger_drag_end_y, "%.2f".format(action.endY)))
                         Slider(
                             value = action.endY,
                             onValueChange = { viewModel.updateAction(action.copy(endY = it)) },
                             valueRange = 0f..1f
                         )
-                        SectionLabel("드래그 시간: ${action.duration}ms")
+                        SectionLabel(stringResource(R.string.trigger_drag_duration, action.duration.toInt()))
                         Slider(
                             value = action.duration.toFloat(),
                             onValueChange = { viewModel.updateAction(action.copy(duration = it.toLong())) },
@@ -529,7 +475,7 @@ private fun SectionLabel(text: String) {
     )
 }
 
-// ─── BlendShape 선택 바텀시트 ─────────────────────────────────────────────
+// ─── BlendShape picker bottom sheet ──────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -541,9 +487,12 @@ fun BlendShapePickerSheet(
 ) {
     var selectedCategory by remember { mutableStateOf(BlendShapeCategory.ALL) }
 
-    // 선택된 카테고리에 따라 필터링
+    val allBlendShapes = remember {
+        BLENDSHAPE_DISPLAY_NAMES.entries.map { it.key to it.value }
+    }
+
     val filteredBlendShapes = remember(selectedCategory) {
-        ALL_BLENDSHAPES.filter { (id, _) ->
+        allBlendShapes.filter { (id, _) ->
             selectedCategory == BlendShapeCategory.ALL ||
                 blendShapeCategory(id) == selectedCategory
         }
@@ -552,13 +501,12 @@ fun BlendShapePickerSheet(
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.fillMaxHeight(0.85f)) {
             Text(
-                text = "표정 선택",
+                text = stringResource(R.string.blendshape_picker_title),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 카테고리 탭
             ScrollableTabRow(
                 selectedTabIndex = selectedCategory.ordinal,
                 edgePadding = 0.dp
@@ -567,7 +515,7 @@ fun BlendShapePickerSheet(
                     Tab(
                         selected = selectedCategory.ordinal == index,
                         onClick = { selectedCategory = category },
-                        text = { Text(category.label) }
+                        text = { Text(stringResource(category.labelRes)) }
                     )
                 }
             }
@@ -601,7 +549,7 @@ fun BlendShapePickerSheet(
     }
 }
 
-// ─── 액션 선택 바텀시트 ───────────────────────────────────────────────────
+// ─── Action picker bottom sheet ───────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -609,16 +557,24 @@ fun ActionPickerSheet(
     onSelect: (Action) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val tabs = listOf("시스템", "제스처", "미디어", "커서", "스위치", "앱", "기타")
+    val context = LocalContext.current
+    val tabs = listOf(
+        stringResource(R.string.action_tab_system),
+        stringResource(R.string.action_tab_gesture),
+        stringResource(R.string.action_tab_media),
+        stringResource(R.string.action_tab_cursor),
+        stringResource(R.string.action_tab_switch),
+        stringResource(R.string.action_tab_app),
+        stringResource(R.string.action_tab_other)
+    )
     var selectedTab by remember { mutableIntStateOf(0) }
 
     val staticActionsByTab = listOf(
         ACTION_SYSTEM, ACTION_GESTURE, ACTION_MEDIA, ACTION_CURSOR, ACTION_SWITCH
     )
 
-    // ModalBottomSheet은 초기 레이아웃 패스에서 무한 높이 제약을 전달할 수 있음.
-    // fillMaxHeight(fraction)은 무한 * fraction = 무한이 되어 weight()가 동작 실패.
-    // heightIn(max = 절대값)을 사용해 Column이 항상 유한한 최대 높이를 갖도록 보장.
+    // ModalBottomSheet may pass infinite height on first layout pass.
+    // Use heightIn(max = absolute) to guarantee finite max height so weight() works.
     val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.7f
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -628,7 +584,7 @@ fun ActionPickerSheet(
                 .heightIn(max = maxSheetHeight)
         ) {
             Text(
-                text = "액션 선택",
+                text = stringResource(R.string.action_picker_title),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
@@ -643,14 +599,14 @@ fun ActionPickerSheet(
             }
             Box(modifier = Modifier.weight(1f)) {
                 when (selectedTab) {
-                    5 -> AppPickerTab(onSelect = onSelect)  // 앱
-                    6 -> LazyColumn(                         // 기타
+                    5 -> AppPickerTab(onSelect = onSelect)
+                    6 -> LazyColumn(
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = PaddingValues(bottom = 32.dp)
                     ) {
                         items(ACTION_OTHER) { action ->
                             ListItem(
-                                headlineContent = { Text(actionDisplayName(action)) },
+                                headlineContent = { Text(actionDisplayName(action, context)) },
                                 modifier = Modifier.clickable { onSelect(action) }
                             )
                             HorizontalDivider()
@@ -660,10 +616,9 @@ fun ActionPickerSheet(
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = PaddingValues(bottom = 32.dp)
                     ) {
-                        // 안전 접근: selectedTab이 0-4 범위를 벗어날 경우 빈 목록으로 폴백
                         items(staticActionsByTab.getOrNull(selectedTab) ?: emptyList()) { action ->
                             ListItem(
-                                headlineContent = { Text(actionDisplayName(action)) },
+                                headlineContent = { Text(actionDisplayName(action, context)) },
                                 modifier = Modifier.clickable { onSelect(action) }
                             )
                             HorizontalDivider()
@@ -682,9 +637,6 @@ private fun AppPickerTab(onSelect: (Action) -> Unit) {
     var apps by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
 
     LaunchedEffect(Unit) {
-        // queryIntentActivities()를 IO 스레드에서 비동기 실행.
-        // 컴포지션(메인) 스레드에서 동기 호출하면 Android 14+(targetSdk=35) 에서
-        // StrictMode 위반 또는 SecurityException이 발생해 앱이 종료될 수 있음.
         val result = withContext(Dispatchers.IO) {
             runCatching {
                 val pm = context.packageManager
@@ -708,8 +660,6 @@ private fun AppPickerTab(onSelect: (Action) -> Unit) {
 
     when {
         isLoading -> Box(
-            // fillMaxSize() 대신 fillMaxWidth() 사용 — 높이는 부모(weight Box)가 결정
-            // fillMaxSize()는 무한 높이 제약 상황에서 크래시를 일으킬 수 있음
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
@@ -720,7 +670,7 @@ private fun AppPickerTab(onSelect: (Action) -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                "설치된 앱을 불러올 수 없습니다",
+                stringResource(R.string.action_apps_load_error),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

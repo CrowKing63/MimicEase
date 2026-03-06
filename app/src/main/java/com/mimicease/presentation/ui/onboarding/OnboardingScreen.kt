@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -27,6 +28,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import com.mimicease.R
 
 @Composable
 fun OnboardingScreen(
@@ -96,13 +98,13 @@ fun WelcomeStep(onNext: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "MimicEase에 오신 것을\n환영합니다",
+            text = stringResource(R.string.onboarding_welcome_title),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 16.dp)
         )
         Text(
-            text = "표정만으로 스마트폰을 자유롭게 제어하세요.",
+            text = stringResource(R.string.onboarding_welcome_desc),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -112,7 +114,7 @@ fun WelcomeStep(onNext: () -> Unit) {
             onClick = onNext,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("시작하기")
+            Text(stringResource(R.string.onboarding_get_started))
         }
     }
 }
@@ -134,12 +136,12 @@ fun CameraPermissionStep(onGranted: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "카메라 권한 필요",
+            text = stringResource(R.string.onboarding_camera_title),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(bottom = 16.dp)
         )
         Text(
-            text = "표정을 인식하기 위해 전면 카메라 접근 권한이 필요합니다. 사진이나 영상은 외부로 전송되지 않습니다.",
+            text = stringResource(R.string.onboarding_camera_desc),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 32.dp)
@@ -148,7 +150,7 @@ fun CameraPermissionStep(onGranted: () -> Unit) {
             onClick = { cameraPermissionState.launchPermissionRequest() },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("권한 허용하기")
+            Text(stringResource(R.string.onboarding_camera_allow))
         }
     }
 }
@@ -181,12 +183,12 @@ fun AccessibilityServiceStep(onNext: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "접근성 서비스 활성화",
+            text = stringResource(R.string.onboarding_accessibility_title),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(bottom = 16.dp)
         )
         Text(
-            text = "화면의 버튼을 누르거나 스크롤하는 동작을 대신 수행하기 위해 접근성 서비스 권한이 필요합니다.",
+            text = stringResource(R.string.onboarding_accessibility_desc),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 32.dp)
@@ -195,13 +197,13 @@ fun AccessibilityServiceStep(onNext: () -> Unit) {
             onClick = { navigateToAccessibilitySettings(context) },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("설정으로 이동")
+            Text(stringResource(R.string.onboarding_go_to_settings))
         }
         TextButton(
             onClick = onNext,
             modifier = Modifier.padding(top = 16.dp)
         ) {
-            Text("건너뛰기 (나중에 설정)")
+            Text(stringResource(R.string.onboarding_skip))
         }
     }
 }
@@ -214,12 +216,12 @@ fun TestIntroStep(onNext: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "표정 테스트 모드",
+            text = stringResource(R.string.onboarding_test_title),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(bottom = 16.dp)
         )
         Text(
-            text = "앱이 내 표정을 얼마나 잘 인식하는지 실시간으로 테스트해 볼 수 있습니다.",
+            text = stringResource(R.string.onboarding_test_desc),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 32.dp)
@@ -228,7 +230,7 @@ fun TestIntroStep(onNext: () -> Unit) {
             onClick = onNext,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("다음")
+            Text(stringResource(R.string.onboarding_next))
         }
     }
 }
@@ -244,12 +246,12 @@ fun ProfileCreationStep(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "프로필 생성",
+            text = stringResource(R.string.onboarding_profile_title),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(bottom = 16.dp)
         )
         Text(
-            text = "자주 쓰는 4가지 제스처가 포함된 기본 프로필을 바로 생성할까요?",
+            text = stringResource(R.string.onboarding_profile_desc),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 32.dp)
@@ -258,13 +260,13 @@ fun ProfileCreationStep(
             onClick = onAutoCreate,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("기본 프로필 만들기 (추천)")
+            Text(stringResource(R.string.onboarding_auto_create))
         }
         OutlinedButton(
             onClick = onManualCreate,
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
         ) {
-            Text("직접 설정하기")
+            Text(stringResource(R.string.onboarding_manual_create))
         }
     }
 }

@@ -33,15 +33,17 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.mimicease.R
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 데이터 모델
+// Data model
 // ──────────────────────────────────────────────────────────────────────────────
 
 private data class TutorialStep(
@@ -53,70 +55,69 @@ private data class TutorialStep(
     val ctaLabel: String
 )
 
-private val TUTORIAL_STEPS = listOf(
-    TutorialStep(
-        stepNumber = 1,
-        title = "프로필 만들기",
-        description = "표정-액션 매핑 묶음인 '프로필'을 먼저 만들어야 합니다.\n이름을 입력하고 '만들기' 버튼을 눌러보세요.",
-        icon = Icons.Filled.AccountCircle,
-        accentColor = Color(0xFF6C63FF),
-        ctaLabel = "만들기"
-    ),
-    TutorialStep(
-        stepNumber = 2,
-        title = "트리거 추가하기",
-        description = "프로필에 트리거를 추가합니다.\n트리거란 '어떤 표정을 지으면 어떤 동작을 할지'를 정의한 규칙입니다.",
-        icon = Icons.Filled.Add,
-        accentColor = Color(0xFF00BCD4),
-        ctaLabel = "트리거 추가"
-    ),
-    TutorialStep(
-        stepNumber = 3,
-        title = "표정 선택",
-        description = "인식할 표정을 선택합니다.\n예: 웃기(mouthSmileLeft) — 가볍게 웃는 표정으로도 트리거가 동작해요!",
-        icon = Icons.Filled.Face,
-        accentColor = Color(0xFFFF9800),
-        ctaLabel = "표정 선택"
-    ),
-    TutorialStep(
-        stepNumber = 4,
-        title = "액션 설정",
-        description = "표정을 지었을 때 실행될 동작을 선택합니다.\n예: 뒤로가기, 탭, 스크롤 등 다양한 시스템 액션을 매핑할 수 있습니다.",
-        icon = Icons.Filled.Settings,
-        accentColor = Color(0xFF4CAF50),
-        ctaLabel = "액션 선택"
-    ),
-    TutorialStep(
-        stepNumber = 5,
-        title = "저장 완료!",
-        description = "트리거를 저장했습니다. 🎉\n저장 버튼을 눌러 설정을 확정하면 목록에 추가됩니다.",
-        icon = Icons.Filled.Check,
-        accentColor = Color(0xFF2196F3),
-        ctaLabel = "저장"
-    ),
-    TutorialStep(
-        stepNumber = 6,
-        title = "서비스 시작",
-        description = "홈 화면에서 '서비스 시작' 버튼을 눌러 표정 인식을 활성화하세요.\n이제 설정한 표정을 지으면 앱이 자동으로 반응합니다!",
-        icon = Icons.Filled.PlayArrow,
-        accentColor = Color(0xFFE91E63),
-        ctaLabel = "완료"
-    )
-)
-
 // ──────────────────────────────────────────────────────────────────────────────
-// TutorialScreen (진입점)
+// TutorialScreen (entry point)
 // ──────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun TutorialScreen(navController: NavController) {
-    var currentStep by remember { mutableIntStateOf(0) }
+    // TUTORIAL_STEPS is defined inside the Composable so stringResource() can be called
+    val tutorialSteps = listOf(
+        TutorialStep(
+            stepNumber = 1,
+            title = stringResource(R.string.tutorial_step1_title),
+            description = stringResource(R.string.tutorial_step1_desc),
+            icon = Icons.Filled.AccountCircle,
+            accentColor = Color(0xFF6C63FF),
+            ctaLabel = stringResource(R.string.tutorial_step1_cta)
+        ),
+        TutorialStep(
+            stepNumber = 2,
+            title = stringResource(R.string.tutorial_step2_title),
+            description = stringResource(R.string.tutorial_step2_desc),
+            icon = Icons.Filled.Add,
+            accentColor = Color(0xFF00BCD4),
+            ctaLabel = stringResource(R.string.tutorial_step2_cta)
+        ),
+        TutorialStep(
+            stepNumber = 3,
+            title = stringResource(R.string.tutorial_step3_title),
+            description = stringResource(R.string.tutorial_step3_desc),
+            icon = Icons.Filled.Face,
+            accentColor = Color(0xFFFF9800),
+            ctaLabel = stringResource(R.string.tutorial_step3_cta)
+        ),
+        TutorialStep(
+            stepNumber = 4,
+            title = stringResource(R.string.tutorial_step4_title),
+            description = stringResource(R.string.tutorial_step4_desc),
+            icon = Icons.Filled.Settings,
+            accentColor = Color(0xFF4CAF50),
+            ctaLabel = stringResource(R.string.tutorial_step4_cta)
+        ),
+        TutorialStep(
+            stepNumber = 5,
+            title = stringResource(R.string.tutorial_step5_title),
+            description = stringResource(R.string.tutorial_step5_desc),
+            icon = Icons.Filled.Check,
+            accentColor = Color(0xFF2196F3),
+            ctaLabel = stringResource(R.string.tutorial_step5_cta)
+        ),
+        TutorialStep(
+            stepNumber = 6,
+            title = stringResource(R.string.tutorial_step6_title),
+            description = stringResource(R.string.tutorial_step6_desc),
+            icon = Icons.Filled.PlayArrow,
+            accentColor = Color(0xFFE91E63),
+            ctaLabel = stringResource(R.string.tutorial_step6_cta)
+        )
+    )
 
-    // 스텝 1(프로필 만들기)에서 사용자가 입력한 프로필 이름을 보관
+    var currentStep by remember { mutableIntStateOf(0) }
     var profileName by remember { mutableStateOf("") }
 
-    val totalSteps = TUTORIAL_STEPS.size
-    val step = TUTORIAL_STEPS[currentStep]
+    val totalSteps = tutorialSteps.size
+    val step = tutorialSteps[currentStep]
 
     val progress by animateFloatAsState(
         targetValue = (currentStep + 1) / totalSteps.toFloat(),
@@ -144,7 +145,6 @@ fun TutorialScreen(navController: NavController) {
                 .padding(innerPadding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 스텝 콘텐츠 (슬라이드 애니메이션)
             AnimatedContent(
                 targetState = currentStep,
                 transitionSpec = {
@@ -155,7 +155,7 @@ fun TutorialScreen(navController: NavController) {
                 modifier = Modifier.weight(1f),
                 label = "stepContent"
             ) { idx ->
-                val s = TUTORIAL_STEPS[idx]
+                val s = tutorialSteps[idx]
                 TutorialStepContent(
                     step = s,
                     profileName = if (idx == 0) profileName else "",
@@ -163,7 +163,6 @@ fun TutorialScreen(navController: NavController) {
                 )
             }
 
-            // 하단 스텝 인디케이터 + 버튼
             TutorialBottomBar(
                 step = step,
                 currentStep = currentStep,
@@ -201,16 +200,14 @@ private fun TutorialTopBar(
 ) {
     Column {
         TopAppBar(
-            title = { Text("튜토리얼 ($currentStep / $totalSteps)") },
+            title = { Text(stringResource(R.string.tutorial_title, currentStep, totalSteps)) },
             actions = {
-                TextButton(onClick = onSkip) { Text("건너뛰기") }
+                TextButton(onClick = onSkip) { Text(stringResource(R.string.tutorial_skip)) }
             }
         )
         LinearProgressIndicator(
             progress = { progress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(4.dp),
+            modifier = Modifier.fillMaxWidth().height(4.dp),
             color = MaterialTheme.colorScheme.primary,
             trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
@@ -218,7 +215,7 @@ private fun TutorialTopBar(
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 스텝별 콘텐츠
+// Step content
 // ──────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -234,7 +231,7 @@ private fun TutorialStepContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // 아이콘 버블
+        // Icon bubble
         Box(
             modifier = Modifier
                 .size(120.dp)
@@ -264,7 +261,7 @@ private fun TutorialStepContent(
 
         Spacer(Modifier.height(32.dp))
 
-        // 스텝 배지
+        // Step badge
         Surface(
             shape = RoundedCornerShape(50),
             color = step.accentColor.copy(alpha = 0.12f),
@@ -294,7 +291,7 @@ private fun TutorialStepContent(
             lineHeight = 22.sp
         )
 
-        // 스텝 1 전용: 프로필 이름 직접 입력 UI
+        // Step 1 only: profile name input
         if (step.stepNumber == 1) {
             ProfileNameInput(
                 name = profileName,
@@ -303,7 +300,7 @@ private fun TutorialStepContent(
             )
         }
 
-        // 스텝 6 전용: 완료 축하 카드
+        // Step 6 only: completion card
         if (step.stepNumber == 6) {
             CompletionCard()
         }
@@ -311,7 +308,7 @@ private fun TutorialStepContent(
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 스텝 1 전용 — 프로필 이름 입력
+// Step 1 only — profile name input
 // ──────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -335,21 +332,21 @@ private fun ProfileNameInput(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                "프로필 이름 미리 정해보기",
+                stringResource(R.string.tutorial_step1_name_hint),
                 style = MaterialTheme.typography.labelLarge,
                 color = accentColor
             )
             OutlinedTextField(
                 value = name,
                 onValueChange = onNameChange,
-                placeholder = { Text("예: 내 첫 번째 프로필") },
+                placeholder = { Text(stringResource(R.string.tutorial_step1_placeholder)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                 modifier = Modifier.fillMaxWidth()
             )
             Text(
-                "이름은 나중에 언제든지 수정할 수 있습니다.",
+                stringResource(R.string.tutorial_step1_name_editable),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -358,7 +355,7 @@ private fun ProfileNameInput(
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 스텝 6 전용 — 완료 축하 카드
+// Step 6 only — completion card
 // ──────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -366,9 +363,7 @@ private fun CompletionCard() {
     Spacer(Modifier.height(28.dp))
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         shape = RoundedCornerShape(20.dp)
     ) {
         Row(
@@ -379,12 +374,12 @@ private fun CompletionCard() {
             Icon(Icons.Filled.Star, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Column {
                 Text(
-                    "훌륭해요!",
+                    stringResource(R.string.tutorial_completion_title),
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    "이제 표정만으로 스마트폰을 자유롭게 조작할 수 있습니다.",
+                    stringResource(R.string.tutorial_completion_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -394,7 +389,7 @@ private fun CompletionCard() {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// BottomBar — 스텝 인디케이터 + 이전/다음 버튼
+// BottomBar — step indicator + prev/next buttons
 // ──────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -407,8 +402,6 @@ private fun TutorialBottomBar(
     onBack: () -> Unit
 ) {
     val isLastStep = currentStep == totalSteps - 1
-    // 스텝 1에서는 이름 미입력이어도 '다음'을 허용 (입력은 선택)
-    val canProceed = true
 
     Surface(
         tonalElevation = 4.dp,
@@ -421,7 +414,7 @@ private fun TutorialBottomBar(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 도트 인디케이터
+            // Dot indicator
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -447,32 +440,29 @@ private fun TutorialBottomBar(
                 }
             }
 
-            // 버튼 행
+            // Button row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 이전 버튼 (첫 스텝에서는 숨김)
+                // Previous button (hidden on first step)
                 AnimatedVisibility(visible = currentStep > 0) {
                     OutlinedButton(
                         onClick = onBack,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("이전")
+                        Text(stringResource(R.string.tutorial_previous))
                     }
                 }
 
-                // 다음 / 완료 버튼
+                // Next / Done button
                 Button(
                     onClick = onNext,
-                    enabled = canProceed,
                     modifier = Modifier.weight(if (currentStep > 0) 1f else Float.MAX_VALUE),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = step.accentColor
-                    )
+                    colors = ButtonDefaults.buttonColors(containerColor = step.accentColor)
                 ) {
-                    Text(if (isLastStep) "완료" else step.ctaLabel)
+                    Text(if (isLastStep) stringResource(R.string.tutorial_done) else step.ctaLabel)
                     Spacer(Modifier.width(6.dp))
                     Icon(
                         imageVector = if (isLastStep) Icons.Filled.Check

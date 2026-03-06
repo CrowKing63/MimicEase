@@ -21,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -105,7 +106,6 @@ class SettingsViewModel @Inject constructor(
     fun toggleAutoStartOnBoot(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.updateSettings { it.copy(autoStartOnBoot = enabled) } }
     }
-
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -118,8 +118,6 @@ fun SettingsScreen(
     val context = LocalContext.current
 
     var isAccessibilityEnabled by remember {
-        // instance != null 대신 시스템 접근성 설정을 확인.
-        // 앱 프로세스가 재시작된 직후 instance가 일시적으로 null이 되더라도 올바른 상태를 표시.
         mutableStateOf(context.isMimicAccessibilityServiceEnabled())
     }
 
@@ -132,8 +130,6 @@ fun SettingsScreen(
         )
     }
 
-    // HEAD_MOUSE 모드에서 커서 오버레이를 표시하려면 SYSTEM_ALERT_WINDOW 권한 필요.
-    // Settings.canDrawOverlays()로 실시간 확인하고 ON_RESUME에서 갱신.
     var isOverlayPermGranted by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -152,8 +148,20 @@ fun SettingsScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // Locale-aware mode labels / descriptions (must be inside Composable)
+    val modeLabels = mapOf(
+        InteractionMode.EXPRESSION_ONLY to stringResource(R.string.settings_mode_expression_only),
+        InteractionMode.CURSOR_CLICK    to stringResource(R.string.settings_mode_cursor_click),
+        InteractionMode.HEAD_MOUSE      to stringResource(R.string.settings_mode_head_mouse)
+    )
+    val modeDescriptions = mapOf(
+        InteractionMode.EXPRESSION_ONLY to stringResource(R.string.settings_mode_expression_only_desc),
+        InteractionMode.CURSOR_CLICK    to stringResource(R.string.settings_mode_cursor_click_desc),
+        InteractionMode.HEAD_MOUSE      to stringResource(R.string.settings_mode_head_mouse_desc)
+    )
+
     Scaffold(
-        topBar = { TopAppBar(title = { Text("설정") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.settings_title)) }) },
         bottomBar = { MimicBottomNavigation(navController) }
     ) { innerPadding ->
         Column(
@@ -164,20 +172,10 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // ── 상호작용 모드 ──────────────────────────────────────────────
-            SettingsSectionHeader("상호작용 모드")
+            // ── Interaction mode ──────────────────────────────────────────
+            SettingsSectionHeader(stringResource(R.string.settings_interaction_mode))
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    val modeLabels = mapOf(
-                        InteractionMode.EXPRESSION_ONLY to "표정 전용",
-                        InteractionMode.CURSOR_CLICK    to "커서 + 표정 클릭",
-                        InteractionMode.HEAD_MOUSE      to "헤드 마우스"
-                    )
-                    val modeDescriptions = mapOf(
-                        InteractionMode.EXPRESSION_ONLY to "표정으로 고정 좌표 제스처 실행",
-                        InteractionMode.CURSOR_CLICK    to "블루투스 마우스로 커서 이동, 표정으로 클릭",
-                        InteractionMode.HEAD_MOUSE      to "머리 움직임으로 커서 제어, 드웰 클릭"
-                    )
                     InteractionMode.entries.forEach { mode ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -201,10 +199,7 @@ fun SettingsScreen(
                 }
             }
 
-            // ── 헤드 마우스 오버레이 권한 경고 ──────────────────────────────
-            // HEAD_MOUSE를 선택했으나 SYSTEM_ALERT_WINDOW 권한이 없으면
-            // CursorOverlayView.show()가 WindowManager에서 SecurityException을 던져
-            // 커서가 화면에 전혀 표시되지 않음. 사용자가 직접 권한을 허용해야 함.
+            // ── Overlay permission warning (HEAD_MOUSE only) ──────────────
             if (settings.activeMode == InteractionMode.HEAD_MOUSE && !isOverlayPermGranted) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -213,20 +208,18 @@ fun SettingsScreen(
                     )
                 ) {
                     Row(
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth(),
+                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "오버레이 권한 필요",
+                                stringResource(R.string.settings_overlay_permission_title),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )
                             Text(
-                                "헤드 마우스 커서를 화면에 표시하려면 '다른 앱 위에 표시' 권한이 필요합니다.",
+                                stringResource(R.string.settings_overlay_permission_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )
@@ -242,18 +235,19 @@ fun SettingsScreen(
                                 )
                             }
                         ) {
-                            Text("권한 허용", color = MaterialTheme.colorScheme.onErrorContainer)
+                            Text(stringResource(R.string.settings_overlay_allow),
+                                color = MaterialTheme.colorScheme.onErrorContainer)
                         }
                     }
                 }
             }
 
-            // ── 헤드 마우스 ────────────────────────────────────────────────
-            SettingsSectionHeader("헤드 마우스")
+            // ── Head mouse ────────────────────────────────────────────────
+            SettingsSectionHeader(stringResource(R.string.settings_head_mouse_section))
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "감도: ${"%.1f".format(settings.headMouseSensitivity)}x",
+                        stringResource(R.string.settings_sensitivity, "%.1f".format(settings.headMouseSensitivity)),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Slider(
@@ -266,11 +260,11 @@ fun SettingsScreen(
                     HorizontalDivider()
 
                     Text(
-                        "데드존: ${"%.2f".format(settings.headMouseDeadZone)} rad",
+                        stringResource(R.string.settings_dead_zone, "%.2f".format(settings.headMouseDeadZone)),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        "작을수록 미세한 움직임에도 반응",
+                        stringResource(R.string.settings_dead_zone_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -283,8 +277,8 @@ fun SettingsScreen(
                 }
             }
 
-            // ── 드웰 클릭 ─────────────────────────────────────────────────
-            SettingsSectionHeader("드웰 클릭 (헤드 마우스)")
+            // ── Dwell click ───────────────────────────────────────────────
+            SettingsSectionHeader(stringResource(R.string.settings_dwell_section))
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
@@ -292,7 +286,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("드웰 클릭 활성화")
+                        Text(stringResource(R.string.settings_dwell_enable))
                         Switch(
                             checked = settings.dwellClickEnabled,
                             onCheckedChange = { viewModel.toggleDwellClick(it) }
@@ -302,7 +296,7 @@ fun SettingsScreen(
                     HorizontalDivider()
 
                     Text(
-                        "클릭 대기 시간: ${settings.dwellClickTimeMs}ms",
+                        stringResource(R.string.settings_dwell_time, settings.dwellClickTimeMs.toInt()),
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (settings.dwellClickEnabled) MaterialTheme.colorScheme.onSurface
                                 else MaterialTheme.colorScheme.onSurfaceVariant
@@ -318,13 +312,13 @@ fun SettingsScreen(
                     HorizontalDivider()
 
                     Text(
-                        "클릭 허용 반경: ${settings.dwellClickRadiusPx.toInt()}px",
+                        stringResource(R.string.settings_dwell_radius, settings.dwellClickRadiusPx.toInt()),
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (settings.dwellClickEnabled) MaterialTheme.colorScheme.onSurface
                                 else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "이 범위 안에서 정지하면 클릭",
+                        stringResource(R.string.settings_dwell_radius_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -338,8 +332,8 @@ fun SettingsScreen(
                 }
             }
 
-            // ── 글로벌 토글 ───────────────────────────────────────────────
-            SettingsSectionHeader("글로벌 토글")
+            // ── Global toggle ─────────────────────────────────────────────
+            SettingsSectionHeader(stringResource(R.string.settings_global_toggle_section))
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -348,9 +342,9 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("볼륨 키 조합 (Up+Down 홀드)")
+                            Text(stringResource(R.string.settings_volume_key_combo))
                             Text(
-                                "${settings.toggleKeyHoldMs}ms 동안 누르면 토글",
+                                stringResource(R.string.settings_volume_key_desc, settings.toggleKeyHoldMs.toInt()),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -369,9 +363,9 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("표정 토글 (양쪽 눈 감기)")
+                            Text(stringResource(R.string.settings_expression_toggle))
                             Text(
-                                "오발동 위험 — 신중히 활성화",
+                                stringResource(R.string.settings_expression_toggle_warning),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error
                             )
@@ -381,20 +375,19 @@ fun SettingsScreen(
                             onCheckedChange = { viewModel.toggleByExpression(it) }
                         )
                     }
-
                 }
             }
 
-            // ── AI 어시스턴트 연동 ─────────────────────────────────────────
-            SettingsSectionHeader("AI 어시스턴트 연동")
+            // ── AI assistant integration ──────────────────────────────────
+            SettingsSectionHeader(stringResource(R.string.settings_ai_assistant_section))
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
 
-                    // 빠른 설정 타일
+                    // Quick Settings tile
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        Text("빠른 설정 타일")
+                        Text(stringResource(R.string.settings_qs_tile))
                         Text(
-                            "알림 창 → 편집(연필 아이콘) → 미믹이즈 타일을 드래그해 추가",
+                            stringResource(R.string.settings_qs_tile_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -403,14 +396,14 @@ fun SettingsScreen(
                                 onClick = { addQsTileIfSupported(context) },
                                 contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp)
                             ) {
-                                Text("시스템 대화상자로 바로 추가")
+                                Text(stringResource(R.string.settings_qs_tile_add))
                             }
                         }
                     }
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                    // 빅스비 루틴
+                    // Bixby Routines
                     var bixbyNotFound by remember { mutableStateOf(false) }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -418,15 +411,15 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("빅스비 루틴")
+                            Text(stringResource(R.string.settings_bixby_routines))
                             Text(
-                                "동작 추가 → 빠른 설정 → 미믹이즈",
+                                stringResource(R.string.settings_bixby_routines_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             if (bixbyNotFound) {
                                 Text(
-                                    "빅스비 루틴 앱을 찾을 수 없습니다 (삼성 기기 전용)",
+                                    stringResource(R.string.settings_bixby_not_found),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.error
                                 )
@@ -443,17 +436,17 @@ fun SettingsScreen(
                                 bixbyNotFound = true
                             }
                         }) {
-                            Text("루틴 앱 열기")
+                            Text(stringResource(R.string.settings_bixby_open))
                         }
                     }
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                    // 제미나이
+                    // Gemini
                     Column {
-                        Text("제미나이")
+                        Text(stringResource(R.string.settings_gemini))
                         Text(
-                            "앱 아이콘을 길게 눌러 단축키를 제미나이에 연결하거나, \"미믹이즈 켜기\"라고 말해보세요.",
+                            stringResource(R.string.settings_gemini_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -461,21 +454,21 @@ fun SettingsScreen(
                 }
             }
 
-            // ── 감지 설정 ─────────────────────────────────────────────────
-            SettingsSectionHeader("감지 설정")
+            // ── Detection settings ────────────────────────────────────────
+            SettingsSectionHeader(stringResource(R.string.settings_detection_section))
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        "표정 평활화 (EMA α): ${"%.1f".format(settings.emaAlpha)}",
+                        stringResource(R.string.settings_ema_alpha, "%.1f".format(settings.emaAlpha)),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        "높을수록 빠른 반응, 낮을수록 부드럽게",
+                        stringResource(R.string.settings_ema_alpha_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("느림", style = MaterialTheme.typography.labelSmall)
+                        Text(stringResource(R.string.settings_ema_slow), style = MaterialTheme.typography.labelSmall)
                         Slider(
                             value = settings.emaAlpha,
                             onValueChange = { viewModel.updateEmaAlpha(it) },
@@ -483,13 +476,13 @@ fun SettingsScreen(
                             steps = 7,
                             modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
                         )
-                        Text("빠름", style = MaterialTheme.typography.labelSmall)
+                        Text(stringResource(R.string.settings_ema_fast), style = MaterialTheme.typography.labelSmall)
                     }
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                     Text(
-                        "연속 확정 프레임: ${settings.consecutiveFrames}프레임",
+                        stringResource(R.string.settings_consecutive_frames, settings.consecutiveFrames),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Slider(
@@ -501,8 +494,8 @@ fun SettingsScreen(
                 }
             }
 
-            // ── 알림 설정 ─────────────────────────────────────────────────
-            SettingsSectionHeader("알림 설정")
+            // ── Notification settings ─────────────────────────────────────
+            SettingsSectionHeader(stringResource(R.string.settings_notification_section))
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -510,7 +503,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("포그라운드 알림 표시")
+                        Text(stringResource(R.string.settings_show_notification))
                         Switch(
                             checked = settings.showForegroundNotification,
                             onCheckedChange = { viewModel.toggleNotification(it) }
@@ -519,8 +512,8 @@ fun SettingsScreen(
                 }
             }
 
-            // ── 부팅 자동 시작 ─────────────────────────────────────────────
-            SettingsSectionHeader("서비스 자동 시작")
+            // ── Auto start on boot ────────────────────────────────────────
+            SettingsSectionHeader(stringResource(R.string.settings_auto_start_section))
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -529,9 +522,9 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("부팅 시 자동 시작")
+                            Text(stringResource(R.string.settings_auto_start_on_boot))
                             Text(
-                                "기기 재시작 후 서비스를 자동으로 실행합니다",
+                                stringResource(R.string.settings_auto_start_on_boot_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -544,20 +537,22 @@ fun SettingsScreen(
                 }
             }
 
-            // ── 시스템 ────────────────────────────────────────────────────
-            SettingsSectionHeader("시스템")
+            // ── System ────────────────────────────────────────────────────
+            SettingsSectionHeader(stringResource(R.string.settings_system_section))
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    // 접근성 서비스 상태
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("접근성 서비스")
+                            Text(stringResource(R.string.settings_accessibility_service))
                             Text(
-                                text = if (isAccessibilityEnabled) "활성화됨 ✓" else "비활성화됨",
+                                text = if (isAccessibilityEnabled)
+                                    stringResource(R.string.settings_accessibility_enabled)
+                                else
+                                    stringResource(R.string.settings_accessibility_disabled),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (isAccessibilityEnabled) MaterialTheme.colorScheme.primary
                                         else MaterialTheme.colorScheme.error
@@ -565,25 +560,25 @@ fun SettingsScreen(
                         }
                         if (!isAccessibilityEnabled) {
                             TextButton(onClick = {
-                                context.startActivity(
-                                    Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-                                )
-                            }) { Text("설정으로 이동") }
+                                context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                            }) { Text(stringResource(R.string.settings_go_to_settings)) }
                         }
                     }
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                    // 배터리 최적화 제외
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("배터리 최적화 제외")
+                            Text(stringResource(R.string.settings_battery_optimization))
                             Text(
-                                text = if (isBatteryOptExcluded) "제외됨 ✓" else "최적화 대상",
+                                text = if (isBatteryOptExcluded)
+                                    stringResource(R.string.settings_battery_excluded)
+                                else
+                                    stringResource(R.string.settings_battery_included),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (isBatteryOptExcluded) MaterialTheme.colorScheme.primary
                                         else MaterialTheme.colorScheme.onSurfaceVariant
@@ -597,14 +592,14 @@ fun SettingsScreen(
                                         Uri.parse("package:${context.packageName}")
                                     )
                                 )
-                            }) { Text("제외 요청") }
+                            }) { Text(stringResource(R.string.settings_battery_request)) }
                         }
                     }
                 }
             }
 
-            // ── 기타 ──────────────────────────────────────────────────────
-            SettingsSectionHeader("기타")
+            // ── Other ─────────────────────────────────────────────────────
+            SettingsSectionHeader(stringResource(R.string.settings_other_section))
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -612,7 +607,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("개발자 모드")
+                        Text(stringResource(R.string.settings_developer_mode))
                         Switch(
                             checked = settings.isDeveloperMode,
                             onCheckedChange = { viewModel.toggleDeveloperMode(it) }
@@ -624,7 +619,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("버전")
+                        Text(stringResource(R.string.settings_version))
                         Text(BuildConfig.VERSION_NAME, style = MaterialTheme.typography.bodySmall)
                     }
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -634,15 +629,15 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("튜토리얼")
+                            Text(stringResource(R.string.settings_tutorial))
                             Text(
-                                "앱 사용 방법을 단계별로 확인합니다",
+                                stringResource(R.string.settings_tutorial_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         TextButton(onClick = { navController.navigate("tutorial") }) {
-                            Text("다시 보기")
+                            Text(stringResource(R.string.settings_tutorial_view))
                         }
                     }
                 }
@@ -654,9 +649,9 @@ fun SettingsScreen(
 }
 
 /**
- * QS 타일 추가 요청.
- * - API 33+: 시스템 대화상자를 표시하여 사용자가 타일을 추가하도록 안내
- * - API < 33: 아무 동작 없음 (호출 지점에서 API 체크 후 호출)
+ * Request adding QS tile.
+ * - API 33+: show system dialog to guide user to add the tile
+ * - API < 33: no-op (caller checks API level before calling)
  */
 @SuppressLint("NewApi")
 private fun addQsTileIfSupported(context: Context) {
@@ -664,7 +659,7 @@ private fun addQsTileIfSupported(context: Context) {
     val sbm = context.getSystemService(StatusBarManager::class.java) ?: return
     sbm.requestAddTileService(
         ComponentName(context, MimicToggleTileService::class.java),
-        "미믹이즈",
+        context.getString(R.string.tile_label),
         Icon.createWithResource(context, R.mipmap.ic_launcher),
         context.mainExecutor
     ) { /* result ignored */ }
@@ -680,9 +675,9 @@ private fun SettingsSectionHeader(title: String) {
 }
 
 /**
- * 시스템 접근성 설정에서 MimicAccessibilityService가 실제로 활성화되어 있는지 확인.
- * MimicAccessibilityService.instance != null 대신 이 함수를 사용하면
- * 앱 프로세스 재시작 시 발생하는 일시적 null 상태에서도 올바른 결과를 반환.
+ * Check whether MimicAccessibilityService is active in system accessibility settings.
+ * Using system settings instead of MimicAccessibilityService.instance != null avoids
+ * transient null state that occurs immediately after a process restart.
  */
 private fun android.content.Context.isMimicAccessibilityServiceEnabled(): Boolean {
     val enabledServices = Settings.Secure.getString(

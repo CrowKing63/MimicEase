@@ -9,12 +9,14 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import com.mimicease.R
 import com.mimicease.domain.model.Profile
 import com.mimicease.domain.repository.ProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -111,10 +113,10 @@ fun ProfileEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("프로필 편집") },
+                title = { Text(stringResource(R.string.profile_edit_title)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "뒤로")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.profile_edit_back))
                     }
                 },
                 actions = {
@@ -125,7 +127,7 @@ fun ProfileEditScreen(
                             onClick = { viewModel.save { navController.popBackStack() } },
                             enabled = uiState.name.isNotBlank()
                         ) {
-                            Icon(Icons.Default.Check, contentDescription = "저장")
+                            Icon(Icons.Default.Check, contentDescription = stringResource(R.string.profile_edit_save))
                         }
                     }
                 }
@@ -140,17 +142,15 @@ fun ProfileEditScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 프로필 이름
             OutlinedTextField(
                 value = uiState.name,
                 onValueChange = viewModel::updateName,
-                label = { Text("프로필 이름") },
+                label = { Text(stringResource(R.string.profile_edit_name)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
 
-            // 아이콘 선택
-            Text("아이콘", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.profile_edit_icon), style = MaterialTheme.typography.titleSmall)
             val chunks = PROFILE_ICONS.chunked(5)
             chunks.forEach { chunk ->
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -166,13 +166,12 @@ fun ProfileEditScreen(
 
             HorizontalDivider()
 
-            // 감도 슬라이더 (0.5x ~ 2.0x)
             Text(
-                text = "감도: ${"%.1f".format(uiState.sensitivity)}x",
+                text = stringResource(R.string.profile_edit_sensitivity, "%.1f".format(uiState.sensitivity)),
                 style = MaterialTheme.typography.titleSmall
             )
             Text(
-                text = "높을수록 약한 표정에도 트리거가 발동됩니다",
+                text = stringResource(R.string.profile_edit_sensitivity_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -183,19 +182,18 @@ fun ProfileEditScreen(
                 steps = 14
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("느림 (0.5x)", style = MaterialTheme.typography.labelSmall)
-                Text("빠름 (2.0x)", style = MaterialTheme.typography.labelSmall)
+                Text(stringResource(R.string.profile_edit_slow), style = MaterialTheme.typography.labelSmall)
+                Text(stringResource(R.string.profile_edit_fast), style = MaterialTheme.typography.labelSmall)
             }
 
             HorizontalDivider()
 
-            // 전역 쿨다운 슬라이더 (0 ~ 2000ms)
             Text(
-                text = "전역 쿨다운: ${uiState.globalCooldownMs}ms",
+                text = stringResource(R.string.profile_edit_cooldown, uiState.globalCooldownMs),
                 style = MaterialTheme.typography.titleSmall
             )
             Text(
-                text = "어떤 트리거든 발동 후 전체 일시 대기 시간",
+                text = stringResource(R.string.profile_edit_cooldown_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">MimicEase</string>
     <string name="accessibility_service_description">MimicEase uses accessibility services to help you interact with your device through facial expressions and gestures.</string>
@@ -15,4 +16,281 @@
     <string name="tile_active">MimicEase Active</string>
     <string name="tile_paused">MimicEase Paused</string>
     <string name="tile_unavailable">MimicEase Not Running</string>
+
+    <!-- BlendShape categories -->
+    <string name="category_all">All</string>
+    <string name="category_eyes">Eyes</string>
+    <string name="category_brows">Brows</string>
+    <string name="category_mouth">Mouth/Jaw</string>
+    <string name="category_cheek">Cheek/Nose</string>
+    <string name="category_tongue">Tongue</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_test">Test</string>
+    <string name="nav_profiles">Profiles</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Home Screen -->
+    <string name="home_service_status">Service Status</string>
+    <string name="home_service_stopped">Service Off</string>
+    <string name="home_service_paused">Paused</string>
+    <string name="home_service_running">Detecting Expressions</string>
+    <string name="home_fps_info">FPS: %1$d  Inference: %2$dms</string>
+    <string name="home_start_service">Start Service</string>
+    <string name="home_resume">Resume</string>
+    <string name="home_pause">Pause</string>
+    <string name="home_stop_service">Stop Service</string>
+    <string name="home_current_profile">Current Profile</string>
+    <string name="home_triggers_active">%1$d triggers active</string>
+    <string name="home_no_profile">No Profile</string>
+    <string name="home_create_profile_hint">Create a profile to set up triggers</string>
+    <string name="home_change_profile">Change Profile ›</string>
+    <string name="home_quick_triggers">Quick Triggers</string>
+
+    <!-- Action display names -->
+    <string name="action_home">Home</string>
+    <string name="action_back">Back</string>
+    <string name="action_recents">Recent Apps</string>
+    <string name="action_notifications">Notifications</string>
+    <string name="action_quick_settings">Quick Settings</string>
+    <string name="action_screen_lock">Screen Lock</string>
+    <string name="action_screenshot">Screenshot</string>
+    <string name="action_power_dialog">Power Menu</string>
+    <string name="action_tap_center">Tap Center</string>
+    <string name="action_tap_custom">Custom Tap</string>
+    <string name="action_double_tap">Double Tap</string>
+    <string name="action_long_press">Long Press</string>
+    <string name="action_swipe_up">Swipe Up</string>
+    <string name="action_swipe_down">Swipe Down</string>
+    <string name="action_swipe_left">Swipe Left</string>
+    <string name="action_swipe_right">Swipe Right</string>
+    <string name="action_scroll_up">Scroll Up</string>
+    <string name="action_scroll_down">Scroll Down</string>
+    <string name="action_drag">Drag</string>
+    <string name="action_pinch_in">Pinch In (Zoom Out)</string>
+    <string name="action_pinch_out">Pinch Out (Zoom In)</string>
+    <string name="action_open_app">Open App: %1$s</string>
+    <string name="action_media_play_pause">Play/Pause</string>
+    <string name="action_media_next">Next Track</string>
+    <string name="action_media_prev">Previous Track</string>
+    <string name="action_volume_up">Volume Up</string>
+    <string name="action_volume_down">Volume Down</string>
+    <string name="action_mimic_pause">Pause MimicEase</string>
+    <string name="action_tap_at_cursor">Tap at Cursor</string>
+    <string name="action_double_tap_at_cursor">Double Tap at Cursor</string>
+    <string name="action_long_press_at_cursor">Long Press at Cursor</string>
+    <string name="action_drag_toggle_at_cursor">Drag at Cursor (Toggle)</string>
+    <string name="action_recenter_cursor">Center Cursor</string>
+    <string name="action_switch_key">Switch: %1$s</string>
+    <string name="action_unknown">Unknown Action</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome_title">Welcome to\nMimicEase</string>
+    <string name="onboarding_welcome_desc">Control your smartphone freely with facial expressions.</string>
+    <string name="onboarding_get_started">Get Started</string>
+    <string name="onboarding_camera_title">Camera Permission Required</string>
+    <string name="onboarding_camera_desc">Front camera access is needed to recognize facial expressions. No photos or videos will be sent externally.</string>
+    <string name="onboarding_camera_allow">Allow Permission</string>
+    <string name="onboarding_accessibility_title">Enable Accessibility Service</string>
+    <string name="onboarding_accessibility_desc">Accessibility service permission is needed to perform actions like pressing buttons or scrolling on your screen.</string>
+    <string name="onboarding_go_to_settings">Go to Settings</string>
+    <string name="onboarding_skip">Skip (Set Up Later)</string>
+    <string name="onboarding_test_title">Expression Test Mode</string>
+    <string name="onboarding_test_desc">You can test in real-time how well the app recognizes your facial expressions.</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_profile_title">Create Profile</string>
+    <string name="onboarding_profile_desc">Would you like to create a default profile with 4 common gestures?</string>
+    <string name="onboarding_auto_create">Create Default Profile (Recommended)</string>
+    <string name="onboarding_manual_create">Set Up Manually</string>
+
+    <!-- Default Profile / Triggers (created during onboarding) -->
+    <string name="default_profile_name">Default Profile</string>
+    <string name="default_trigger_wink_right">Right Wink</string>
+    <string name="default_trigger_wink_left">Left Wink</string>
+    <string name="default_trigger_mouth_open">Mouth Open</string>
+    <string name="default_trigger_eyebrow_raise">Eyebrow Raise</string>
+
+    <!-- Profile List -->
+    <string name="profiles_title">Profiles</string>
+    <string name="profiles_add">Add Profile</string>
+    <string name="profiles_empty">No profiles</string>
+    <string name="profiles_create_button">+ Create Profile</string>
+    <string name="profiles_trigger_count">%1$d triggers</string>
+    <string name="profiles_active_suffix"> · Active</string>
+    <string name="profiles_select">Select</string>
+    <string name="profiles_active_check">Active ✓</string>
+    <string name="profiles_delete">Delete</string>
+    <string name="profiles_delete_title">Delete Profile</string>
+    <string name="profiles_delete_message">Delete profile \'%1$s\' and all its triggers?</string>
+    <string name="profiles_cancel">Cancel</string>
+    <string name="profiles_create_dialog_title">Create New Profile</string>
+    <string name="profiles_name_label">Name</string>
+    <string name="profiles_icon_label">Icon</string>
+    <string name="profiles_create_confirm">Create</string>
+
+    <!-- Profile Edit -->
+    <string name="profile_edit_title">Edit Profile</string>
+    <string name="profile_edit_back">Back</string>
+    <string name="profile_edit_save">Save</string>
+    <string name="profile_edit_name">Profile Name</string>
+    <string name="profile_edit_icon">Icon</string>
+    <string name="profile_edit_sensitivity">Sensitivity: %1$s×</string>
+    <string name="profile_edit_sensitivity_desc">Higher values trigger on weaker expressions</string>
+    <string name="profile_edit_slow">Slow (0.5×)</string>
+    <string name="profile_edit_fast">Fast (2.0×)</string>
+    <string name="profile_edit_cooldown">Global Cooldown: %1$dms</string>
+    <string name="profile_edit_cooldown_desc">Global wait time after any trigger fires</string>
+
+    <!-- Trigger List -->
+    <string name="trigger_list_fallback_title">Trigger List</string>
+    <string name="trigger_list_back">Back</string>
+    <string name="trigger_list_edit_profile">Edit Profile</string>
+    <string name="trigger_list_add">Add Trigger</string>
+    <string name="trigger_list_empty">No triggers</string>
+    <string name="trigger_list_add_button">+ Add Trigger</string>
+    <string name="trigger_threshold_label">threshold: %1$s</string>
+    <string name="trigger_hold_label">hold: %1$dms</string>
+    <string name="trigger_edit">Edit</string>
+    <string name="trigger_delete">Delete</string>
+    <string name="trigger_delete_title">Delete Trigger</string>
+    <string name="trigger_delete_message">Delete trigger \'%1$s\'?</string>
+
+    <!-- Trigger Edit -->
+    <string name="trigger_edit_add_title">Add Trigger</string>
+    <string name="trigger_edit_edit_title">Edit Trigger</string>
+    <string name="trigger_edit_back">Back</string>
+    <string name="trigger_edit_save">Save</string>
+    <string name="trigger_name_label">Trigger Name</string>
+    <string name="trigger_name_example">e.g. %1$s → %2$s</string>
+    <string name="trigger_expression_section">Select Expression</string>
+    <string name="trigger_live_section">Live Value</string>
+    <string name="trigger_current_value">Current: %1$s</string>
+    <string name="trigger_threshold_section">Threshold: %1$s</string>
+    <string name="trigger_hold_section">Hold Duration: %1$dms</string>
+    <string name="trigger_cooldown_section">Cooldown: %1$dms</string>
+    <string name="trigger_action_section">Action to Perform</string>
+    <string name="trigger_change">Change ></string>
+    <string name="trigger_tap_x">Tap X: %1$s  (Left 0.0 → Right 1.0)</string>
+    <string name="trigger_tap_y">Tap Y: %1$s  (Top 0.0 → Bottom 1.0)</string>
+    <string name="trigger_drag_start_x">Start X: %1$s</string>
+    <string name="trigger_drag_start_y">Start Y: %1$s</string>
+    <string name="trigger_drag_end_x">End X: %1$s</string>
+    <string name="trigger_drag_end_y">End Y: %1$s</string>
+    <string name="trigger_drag_duration">Drag Duration: %1$dms</string>
+
+    <!-- BlendShape Picker -->
+    <string name="blendshape_picker_title">Select Expression</string>
+
+    <!-- Action Picker -->
+    <string name="action_picker_title">Select Action</string>
+    <string name="action_tab_system">System</string>
+    <string name="action_tab_gesture">Gesture</string>
+    <string name="action_tab_media">Media</string>
+    <string name="action_tab_cursor">Cursor</string>
+    <string name="action_tab_switch">Switch</string>
+    <string name="action_tab_app">App</string>
+    <string name="action_tab_other">Other</string>
+    <string name="action_apps_load_error">Cannot load installed apps</string>
+
+    <!-- Expression Test -->
+    <string name="test_title">Expression Test</string>
+    <string name="test_create_trigger_fab">Create Trigger with This Expression</string>
+    <string name="test_start_service_hint">Please start the camera service</string>
+    <string name="test_face_detecting">Face detected • Inference: %1$dms</string>
+    <string name="test_no_face">No face detected</string>
+    <string name="test_threshold_preview">Threshold Preview: %1$s</string>
+    <string name="test_threshold_exceeded">✓ Current value exceeds threshold</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_interaction_mode">Interaction Mode</string>
+    <string name="settings_mode_expression_only">Expression Only</string>
+    <string name="settings_mode_expression_only_desc">Fixed-coordinate gesture/system actions via expressions</string>
+    <string name="settings_mode_cursor_click">Cursor + Expression Click</string>
+    <string name="settings_mode_cursor_click_desc">Move cursor with BT mouse, click with expression</string>
+    <string name="settings_mode_head_mouse">Head Mouse</string>
+    <string name="settings_mode_head_mouse_desc">Control cursor with head movement, dwell click</string>
+    <string name="settings_overlay_permission_title">Overlay Permission Required</string>
+    <string name="settings_overlay_permission_desc">\'Display over other apps\' permission is required to show the head mouse cursor on screen.</string>
+    <string name="settings_overlay_allow">Allow</string>
+    <string name="settings_head_mouse_section">Head Mouse</string>
+    <string name="settings_sensitivity">Sensitivity: %1$s×</string>
+    <string name="settings_dead_zone">Dead Zone: %1$s rad</string>
+    <string name="settings_dead_zone_desc">Smaller values respond to finer movements</string>
+    <string name="settings_dwell_section">Dwell Click (Head Mouse)</string>
+    <string name="settings_dwell_enable">Enable Dwell Click</string>
+    <string name="settings_dwell_time">Click Dwell Time: %1$dms</string>
+    <string name="settings_dwell_radius">Click Radius: %1$dpx</string>
+    <string name="settings_dwell_radius_desc">Stay within this radius to click</string>
+    <string name="settings_global_toggle_section">Global Toggle</string>
+    <string name="settings_volume_key_combo">Volume Key Combo (Up+Down Hold)</string>
+    <string name="settings_volume_key_desc">Hold for %1$dms to toggle</string>
+    <string name="settings_expression_toggle">Expression Toggle (Both Eyes Closed)</string>
+    <string name="settings_expression_toggle_warning">Risk of accidental activation — enable with caution</string>
+    <string name="settings_ai_assistant_section">AI Assistant Integration</string>
+    <string name="settings_qs_tile">Quick Settings Tile</string>
+    <string name="settings_qs_tile_desc">Notification shade → Edit (pencil icon) → Drag MimicEase tile to add</string>
+    <string name="settings_qs_tile_add">Add via System Dialog</string>
+    <string name="settings_bixby_routines">Bixby Routines</string>
+    <string name="settings_bixby_routines_desc">Add Action → Quick Settings → MimicEase</string>
+    <string name="settings_bixby_not_found">Bixby Routines app not found (Samsung devices only)</string>
+    <string name="settings_bixby_open">Open Routines App</string>
+    <string name="settings_gemini">Gemini</string>
+    <string name="settings_gemini_desc">Long-press the app icon to connect a shortcut to Gemini, or say \"Turn on MimicEase\".</string>
+    <string name="settings_detection_section">Detection Settings</string>
+    <string name="settings_ema_alpha">Expression Smoothing (EMA α): %1$s</string>
+    <string name="settings_ema_alpha_desc">Higher = faster response, lower = smoother</string>
+    <string name="settings_ema_slow">Slow</string>
+    <string name="settings_ema_fast">Fast</string>
+    <string name="settings_consecutive_frames">Consecutive Confirm Frames: %1$d frames</string>
+    <string name="settings_notification_section">Notification Settings</string>
+    <string name="settings_show_notification">Show Foreground Notification</string>
+    <string name="settings_auto_start_section">Service Auto-Start</string>
+    <string name="settings_auto_start_on_boot">Start on Boot</string>
+    <string name="settings_auto_start_on_boot_desc">Automatically start service after device restart</string>
+    <string name="settings_system_section">System</string>
+    <string name="settings_accessibility_service">Accessibility Service</string>
+    <string name="settings_accessibility_enabled">Enabled ✓</string>
+    <string name="settings_accessibility_disabled">Disabled</string>
+    <string name="settings_go_to_settings">Go to Settings</string>
+    <string name="settings_battery_optimization">Battery Optimization Exclusion</string>
+    <string name="settings_battery_excluded">Excluded ✓</string>
+    <string name="settings_battery_included">Optimized</string>
+    <string name="settings_battery_request">Request Exclusion</string>
+    <string name="settings_other_section">Other</string>
+    <string name="settings_developer_mode">Developer Mode</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_tutorial">Tutorial</string>
+    <string name="settings_tutorial_desc">View step-by-step app usage guide</string>
+    <string name="settings_tutorial_view">View Again</string>
+
+    <!-- Tutorial -->
+    <string name="tutorial_title">Tutorial (%1$d / %2$d)</string>
+    <string name="tutorial_skip">Skip</string>
+    <string name="tutorial_previous">Previous</string>
+    <string name="tutorial_done">Done</string>
+    <string name="tutorial_step1_title">Create a Profile</string>
+    <string name="tutorial_step1_desc">First, create a \'Profile\' which is a collection of expression-action mappings.\nEnter a name and tap \'Create\'.</string>
+    <string name="tutorial_step1_cta">Create</string>
+    <string name="tutorial_step1_name_hint">Try setting a profile name</string>
+    <string name="tutorial_step1_placeholder">e.g. My First Profile</string>
+    <string name="tutorial_step1_name_editable">You can edit the name any time.</string>
+    <string name="tutorial_step2_title">Add a Trigger</string>
+    <string name="tutorial_step2_desc">Add a trigger to the profile.\nA trigger defines which expression performs which action.</string>
+    <string name="tutorial_step2_cta">Add Trigger</string>
+    <string name="tutorial_step3_title">Select Expression</string>
+    <string name="tutorial_step3_desc">Select the expression to recognize.\ne.g. Smile (mouthSmileLeft) — even a gentle smile activates the trigger!</string>
+    <string name="tutorial_step3_cta">Select Expression</string>
+    <string name="tutorial_step4_title">Set Action</string>
+    <string name="tutorial_step4_desc">Choose the action to perform when you make the expression.\ne.g. Back, Tap, Scroll and many more system actions can be mapped.</string>
+    <string name="tutorial_step4_cta">Select Action</string>
+    <string name="tutorial_step5_title">Saved!</string>
+    <string name="tutorial_step5_desc">Trigger saved. 🎉\nPress the save button to confirm and add it to the list.</string>
+    <string name="tutorial_step5_cta">Save</string>
+    <string name="tutorial_step6_title">Start Service</string>
+    <string name="tutorial_step6_desc">Press \'Start Service\' on the Home screen to activate expression detection.\nNow the app will respond automatically when you make the configured expressions!</string>
+    <string name="tutorial_step6_cta">Done</string>
+    <string name="tutorial_completion_title">Excellent!</string>
+    <string name="tutorial_completion_desc">You can now control your smartphone freely with just facial expressions.</string>
 </resources>

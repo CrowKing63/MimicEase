@@ -1,7 +1,9 @@
 package com.mimicease.presentation.ui.onboarding
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mimicease.R
 import com.mimicease.domain.model.Action
 import com.mimicease.domain.model.Profile
 import com.mimicease.domain.model.Trigger
@@ -9,6 +11,7 @@ import com.mimicease.domain.repository.ProfileRepository
 import com.mimicease.domain.repository.SettingsRepository
 import com.mimicease.domain.repository.TriggerRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
@@ -21,6 +24,7 @@ sealed class OnboardingEvent {
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val settingsRepository: SettingsRepository,
     private val profileRepository: ProfileRepository,
     private val triggerRepository: TriggerRepository
@@ -41,23 +45,23 @@ class OnboardingViewModel @Inject constructor(
             val profileId = UUID.randomUUID().toString()
             val defaultProfile = Profile(
                 id = profileId,
-                name = "기본 프로필",
+                name = context.getString(R.string.default_profile_name),
                 icon = "😊",
                 isActive = true,
                 sensitivity = 1.0f,
                 globalCooldownMs = 300,
                 triggers = emptyList()
             )
-            
+
             // 프로필 먼저 저장
             profileRepository.saveProfile(defaultProfile)
-            
+
             // 기본 트리거 4개 생성
             val defaultTriggers = listOf(
                 Trigger(
                     id = UUID.randomUUID().toString(),
                     profileId = profileId,
-                    name = "오른쪽 윙크",
+                    name = context.getString(R.string.default_trigger_wink_right),
                     blendShape = "eyeBlinkRight",
                     threshold = 0.6f,
                     holdDurationMs = 300,
@@ -66,7 +70,7 @@ class OnboardingViewModel @Inject constructor(
                 Trigger(
                     id = UUID.randomUUID().toString(),
                     profileId = profileId,
-                    name = "왼쪽 윙크",
+                    name = context.getString(R.string.default_trigger_wink_left),
                     blendShape = "eyeBlinkLeft",
                     threshold = 0.6f,
                     holdDurationMs = 300,
@@ -75,7 +79,7 @@ class OnboardingViewModel @Inject constructor(
                 Trigger(
                     id = UUID.randomUUID().toString(),
                     profileId = profileId,
-                    name = "입 벌리기",
+                    name = context.getString(R.string.default_trigger_mouth_open),
                     blendShape = "jawOpen",
                     threshold = 0.5f,
                     holdDurationMs = 200,
@@ -84,7 +88,7 @@ class OnboardingViewModel @Inject constructor(
                 Trigger(
                     id = UUID.randomUUID().toString(),
                     profileId = profileId,
-                    name = "눈썹 올리기",
+                    name = context.getString(R.string.default_trigger_eyebrow_raise),
                     blendShape = "browInnerUp",
                     threshold = 0.5f,
                     holdDurationMs = 400,

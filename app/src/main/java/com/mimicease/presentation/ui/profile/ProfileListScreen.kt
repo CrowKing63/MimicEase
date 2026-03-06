@@ -9,11 +9,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import com.mimicease.R
 import com.mimicease.domain.model.Profile
 import com.mimicease.domain.repository.ProfileRepository
 import com.mimicease.presentation.ui.home.MimicBottomNavigation
@@ -74,10 +76,10 @@ fun ProfileListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("프로필") },
+                title = { Text(stringResource(R.string.profiles_title)) },
                 actions = {
                     IconButton(onClick = { showCreateDialog = true }) {
-                        Icon(Icons.Default.Add, contentDescription = "프로필 추가")
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.profiles_add))
                     }
                 }
             )
@@ -90,9 +92,11 @@ fun ProfileListScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("프로필이 없습니다", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.profiles_empty), style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { showCreateDialog = true }) { Text("+ 프로필 만들기") }
+                    Button(onClick = { showCreateDialog = true }) {
+                        Text(stringResource(R.string.profiles_create_button))
+                    }
                 }
             }
         } else {
@@ -127,7 +131,7 @@ fun ProfileListScreen(
     }
 }
 
-// ─── 프로필 카드 ─────────────────────────────────────────────────────────
+// ─── Profile card ─────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -160,9 +164,10 @@ fun ProfileItemCard(
                     text = "${profile.icon} ${profile.name}",
                     style = MaterialTheme.typography.titleMedium
                 )
+                val triggerCountText = stringResource(R.string.profiles_trigger_count, profile.triggers.size)
+                val activeSuffix = if (profile.isActive) stringResource(R.string.profiles_active_suffix) else ""
                 Text(
-                    text = "트리거 ${profile.triggers.size}개" +
-                        if (profile.isActive) " · 활성됨" else "",
+                    text = triggerCountText + activeSuffix,
                     style = MaterialTheme.typography.bodySmall,
                     color = if (profile.isActive) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant
@@ -174,10 +179,10 @@ fun ProfileItemCard(
                     OutlinedButton(
                         onClick = onActivate,
                         modifier = Modifier.padding(end = 8.dp)
-                    ) { Text("선택") }
+                    ) { Text(stringResource(R.string.profiles_select)) }
                 } else {
                     Text(
-                        "활성됨 ✓",
+                        stringResource(R.string.profiles_active_check),
                         color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(end = 8.dp)
@@ -188,7 +193,7 @@ fun ProfileItemCard(
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
                     )
-                ) { Text("삭제") }
+                ) { Text(stringResource(R.string.profiles_delete)) }
             }
         }
     }
@@ -196,19 +201,23 @@ fun ProfileItemCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("프로필 삭제") },
-            text = { Text("'${profile.name}' 프로필과 모든 트리거를 삭제할까요?") },
+            title = { Text(stringResource(R.string.profiles_delete_title)) },
+            text = { Text(stringResource(R.string.profiles_delete_message, profile.name)) },
             confirmButton = {
-                TextButton(onClick = { onDelete(); showDeleteDialog = false }) { Text("삭제") }
+                TextButton(onClick = { onDelete(); showDeleteDialog = false }) {
+                    Text(stringResource(R.string.profiles_delete))
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("취소") }
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(stringResource(R.string.profiles_cancel))
+                }
             }
         )
     }
 }
 
-// ─── 프로필 생성 다이얼로그 ───────────────────────────────────────────────
+// ─── Create profile dialog ────────────────────────────────────────────────
 
 private val PROFILE_ICONS = listOf("😊","😴","🎮","📺","📖","💼","🏃","✍️","🎵","📱")
 
@@ -222,18 +231,17 @@ fun CreateProfileDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("새 프로필 만들기") },
+        title = { Text(stringResource(R.string.profiles_create_dialog_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { if (it.length <= 30) name = it },
-                    label = { Text("이름") },
+                    label = { Text(stringResource(R.string.profiles_name_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-                Text("아이콘", style = MaterialTheme.typography.labelMedium)
-                // 이모지 선택 행
+                Text(stringResource(R.string.profiles_icon_label), style = MaterialTheme.typography.labelMedium)
                 val rowChunks = PROFILE_ICONS.chunked(5)
                 rowChunks.forEach { chunk ->
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -252,10 +260,10 @@ fun CreateProfileDialog(
             Button(
                 onClick = { if (name.isNotBlank()) onConfirm(name.trim(), selectedIcon) },
                 enabled = name.isNotBlank()
-            ) { Text("만들기") }
+            ) { Text(stringResource(R.string.profiles_create_confirm)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("취소") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.profiles_cancel)) }
         }
     )
 }

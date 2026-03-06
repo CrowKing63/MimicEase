@@ -10,6 +10,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -18,6 +20,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import com.mimicease.R
 import com.mimicease.domain.model.Profile
 import com.mimicease.domain.model.Trigger
 import com.mimicease.domain.repository.ProfileRepository
@@ -84,17 +87,18 @@ fun TriggerListScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(uiState.profile?.let { "${it.icon} ${it.name}" } ?: "트리거 목록")
+                    Text(uiState.profile?.let { "${it.icon} ${it.name}" }
+                        ?: stringResource(R.string.trigger_list_fallback_title))
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "뒤로")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.trigger_list_back))
                     }
                 },
                 actions = {
                     TextButton(
                         onClick = { navController.navigate("profileEdit/$profileId") }
-                    ) { Text("프로필 편집") }
+                    ) { Text(stringResource(R.string.trigger_list_edit_profile)) }
                 }
             )
         },
@@ -102,7 +106,7 @@ fun TriggerListScreen(
             FloatingActionButton(
                 onClick = { navController.navigate("triggerEdit/$profileId") }
             ) {
-                Icon(Icons.Default.Add, contentDescription = "트리거 추가")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.trigger_list_add))
             }
         }
     ) { innerPadding ->
@@ -112,11 +116,11 @@ fun TriggerListScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("트리거가 없습니다", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.trigger_list_empty), style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
                         onClick = { navController.navigate("triggerEdit/$profileId") }
-                    ) { Text("+ 트리거 추가") }
+                    ) { Text(stringResource(R.string.trigger_list_add_button)) }
                 }
             }
         } else {
@@ -140,7 +144,7 @@ fun TriggerListScreen(
     }
 }
 
-// ─── 트리거 카드 ─────────────────────────────────────────────────────────
+// ─── Trigger card ─────────────────────────────────────────────────────────
 
 @Composable
 private fun TriggerItemCard(
@@ -150,26 +154,30 @@ private fun TriggerItemCard(
     onDelete: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    val thresholdLabel = stringResource(R.string.trigger_threshold_label, "%.2f".format(trigger.threshold))
+    val holdLabel = stringResource(R.string.trigger_hold_label, trigger.holdDurationMs)
+    val actionName = actionDisplayName(trigger.action, context)
 
     ListItem(
         headlineContent = {
             Text(
-                text = trigger.name.ifBlank { "${trigger.blendShape} → ${actionDisplayName(trigger.action)}" },
+                text = trigger.name.ifBlank { "${trigger.blendShape} → $actionName" },
                 style = MaterialTheme.typography.bodyLarge
             )
         },
         supportingContent = {
             Column {
                 Text(
-                    text = "${trigger.blendShape}  임계값: ${"%.2f".format(trigger.threshold)}  " +
-                        "홀드: ${trigger.holdDurationMs}ms",
+                    text = "${trigger.blendShape}  $thresholdLabel  $holdLabel",
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = FontFamily.Monospace,
                     fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "→ ${actionDisplayName(trigger.action)}",
+                    text = "→ $actionName",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -181,13 +189,13 @@ private fun TriggerItemCard(
                     checked = trigger.isEnabled,
                     onCheckedChange = onToggle
                 )
-                TextButton(onClick = onEdit) { Text("편집") }
+                TextButton(onClick = onEdit) { Text(stringResource(R.string.trigger_edit)) }
                 TextButton(
                     onClick = { showDeleteDialog = true },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
                     )
-                ) { Text("삭제") }
+                ) { Text(stringResource(R.string.trigger_delete)) }
             }
         }
     )
@@ -195,13 +203,20 @@ private fun TriggerItemCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("트리거 삭제") },
-            text = { Text("'${trigger.name.ifBlank { trigger.blendShape }}' 트리거를 삭제할까요?") },
+            title = { Text(stringResource(R.string.trigger_delete_title)) },
+            text = {
+                Text(stringResource(R.string.trigger_delete_message,
+                    trigger.name.ifBlank { trigger.blendShape }))
+            },
             confirmButton = {
-                TextButton(onClick = { onDelete(); showDeleteDialog = false }) { Text("삭제") }
+                TextButton(onClick = { onDelete(); showDeleteDialog = false }) {
+                    Text(stringResource(R.string.trigger_delete))
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("취소") }
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(stringResource(R.string.profiles_cancel))
+                }
             }
         )
     }

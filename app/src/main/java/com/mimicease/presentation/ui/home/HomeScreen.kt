@@ -13,12 +13,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.mimicease.domain.model.Action
+import com.mimicease.R
 import com.mimicease.domain.model.Trigger
+import com.mimicease.presentation.ui.profile.actionDisplayName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,10 +34,10 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("MimicEase") },
+                title = { Text(stringResource(R.string.app_name)) },
                 actions = {
                     IconButton(onClick = { navController.navigate("settings") }) {
-                        Icon(Icons.Default.Settings, contentDescription = "설정")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.nav_settings))
                     }
                 }
             )
@@ -68,7 +71,7 @@ fun HomeScreen(
             if (uiState.quickTriggers.isNotEmpty()) {
                 item {
                     Text(
-                        text = "빠른 트리거",
+                        text = stringResource(R.string.home_quick_triggers),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -97,16 +100,16 @@ fun ServiceStatusCard(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "서비스 상태",
+                text = stringResource(R.string.home_service_status),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.align(Alignment.Start)
             )
             Spacer(modifier = Modifier.height(12.dp))
 
             val (statusColor, statusText) = when {
-                !uiState.isServiceRunning -> Color.Gray to "서비스 꺼짐"
-                uiState.isPaused -> Color(0xFFFFB300) to "일시정지됨"
-                else -> Color(0xFF4CAF50) to "표정 감지 중"
+                !uiState.isServiceRunning -> Color.Gray to stringResource(R.string.home_service_stopped)
+                uiState.isPaused -> Color(0xFFFFB300) to stringResource(R.string.home_service_paused)
+                else -> Color(0xFF4CAF50) to stringResource(R.string.home_service_running)
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -122,7 +125,7 @@ fun ServiceStatusCard(
             if (uiState.isDeveloperMode && uiState.isServiceRunning) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "FPS: ${uiState.currentFps}  추론시간: ${uiState.inferenceTimeMs}ms",
+                    text = stringResource(R.string.home_fps_info, uiState.currentFps, uiState.inferenceTimeMs),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -132,7 +135,7 @@ fun ServiceStatusCard(
 
             if (!uiState.isServiceRunning) {
                 Button(onClick = onStartService, modifier = Modifier.fillMaxWidth()) {
-                    Text("서비스 시작")
+                    Text(stringResource(R.string.home_start_service))
                 }
             } else {
                 Row(
@@ -143,13 +146,13 @@ fun ServiceStatusCard(
                         onClick = onTogglePause,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(if (uiState.isPaused) "재개" else "일시정지")
+                        Text(if (uiState.isPaused) stringResource(R.string.home_resume) else stringResource(R.string.home_pause))
                     }
                     OutlinedButton(
                         onClick = onStopService,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("서비스 종료")
+                        Text(stringResource(R.string.home_stop_service))
                     }
                 }
             }
@@ -169,7 +172,7 @@ fun ActiveProfileCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Text(text = "현재 프로필", style = MaterialTheme.typography.labelMedium)
+                Text(text = stringResource(R.string.home_current_profile), style = MaterialTheme.typography.labelMedium)
                 Spacer(modifier = Modifier.height(4.dp))
                 if (uiState.activeProfile != null) {
                     val profile = uiState.activeProfile
@@ -179,20 +182,20 @@ fun ActiveProfileCard(
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = "트리거 ${activeTriggers}개 활성",
+                        text = stringResource(R.string.home_triggers_active, activeTriggers),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
-                    Text(text = "프로필 없음", style = MaterialTheme.typography.titleMedium)
+                    Text(text = stringResource(R.string.home_no_profile), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        text = "프로필을 만들어 트리거를 설정하세요",
+                        text = stringResource(R.string.home_create_profile_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-            TextButton(onClick = onChangeProfile) { Text("프로필 변경 ›") }
+            TextButton(onClick = onChangeProfile) { Text(stringResource(R.string.home_change_profile)) }
         }
     }
 }
@@ -202,6 +205,7 @@ fun QuickTriggerCard(
     trigger: Trigger,
     onToggle: (Boolean) -> Unit
 ) {
+    val context = LocalContext.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
@@ -216,7 +220,7 @@ fun QuickTriggerCard(
                             else MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "→ ${getActionLabel(trigger.action)}",
+                    text = "→ ${actionDisplayName(trigger.action, context)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = if (trigger.isEnabled) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant
@@ -230,24 +234,6 @@ fun QuickTriggerCard(
     }
 }
 
-fun getActionLabel(action: Action): String = when (action) {
-    is Action.GlobalHome          -> "홈 버튼"
-    is Action.GlobalBack          -> "뒤로가기"
-    is Action.GlobalRecents       -> "최근 앱"
-    is Action.GlobalNotifications -> "알림 패널"
-    is Action.GlobalQuickSettings -> "빠른 설정"
-    is Action.ScreenLock          -> "화면 잠금"
-    is Action.TakeScreenshot      -> "스크린샷"
-    is Action.ScrollUp            -> "위로 스크롤"
-    is Action.ScrollDown          -> "아래로 스크롤"
-    is Action.SwipeUp             -> "위로 스와이프"
-    is Action.SwipeDown           -> "아래로 스와이프"
-    is Action.SwipeLeft           -> "왼쪽 스와이프"
-    is Action.SwipeRight          -> "오른쪽 스와이프"
-    is Action.MimicPause          -> "일시 정지"
-    else                          -> action.javaClass.simpleName ?: ""
-}
-
 @Composable
 fun MimicBottomNavigation(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -255,8 +241,8 @@ fun MimicBottomNavigation(navController: NavController) {
 
     NavigationBar {
         NavigationBarItem(
-            icon = { Icon(Icons.Default.Home, contentDescription = "홈") },
-            label = { Text("홈") },
+            icon = { Icon(Icons.Default.Home, contentDescription = stringResource(R.string.nav_home)) },
+            label = { Text(stringResource(R.string.nav_home)) },
             selected = currentRoute == "home",
             onClick = {
                 navController.navigate("home") {
@@ -266,8 +252,8 @@ fun MimicBottomNavigation(navController: NavController) {
             }
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Default.Face, contentDescription = "테스트") },
-            label = { Text("테스트") },
+            icon = { Icon(Icons.Default.Face, contentDescription = stringResource(R.string.nav_test)) },
+            label = { Text(stringResource(R.string.nav_test)) },
             selected = currentRoute == "test",
             onClick = {
                 navController.navigate("test") {
@@ -277,8 +263,8 @@ fun MimicBottomNavigation(navController: NavController) {
             }
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Default.Person, contentDescription = "프로필") },
-            label = { Text("프로필") },
+            icon = { Icon(Icons.Default.Person, contentDescription = stringResource(R.string.nav_profiles)) },
+            label = { Text(stringResource(R.string.nav_profiles)) },
             selected = currentRoute == "profiles",
             onClick = {
                 navController.navigate("profiles") {
@@ -288,8 +274,8 @@ fun MimicBottomNavigation(navController: NavController) {
             }
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Default.Settings, contentDescription = "설정") },
-            label = { Text("설정") },
+            icon = { Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.nav_settings)) },
+            label = { Text(stringResource(R.string.nav_settings)) },
             selected = currentRoute == "settings",
             onClick = {
                 navController.navigate("settings") {
