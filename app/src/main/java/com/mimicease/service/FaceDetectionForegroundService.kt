@@ -243,7 +243,13 @@ class FaceDetectionForegroundService : LifecycleService() {
     }
 
     private fun initFaceLandmarker() {
-        faceLandmarkerHelper = FaceLandmarkerHelper()
+        try {
+            faceLandmarkerHelper = FaceLandmarkerHelper()
+        } catch (t: Throwable) {
+            Timber.e(t, "FaceLandmarkerHelper instantiation failed — native library missing?")
+            stopSelf()
+            return
+        }
         faceLandmarkerHelper.start()  // Start HandlerThread
         faceLandmarkerHelper.setFaceResultListener { blendshapes, landmarks, transformMatrix, mediapipeMs, faceVisible ->
             _isFaceVisible.value = faceVisible

@@ -38,11 +38,15 @@ class GlobalToggleController(
     private var expressionHoldStart = 0L
 
     init {
-        tts = TextToSpeech(context) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                tts?.language = Locale.KOREAN
-                ttsReady = true
+        try {
+            tts = TextToSpeech(context) { status ->
+                if (status == TextToSpeech.SUCCESS) {
+                    tts?.language = Locale.KOREAN
+                    ttsReady = true
+                }
             }
+        } catch (e: Exception) {
+            Timber.w(e, "TTS initialization failed — TTS feedback disabled")
         }
     }
 

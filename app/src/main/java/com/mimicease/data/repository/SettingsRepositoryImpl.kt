@@ -1,12 +1,10 @@
 package com.mimicease.data.repository
 
 import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.preferencesDataStore
 import com.mimicease.data.local.AppSettings
 import com.mimicease.data.local.AppSettingsKeys
+import com.mimicease.data.local.appSettingsDataStore
 import com.mimicease.domain.model.InteractionMode
 import com.mimicease.domain.repository.SettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -14,14 +12,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
-
 class SettingsRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context
 ) : SettingsRepository {
 
     override fun getSettings(): Flow<AppSettings> {
-        return context.dataStore.data.map { preferences ->
+        return context.appSettingsDataStore.data.map { preferences ->
             AppSettings(
                 cameraFacing = preferences[AppSettingsKeys.CAMERA_FACING] ?: androidx.camera.core.CameraSelector.LENS_FACING_FRONT,
                 emaAlpha = preferences[AppSettingsKeys.EMA_ALPHA] ?: 0.5f,
@@ -51,7 +47,7 @@ class SettingsRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateSettings(updateParams: (AppSettings) -> AppSettings) {
-        context.dataStore.edit { preferences ->
+        context.appSettingsDataStore.edit { preferences ->
             val current = AppSettings(
                 cameraFacing = preferences[AppSettingsKeys.CAMERA_FACING] ?: androidx.camera.core.CameraSelector.LENS_FACING_FRONT,
                 emaAlpha = preferences[AppSettingsKeys.EMA_ALPHA] ?: 0.5f,

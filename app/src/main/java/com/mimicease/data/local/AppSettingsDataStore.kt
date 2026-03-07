@@ -1,5 +1,8 @@
 package com.mimicease.data.local
 
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -79,3 +82,13 @@ object AppSettingsKeys {
     val VOICE_CMD_STOP         = stringPreferencesKey("voice_cmd_stop")
     val VOICE_CMD_START        = stringPreferencesKey("voice_cmd_start")
 }
+
+/**
+ * 앱 전역 단일 DataStore 인스턴스.
+ *
+ * DataStore는 동일한 파일에 대해 프로세스 내에서 단 하나의 인스턴스만 허용합니다.
+ * 여러 곳에서 각자 `preferencesDataStore(name = "settings")`를 선언하면
+ * IllegalStateException이 발생합니다 — 반드시 이 확장 프로퍼티만 사용하세요.
+ */
+val Context.appSettingsDataStore: DataStore<Preferences>
+    by androidx.datastore.preferences.preferencesDataStore(name = "settings")
