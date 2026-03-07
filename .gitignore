@@ -1,6 +1,8 @@
+### Android ###
 *.iml
 .gradle
 /local.properties
+local.properties
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
@@ -12,4 +14,61 @@
 /captures
 .externalNativeBuild
 .cxx
-local.properties
+
+### Build Outputs ###
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+app/release/
+**/build/intermediates/
+**/build/outputs/
+**/build/generated/
+
+### Signing / Keys ###
+*.jks
+*.keystore
+*.p12
+*.pem
+keystore.properties
+release.properties
+
+### Logs & Debugging ###
+*.log
+*.hprof
+lint-results*
+lint/
+
+### IDE - VS Code ###
+.vscode/
+
+### IDE - IntelliJ / Android Studio ###
+*.iws
+out/
+.idea/
+
+### Kotlin ###
+.kotlin/
+
+### Gradle ###
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+### OS - Windows ###
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+### OS - macOS ###
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+### Claude Code (로컬 전용, 팀 공유 불필요) ###
+.claude/settings.local.json
