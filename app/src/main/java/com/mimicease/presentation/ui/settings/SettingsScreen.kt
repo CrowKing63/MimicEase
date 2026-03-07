@@ -564,6 +564,27 @@ fun SettingsScreen(
                             }) { Text(stringResource(R.string.settings_go_to_settings)) }
                         }
                     }
+                    // Android 13+에서 APK 직접 설치 앱은 "제한된 설정"으로 접근성 서비스가 막힐 수 있음
+                    if (!isAccessibilityEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        Text(
+                            text = "활성화 안 됨? 설정 → 앱 → MimicEase → ⋮ → '제한된 설정 허용' 후 재시도하세요.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                        TextButton(
+                            onClick = {
+                                val intent = Intent(
+                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    Uri.parse("package:${context.packageName}")
+                                ).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+                                context.startActivity(intent)
+                            },
+                            modifier = Modifier.padding(top = 0.dp)
+                        ) {
+                            Text("앱 정보 열기")
+                        }
+                    }
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 

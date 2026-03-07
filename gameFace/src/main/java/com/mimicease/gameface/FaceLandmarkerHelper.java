@@ -246,9 +246,26 @@ public class FaceLandmarkerHelper extends HandlerThread {
         frameWidth = imageProxy.getWidth();
         frameHeight = imageProxy.getHeight();
 
-        Bitmap bitmap = Bitmap.createBitmap(frameWidth, frameHeight, Bitmap.Config.ARGB_8888);
+        // CameraX RGBA_8888 버퍼의 row stride가 width×4보다 클 수 있습니다.
+        // (행 끝에 패딩 바이트 존재) — 패딩을 무시하고 copyPixelsFromBuffer하면
+        // 이미지가 대각선으로 왜곡되어 MediaPipe가 얼굴을 인식하지 못합니다.
+        // Pixel 9 Pro / Android 16 등 일부 기기에서 이 패딩이 존재합니다.
+        int rowStride = imageProxy.getPlanes()[0].getRowStride();
+        int pixelStride = imageProxy.getPlanes()[0].getPixelStride(); // RGBA_8888 = 4
+        int strideWidth = rowStride / pixelStride;
 
-        bitmap.copyPixelsFromBuffer(imageProxy.getPlanes()[0].getBuffer());
+        Bitmap bitmap;
+        if (strideWidth == frameWidth) {
+            // 패딩 없음 — 직접 복사
+            bitmap = Bitmap.createBitmap(frameWidth, frameHeight, Bitmap.Config.ARGB_8888);
+            bitmap.copyPixelsFromBuffer(imageProxy.getPlanes()[0].getBuffer());
+        } else {
+            // 패딩 있음 — stride 너비로 Bitmap을 생성한 뒤 실제 크기로 크롭
+            Bitmap fullBitmap = Bitmap.createBitmap(strideWidth, frameHeight, Bitmap.Config.ARGB_8888);
+            fullBitmap.copyPixelsFromBuffer(imageProxy.getPlanes()[0].getBuffer());
+            bitmap = Bitmap.createBitmap(fullBitmap, 0, 0, frameWidth, frameHeight);
+            fullBitmap.recycle();
+        }
 
         // Handle rotations.
         Matrix rotationMatrix = getRotationMatrix(imageProxy);
