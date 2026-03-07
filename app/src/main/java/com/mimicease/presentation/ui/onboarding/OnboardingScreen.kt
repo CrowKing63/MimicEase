@@ -2,6 +2,8 @@ package com.mimicease.presentation.ui.onboarding
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
 import android.accessibilityservice.AccessibilityServiceInfo
@@ -12,6 +14,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -193,6 +196,48 @@ fun AccessibilityServiceStep(onNext: () -> Unit) {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 32.dp)
         )
+        // Android 13+에서 APK 직접 설치 시 "제한된 설정"으로 인해 접근성 서비스를
+        // 활성화하지 못할 수 있습니다. 활성화 전에 앱 정보에서 허용 필요.
+        if (!isEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "APK로 설치하셨나요?",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Text(
+                        text = "Android 13 이상에서는 APK(직접 설치) 앱의 접근성 서비스가 '제한된 설정'으로 막힐 수 있습니다.\n\n" +
+                            "먼저 앱 정보를 열고 ⋮(점 세 개) 메뉴에서 '제한된 설정 허용'을 선택한 뒤, 아래 버튼으로 접근성을 활성화하세요.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+                    )
+                    OutlinedButton(
+                        onClick = {
+                            val intent = Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.parse("package:${context.packageName}")
+                            ).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    ) {
+                        Text("앱 정보 열기 (제한된 설정 허용)")
+                    }
+                }
+            }
+        }
         Button(
             onClick = { navigateToAccessibilitySettings(context) },
             modifier = Modifier.fillMaxWidth()
