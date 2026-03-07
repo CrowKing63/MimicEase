@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.mimicease.data.local.AppSettingsKeys
+import com.mimicease.data.local.appSettingsDataStore
 import androidx.datastore.preferences.core.Preferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +29,7 @@ class BootCompletedReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val prefs = context.dataStoreForBoot.data.first()
+                val prefs = context.appSettingsDataStore.data.first()
                 val autoStart = prefs[AppSettingsKeys.AUTO_START_ON_BOOT] ?: false
 
                 if (autoStart) {
@@ -52,6 +53,3 @@ class BootCompletedReceiver : BroadcastReceiver() {
     }
 }
 
-// DataStore 접근 — SettingsRepositoryImpl의 name = "settings" 와 반드시 동일해야 함
-private val Context.dataStoreForBoot: androidx.datastore.core.DataStore<Preferences>
-    by androidx.datastore.preferences.preferencesDataStore(name = "settings")
