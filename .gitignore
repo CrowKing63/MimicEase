@@ -19,12 +19,19 @@ local.properties
 *.apk
 *.aab
 *.ap_
+*.dm
 *.dex
 *.class
-app/release/
+**/release/
+**/build/
 **/build/intermediates/
 **/build/outputs/
 **/build/generated/
+output-metadata.json
+mapping.txt
+seeds.txt
+usage.txt
+configuration.txt
 
 ### Signing / Keys ###
 *.jks
