@@ -351,7 +351,6 @@ data class AppSettings(
     val emaAlpha: Float = 0.5f,              // EMA 필터 계수 (0.1~0.9)
     val consecutiveFrames: Int = 3,          // 표정 확정 필요 연속 프레임 수
     val showForegroundNotification: Boolean = true,
-    val notificationTapAction: String = "OPEN_APP",  // "OPEN_APP" | "PAUSE"
     val isDeveloperMode: Boolean = false,
     val isServiceEnabled: Boolean = false,
     val activeProfileId: String? = null,

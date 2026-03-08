@@ -12,6 +12,18 @@
     <!-- Android 13+ (targetSdk 33+) 포그라운드 서비스 알림 표시에 필요 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!--
+        Package visibility for App Picker (Android 11+).
+        Allows TriggerEditScreen to query launchable apps for Action.OpenApp trigger.
+        Uses CATEGORY_LAUNCHER intent to discover user-facing apps only.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name=".MimicEaseApp"
         android:allowBackup="true"

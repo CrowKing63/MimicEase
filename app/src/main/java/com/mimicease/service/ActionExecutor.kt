@@ -107,9 +107,7 @@ class ActionExecutor(private val service: MimicAccessibilityService) {
             is Action.VolumeUp -> adjustVolume(AudioManager.ADJUST_RAISE)
             is Action.VolumeDown -> adjustVolume(AudioManager.ADJUST_LOWER)
             is Action.MimicPause -> {
-                MimicAccessibilityService.instance?.let { svc ->
-                    svc.faceDetectionService?.togglePause()
-                }
+                MimicAccessibilityService.instance?.globalToggleController?.handleBroadcastToggle()
             }
             is Action.RecenterCursor -> {
                 MimicAccessibilityService.instance?.faceDetectionService?.recenterCursor()

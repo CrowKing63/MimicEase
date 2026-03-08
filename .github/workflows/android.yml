@@ -39,7 +39,17 @@ jobs:
 
     - name: Lint check
       run: ./gradlew lintDebug
-      continue-on-error: true
+      # Fail on new critical issues (fatal/error), baseline grandfathers existing warnings
+      
+    - name: Upload Lint Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: lint-report
+        path: |
+          app/build/reports/lint-results-debug.html
+          app/build/reports/lint-results-debug.xml
+        retention-days: 30
 
     - name: Run Unit Tests
       run: ./gradlew testDebugUnitTest

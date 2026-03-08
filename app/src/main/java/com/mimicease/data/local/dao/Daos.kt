@@ -36,6 +36,16 @@ interface ProfileDao {
 
     @Query("UPDATE profiles SET isActive = 1 WHERE id = :id")
     suspend fun activate(id: String)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(profiles: List<ProfileEntity>)
+
+    @Transaction
+    @Query("SELECT * FROM profiles WHERE id = :id")
+    suspend fun getProfileWithTriggers(id: String): ProfileWithTriggers?
+
+    @Query("SELECT name FROM profiles")
+    suspend fun getAllProfileNames(): List<String>
 }
 
 @Dao
@@ -54,6 +64,9 @@ interface TriggerDao {
 
     @Query("UPDATE triggers SET isEnabled = :enabled WHERE id = :id")
     suspend fun setEnabled(id: String, enabled: Boolean)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(triggers: List<TriggerEntity>)
 
     @Query("DELETE FROM triggers WHERE profileId = :profileId")
     suspend fun deleteByProfile(profileId: String)

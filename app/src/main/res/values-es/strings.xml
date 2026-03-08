@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="MissingTranslation">
     <string name="app_name">MimicEase</string>
     <string name="accessibility_service_description">MimicEase usa los servicios de accesibilidad para ayudarte a interactuar con tu dispositivo mediante expresiones faciales y gestos.</string>
 
@@ -16,4 +17,281 @@
     <string name="tile_active">MimicEase Activo</string>
     <string name="tile_paused">MimicEase en Pausa</string>
     <string name="tile_unavailable">MimicEase No Ejecutándose</string>
+
+    <!-- Categorías BlendShape -->
+    <string name="category_all">Todos</string>
+    <string name="category_eyes">Ojos</string>
+    <string name="category_brows">Cejas</string>
+    <string name="category_mouth">Boca/Mandíbula</string>
+    <string name="category_cheek">Mejilla/Nariz</string>
+    <string name="category_tongue">Lengua</string>
+
+    <!-- Navegación Inferior -->
+    <string name="nav_home">Inicio</string>
+    <string name="nav_test">Prueba</string>
+    <string name="nav_profiles">Perfiles</string>
+    <string name="nav_settings">Ajustes</string>
+
+    <!-- Pantalla de Inicio -->
+    <string name="home_service_status">Estado del Servicio</string>
+    <string name="home_service_stopped">Servicio Apagado</string>
+    <string name="home_service_paused">En Pausa</string>
+    <string name="home_service_running">Detectando Expresiones</string>
+    <string name="home_fps_info">FPS: %1$d  Inferencia: %2$dms</string>
+    <string name="home_start_service">Iniciar Servicio</string>
+    <string name="home_resume">Reanudar</string>
+    <string name="home_pause">Pausar</string>
+    <string name="home_stop_service">Detener Servicio</string>
+    <string name="home_current_profile">Perfil Actual</string>
+    <string name="home_triggers_active">%1$d disparadores activos</string>
+    <string name="home_no_profile">Sin Perfil</string>
+    <string name="home_create_profile_hint">Crea un perfil para configurar disparadores</string>
+    <string name="home_change_profile">Cambiar Perfil ›</string>
+    <string name="home_quick_triggers">Disparadores Rápidos</string>
+
+    <!-- Nombres de acciones -->
+    <string name="action_home">Inicio</string>
+    <string name="action_back">Atrás</string>
+    <string name="action_recents">Apps Recientes</string>
+    <string name="action_notifications">Notificaciones</string>
+    <string name="action_quick_settings">Ajustes Rápidos</string>
+    <string name="action_screen_lock">Bloquear Pantalla</string>
+    <string name="action_screenshot">Captura de Pantalla</string>
+    <string name="action_power_dialog">Menú de Encendido</string>
+    <string name="action_tap_center">Tocar Centro</string>
+    <string name="action_tap_custom">Toque Personalizado</string>
+    <string name="action_double_tap">Doble Toque</string>
+    <string name="action_long_press">Pulsación Larga</string>
+    <string name="action_swipe_up">Deslizar Arriba</string>
+    <string name="action_swipe_down">Deslizar Abajo</string>
+    <string name="action_swipe_left">Deslizar Izquierda</string>
+    <string name="action_swipe_right">Deslizar Derecha</string>
+    <string name="action_scroll_up">Desplazar Arriba</string>
+    <string name="action_scroll_down">Desplazar Abajo</string>
+    <string name="action_drag">Arrastrar</string>
+    <string name="action_pinch_in">Pellizcar (Alejar)</string>
+    <string name="action_pinch_out">Expandir (Acercar)</string>
+    <string name="action_open_app">Abrir App: %1$s</string>
+    <string name="action_media_play_pause">Reproducir/Pausar</string>
+    <string name="action_media_next">Siguiente Pista</string>
+    <string name="action_media_prev">Pista Anterior</string>
+    <string name="action_volume_up">Subir Volumen</string>
+    <string name="action_volume_down">Bajar Volumen</string>
+    <string name="action_mimic_pause">Pausar MimicEase</string>
+    <string name="action_tap_at_cursor">Tocar en Cursor</string>
+    <string name="action_double_tap_at_cursor">Doble Toque en Cursor</string>
+    <string name="action_long_press_at_cursor">Pulsación Larga en Cursor</string>
+    <string name="action_drag_toggle_at_cursor">Arrastrar en Cursor (Alternar)</string>
+    <string name="action_recenter_cursor">Centrar Cursor</string>
+    <string name="action_switch_key">Interruptor: %1$s</string>
+    <string name="action_unknown">Acción Desconocida</string>
+
+    <!-- Incorporación -->
+    <string name="onboarding_welcome_title">Bienvenido a\nMimicEase</string>
+    <string name="onboarding_welcome_desc">Controla tu smartphone libremente con expresiones faciales.</string>
+    <string name="onboarding_get_started">Comenzar</string>
+    <string name="onboarding_camera_title">Permiso de Cámara Requerido</string>
+    <string name="onboarding_camera_desc">Se necesita acceso a la cámara frontal para reconocer expresiones faciales. No se enviarán fotos ni videos externamente.</string>
+    <string name="onboarding_camera_allow">Permitir Permiso</string>
+    <string name="onboarding_accessibility_title">Habilitar Servicio de Accesibilidad</string>
+    <string name="onboarding_accessibility_desc">Se necesita permiso del servicio de accesibilidad para realizar acciones como presionar botones o desplazarse en tu pantalla.</string>
+    <string name="onboarding_go_to_settings">Ir a Ajustes</string>
+    <string name="onboarding_skip">Omitir (Configurar Después)</string>
+    <string name="onboarding_test_title">Modo de Prueba de Expresión</string>
+    <string name="onboarding_test_desc">Puedes probar en tiempo real qué tan bien la app reconoce tus expresiones faciales.</string>
+    <string name="onboarding_next">Siguiente</string>
+    <string name="onboarding_profile_title">Crear Perfil</string>
+    <string name="onboarding_profile_desc">¿Te gustaría crear un perfil predeterminado con 4 gestos comunes?</string>
+    <string name="onboarding_auto_create">Crear Perfil Predeterminado (Recomendado)</string>
+    <string name="onboarding_manual_create">Configurar Manualmente</string>
+
+    <!-- Perfil / Disparadores Predeterminados -->
+    <string name="default_profile_name">Perfil Predeterminado</string>
+    <string name="default_trigger_wink_right">Guiño Derecho</string>
+    <string name="default_trigger_wink_left">Guiño Izquierdo</string>
+    <string name="default_trigger_mouth_open">Abrir Boca</string>
+    <string name="default_trigger_eyebrow_raise">Levantar Ceja</string>
+
+    <!-- Lista de Perfiles -->
+    <string name="profiles_title">Perfiles</string>
+    <string name="profiles_add">Agregar Perfil</string>
+    <string name="profiles_empty">Sin perfiles</string>
+    <string name="profiles_create_button">+ Crear Perfil</string>
+    <string name="profiles_trigger_count">%1$d disparadores</string>
+    <string name="profiles_active_suffix"> · Activo</string>
+    <string name="profiles_select">Seleccionar</string>
+    <string name="profiles_active_check">Activo ✓</string>
+    <string name="profiles_delete">Eliminar</string>
+    <string name="profiles_delete_title">Eliminar Perfil</string>
+    <string name="profiles_delete_message">¿Eliminar perfil \'%1$s\' y todos sus disparadores?</string>
+    <string name="profiles_cancel">Cancelar</string>
+    <string name="profiles_create_dialog_title">Crear Nuevo Perfil</string>
+    <string name="profiles_name_label">Nombre</string>
+    <string name="profiles_icon_label">Icono</string>
+    <string name="profiles_create_confirm">Crear</string>
+
+    <!-- Editar Perfil -->
+    <string name="profile_edit_title">Editar Perfil</string>
+    <string name="profile_edit_back">Atrás</string>
+    <string name="profile_edit_save">Guardar</string>
+    <string name="profile_edit_name">Nombre del Perfil</string>
+    <string name="profile_edit_icon">Icono</string>
+    <string name="profile_edit_sensitivity">Sensibilidad: %1$s×</string>
+    <string name="profile_edit_sensitivity_desc">Valores más altos se activan con expresiones más débiles</string>
+    <string name="profile_edit_slow">Lento (0.5×)</string>
+    <string name="profile_edit_fast">Rápido (2.0×)</string>
+    <string name="profile_edit_cooldown">Tiempo de Espera Global: %1$dms</string>
+    <string name="profile_edit_cooldown_desc">Tiempo de espera global después de que se active cualquier disparador</string>
+
+    <!-- Lista de Disparadores -->
+    <string name="trigger_list_fallback_title">Lista de Disparadores</string>
+    <string name="trigger_list_back">Atrás</string>
+    <string name="trigger_list_edit_profile">Editar Perfil</string>
+    <string name="trigger_list_add">Agregar Disparador</string>
+    <string name="trigger_list_empty">Sin disparadores</string>
+    <string name="trigger_list_add_button">+ Agregar Disparador</string>
+    <string name="trigger_threshold_label">umbral: %1$s</string>
+    <string name="trigger_hold_label">mantener: %1$dms</string>
+    <string name="trigger_edit">Editar</string>
+    <string name="trigger_delete">Eliminar</string>
+    <string name="trigger_delete_title">Eliminar Disparador</string>
+    <string name="trigger_delete_message">¿Eliminar disparador \'%1$s\'?</string>
+
+    <!-- Editar Disparador -->
+    <string name="trigger_edit_add_title">Agregar Disparador</string>
+    <string name="trigger_edit_edit_title">Editar Disparador</string>
+    <string name="trigger_edit_back">Atrás</string>
+    <string name="trigger_edit_save">Guardar</string>
+    <string name="trigger_name_label">Nombre del Disparador</string>
+    <string name="trigger_name_example">ej. %1$s → %2$s</string>
+    <string name="trigger_expression_section">Seleccionar Expresión</string>
+    <string name="trigger_live_section">Valor en Vivo</string>
+    <string name="trigger_current_value">Actual: %1$s</string>
+    <string name="trigger_threshold_section">Umbral: %1$s</string>
+    <string name="trigger_hold_section">Duración de Mantenimiento: %1$dms</string>
+    <string name="trigger_cooldown_section">Tiempo de Espera: %1$dms</string>
+    <string name="trigger_action_section">Acción a Realizar</string>
+    <string name="trigger_change">Cambiar ></string>
+    <string name="trigger_tap_x">Tocar X: %1$s  (Izquierda 0.0 → Derecha 1.0)</string>
+    <string name="trigger_tap_y">Tocar Y: %1$s  (Arriba 0.0 → Abajo 1.0)</string>
+    <string name="trigger_drag_start_x">Inicio X: %1$s</string>
+    <string name="trigger_drag_start_y">Inicio Y: %1$s</string>
+    <string name="trigger_drag_end_x">Fin X: %1$s</string>
+    <string name="trigger_drag_end_y">Fin Y: %1$s</string>
+    <string name="trigger_drag_duration">Duración de Arrastre: %1$dms</string>
+
+    <!-- Selector BlendShape -->
+    <string name="blendshape_picker_title">Seleccionar Expresión</string>
+
+    <!-- Selector de Acción -->
+    <string name="action_picker_title">Seleccionar Acción</string>
+    <string name="action_tab_system">Sistema</string>
+    <string name="action_tab_gesture">Gesto</string>
+    <string name="action_tab_media">Medios</string>
+    <string name="action_tab_cursor">Cursor</string>
+    <string name="action_tab_switch">Interruptor</string>
+    <string name="action_tab_app">App</string>
+    <string name="action_tab_other">Otro</string>
+    <string name="action_apps_load_error">No se pueden cargar las apps instaladas</string>
+
+    <!-- Prueba de Expresión -->
+    <string name="test_title">Prueba de Expresión</string>
+    <string name="test_create_trigger_fab">Crear Disparador con Esta Expresión</string>
+    <string name="test_start_service_hint">Por favor inicia el servicio de cámara</string>
+    <string name="test_face_detecting">Rostro detectado • Inferencia: %1$dms</string>
+    <string name="test_no_face">No se detectó rostro</string>
+    <string name="test_threshold_preview">Vista Previa de Umbral: %1$s</string>
+    <string name="test_threshold_exceeded">✓ El valor actual excede el umbral</string>
+
+    <!-- Ajustes -->
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_interaction_mode">Modo de Interacción</string>
+    <string name="settings_mode_expression_only">Solo Expresión</string>
+    <string name="settings_mode_expression_only_desc">Acciones de gesto/sistema de coordenadas fijas mediante expresiones</string>
+    <string name="settings_mode_cursor_click">Cursor + Clic con Expresión</string>
+    <string name="settings_mode_cursor_click_desc">Mover cursor con mouse BT, hacer clic con expresión</string>
+    <string name="settings_mode_head_mouse">Mouse de Cabeza</string>
+    <string name="settings_mode_head_mouse_desc">Controlar cursor con movimiento de cabeza, clic por permanencia</string>
+    <string name="settings_overlay_permission_title">Permiso de Superposición Requerido</string>
+    <string name="settings_overlay_permission_desc">El permiso \'Mostrar sobre otras apps\' solo se usa para mostrar la superposición opcional del cursor de ratón de cabeza en el modo HEAD_MOUSE. Otras funciones funcionan sin este permiso.</string>
+    <string name="settings_overlay_allow">Permitir</string>
+    <string name="settings_head_mouse_section">Mouse de Cabeza</string>
+    <string name="settings_sensitivity">Sensibilidad: %1$s×</string>
+    <string name="settings_dead_zone">Zona Muerta: %1$s rad</string>
+    <string name="settings_dead_zone_desc">Valores más pequeños responden a movimientos más finos</string>
+    <string name="settings_dwell_section">Clic por Permanencia (Mouse de Cabeza)</string>
+    <string name="settings_dwell_enable">Habilitar Clic por Permanencia</string>
+    <string name="settings_dwell_time">Tiempo de Permanencia para Clic: %1$dms</string>
+    <string name="settings_dwell_radius">Radio de Clic: %1$dpx</string>
+    <string name="settings_dwell_radius_desc">Permanecer dentro de este radio para hacer clic</string>
+    <string name="settings_global_toggle_section">Alternador Global</string>
+    <string name="settings_volume_key_combo">Combinación de Teclas de Volumen (Arriba+Abajo Mantener)</string>
+    <string name="settings_volume_key_desc">Mantener durante %1$dms para alternar</string>
+    <string name="settings_expression_toggle">Alternador de Expresión (Ambos Ojos Cerrados)</string>
+    <string name="settings_expression_toggle_warning">Riesgo de activación accidental — habilitar con precaución</string>
+    <string name="settings_ai_assistant_section">Integración con Asistente IA</string>
+    <string name="settings_qs_tile">Mosaico de Ajustes Rápidos</string>
+    <string name="settings_qs_tile_desc">Panel de notificaciones → Editar (icono de lápiz) → Arrastra el mosaico de MimicEase para agregar</string>
+    <string name="settings_qs_tile_add">Agregar mediante Diálogo del Sistema</string>
+    <string name="settings_bixby_routines">Rutinas de Bixby</string>
+    <string name="settings_bixby_routines_desc">Agregar Acción → Ajustes Rápidos → MimicEase</string>
+    <string name="settings_bixby_not_found">App de Rutinas de Bixby no encontrada (solo dispositivos Samsung)</string>
+    <string name="settings_bixby_open">Abrir App de Rutinas</string>
+    <string name="settings_gemini">Gemini</string>
+    <string name="settings_gemini_desc">Mantén presionado el icono de la app para conectar un acceso directo a Gemini, o di \"Activar MimicEase\".</string>
+    <string name="settings_detection_section">Ajustes de Detección</string>
+    <string name="settings_ema_alpha">Suavizado de Expresión (EMA α): %1$s</string>
+    <string name="settings_ema_alpha_desc">Mayor = respuesta más rápida, menor = más suave</string>
+    <string name="settings_ema_slow">Lento</string>
+    <string name="settings_ema_fast">Rápido</string>
+    <string name="settings_consecutive_frames">Fotogramas de Confirmación Consecutivos: %1$d fotogramas</string>
+    <string name="settings_notification_section">Ajustes de Notificación</string>
+    <string name="settings_show_notification">Mostrar Notificación en Primer Plano</string>
+    <string name="settings_auto_start_section">Inicio Automático del Servicio</string>
+    <string name="settings_auto_start_on_boot">Iniciar al Arrancar</string>
+    <string name="settings_auto_start_on_boot_desc">Iniciar servicio automáticamente después del reinicio del dispositivo</string>
+    <string name="settings_system_section">Sistema</string>
+    <string name="settings_accessibility_service">Servicio de Accesibilidad</string>
+    <string name="settings_accessibility_enabled">Habilitado ✓</string>
+    <string name="settings_accessibility_disabled">Deshabilitado</string>
+    <string name="settings_go_to_settings">Ir a Ajustes</string>
+    <string name="settings_battery_optimization">Exclusión de Optimización de Batería</string>
+    <string name="settings_battery_excluded">Excluido ✓</string>
+    <string name="settings_battery_included">Optimizado</string>
+    <string name="settings_battery_request">Solicitar Exclusión</string>
+    <string name="settings_other_section">Otro</string>
+    <string name="settings_developer_mode">Modo Desarrollador</string>
+    <string name="settings_version">Versión</string>
+    <string name="settings_tutorial">Tutorial</string>
+    <string name="settings_tutorial_desc">Ver guía paso a paso del uso de la app</string>
+    <string name="settings_tutorial_view">Ver de Nuevo</string>
+
+    <!-- Tutorial -->
+    <string name="tutorial_title">Tutorial (%1$d / %2$d)</string>
+    <string name="tutorial_skip">Omitir</string>
+    <string name="tutorial_previous">Anterior</string>
+    <string name="tutorial_done">Hecho</string>
+    <string name="tutorial_step1_title">Crear un Perfil</string>
+    <string name="tutorial_step1_desc">Primero, crea un \'Perfil\' que es una colección de mapeos expresión-acción.\nIngresa un nombre y toca \'Crear\'.</string>
+    <string name="tutorial_step1_cta">Crear</string>
+    <string name="tutorial_step1_name_hint">Intenta establecer un nombre de perfil</string>
+    <string name="tutorial_step1_placeholder">ej. Mi Primer Perfil</string>
+    <string name="tutorial_step1_name_editable">Puedes editar el nombre en cualquier momento.</string>
+    <string name="tutorial_step2_title">Agregar un Disparador</string>
+    <string name="tutorial_step2_desc">Agrega un disparador al perfil.\nUn disparador define qué expresión realiza qué acción.</string>
+    <string name="tutorial_step2_cta">Agregar Disparador</string>
+    <string name="tutorial_step3_title">Seleccionar Expresión</string>
+    <string name="tutorial_step3_desc">Selecciona la expresión a reconocer.\nej. Sonrisa (mouthSmileLeft) — ¡incluso una sonrisa suave activa el disparador!</string>
+    <string name="tutorial_step3_cta">Seleccionar Expresión</string>
+    <string name="tutorial_step4_title">Establecer Acción</string>
+    <string name="tutorial_step4_desc">Elige la acción a realizar cuando hagas la expresión.\nej. Atrás, Tocar, Desplazar y muchas más acciones del sistema se pueden mapear.</string>
+    <string name="tutorial_step4_cta">Seleccionar Acción</string>
+    <string name="tutorial_step5_title">¡Guardado!</string>
+    <string name="tutorial_step5_desc">Disparador guardado. 🎉\nPresiona el botón guardar para confirmar y agregarlo a la lista.</string>
+    <string name="tutorial_step5_cta">Guardar</string>
+    <string name="tutorial_step6_title">Iniciar Servicio</string>
+    <string name="tutorial_step6_desc">Presiona \'Iniciar Servicio\' en la pantalla de Inicio para activar la detección de expresiones.\n¡Ahora la app responderá automáticamente cuando hagas las expresiones configuradas!</string>
+    <string name="tutorial_step6_cta">Hecho</string>
+    <string name="tutorial_completion_title">¡Excelente!</string>
+    <string name="tutorial_completion_desc">Ahora puedes controlar tu smartphone libremente con solo expresiones faciales.</string>
 </resources>

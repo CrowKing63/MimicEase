@@ -212,7 +212,7 @@
     <string name="settings_mode_head_mouse">헤드 마우스</string>
     <string name="settings_mode_head_mouse_desc">머리 움직임으로 커서 제어, 드웰 클릭</string>
     <string name="settings_overlay_permission_title">오버레이 권한 필요</string>
-    <string name="settings_overlay_permission_desc">헤드 마우스 커서를 화면에 표시하려면 \'다른 앱 위에 표시\' 권한이 필요합니다.</string>
+    <string name="settings_overlay_permission_desc">\'다른 앱 위에 표시\' 권한은 HEAD_MOUSE 모드에서 선택적으로 사용하는 헤드 마우스 커서 오버레이에만 필요합니다. 그 외 기능은 이 권한 없이도 동작합니다.</string>
     <string name="settings_overlay_allow">권한 허용</string>
     <string name="settings_head_mouse_section">헤드 마우스</string>
     <string name="settings_sensitivity">감도: %1$s×</string>

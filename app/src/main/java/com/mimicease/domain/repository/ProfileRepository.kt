@@ -9,4 +9,13 @@ interface ProfileRepository {
     suspend fun saveProfile(profile: Profile)
     suspend fun deleteProfile(profile: Profile)
     suspend fun activateProfile(id: String)
+
+    // ── Import/Export ───────────────────────────
+    suspend fun exportProfiles(ids: List<String>): String
+    suspend fun importProfiles(json: String): ImportResult
+}
+
+sealed class ImportResult {
+    data class Success(val importedCount: Int) : ImportResult()
+    data class Error(val message: String) : ImportResult()
 }

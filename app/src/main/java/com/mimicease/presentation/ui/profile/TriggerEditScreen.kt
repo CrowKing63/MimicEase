@@ -641,7 +641,7 @@ private fun AppPickerTab(onSelect: (Action) -> Unit) {
             runCatching {
                 val pm = context.packageManager
                 val intent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
-                @Suppress("DEPRECATION")
+                // Package visibility properly declared in manifest <queries> element
                 pm.queryIntentActivities(intent, 0)
                     .mapNotNull { resolve ->
                         val ai = resolve.activityInfo ?: return@mapNotNull null

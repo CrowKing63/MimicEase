@@ -25,10 +25,14 @@
 <!-- 진동 피드백 -->
 <uses-permission android:name="android.permission.VIBRATE" />
 
-<!-- 화면 켜짐 유지 (선택사항, 사용자 옵션으로 제공) -->
+<!-- 화면 켜짐 유지 (선택 기능, 초기 릴리스에서는 권장하지 않음)
 <uses-permission android:name="android.permission.WAKE_LOCK" />
+-->
 
-<!-- 배터리 최적화 제외 요청 -->
+<!-- HEAD_MOUSE 모드에서만 사용하는 커서 오버레이 (선택사항) -->
+<uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+<!-- 배터리 최적화 제외 요청 (선택사항, 접근성 유틸리티 앱에서만 사용 권장) -->
 <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
 <!-- 카메라 기능 요구 선언 -->
@@ -251,3 +255,85 @@ override fun onDestroy() {
 | 접근성 서비스 | `AccessibilityManager.getEnabledAccessibilityServiceList()` | 설정으로 이동 버튼 + 복귀 시 재확인 |
 | 배터리 최적화 제외 | `PowerManager.isIgnoringBatteryOptimizations()` | 설정 화면 Toggle → 시스템 설정으로 이동 |
 | FOREGROUND_SERVICE_CAMERA | 선언만으로 충분 (API 34+) | 없음 (자동 처리) |
+
+---
+
+## 10.6 외부 자동화 & 토글 공개 진입점
+
+### 10.6.1 공개 API로 유지하는 진입점
+
+- **딥링크 액티비티 (`ToggleActionActivity`)**
+  - 스킴: `mimicease://toggle`, `mimicease://enable`, `mimicease://disable`
+  - 용도: Bixby 루틴, Gemini, Tasker 등에서 앱을 직접 실행하지 않고 MimicEase 상태를 제어
+  - 동작:
+    - 수신한 URI를 `ToggleBroadcastReceiver` 브로드캐스트로 변환 (`setPackage(packageName)` 사용)
+    - UI를 표시하지 않고 즉시 종료 (투명 액티비티)
+
+- **브로드캐스트 리시버 (`ToggleBroadcastReceiver`)**
+  - 액션:
+    - `com.mimicease.ACTION_TOGGLE`
+    - `com.mimicease.ACTION_ENABLE`
+    - `com.mimicease.ACTION_DISABLE`
+  - Manifest: `android:exported="true"` (외부 자동화 앱에서 직접 호출 가능)
+  - 보안/전제 조건:
+    - 사용자가 **MimicEase 접근성 서비스**를 명시적으로 활성화하지 않으면 토글을 수행하지 않고 토스트로 안내
+    - 카메라/오버레이/배터리 최적화 등은 모두 사용자가 시스템 UI를 통해 허용해야만 서비스가 정상 동작
+  - 상태 전이 규칙:
+    - 토글: `ServiceStatePolicy.targetStateAfterToggle(runtimeState)` 사용
+    - enable: `ServiceState.Running`
+    - disable: `ServiceState.Stopped` (부팅/접근성 재연결에서도 자동 복구되지 않는 완전 중지)
+  - Cold Start:
+    - 접근성 서비스 인스턴스가 살아있으면 `GlobalToggleController` → `MimicAccessibilityService.requestTargetState(...)` 경로 사용
+    - 접근성 서비스 인스턴스가 없으면 `MimicServiceStateStore` + `ServiceStatePolicy`로 목표 상태를 계산 후 `FaceDetectionForegroundService`를 시작
+
+### 10.6.2 시스템 전용 진입점 (외부 앱에서 직접 호출 불가)
+
+- **접근성 서비스 (`MimicAccessibilityService`)**
+  - Manifest: `android:exported="true"` 이지만 `android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"` 필요
+  - 실제 바인딩 주체는 시스템 접근성 설정 UI 뿐이며, 타 앱이 임의로 바인딩할 수 없음
+
+- **포그라운드 서비스 (`FaceDetectionForegroundService`)**
+  - Manifest: `android:exported="false"`
+  - 진입 경로:
+    - 접근성 서비스 내부 (`ensureFaceDetectionServiceBound`)
+    - Home 화면 ViewModel (`HomeViewModel.requestTargetState`)
+    - `BootCompletedReceiver`
+    - `ToggleBroadcastReceiver`
+  - 외부 앱이 직접 `startService`/`startForegroundService`를 호출할 수 없도록 비공개 처리
+
+- **Quick Settings 타일 (`MimicToggleTileService`)**
+  - Manifest:
+    - `android:exported="true"`
+    - `android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"`
+  - 실제 바인딩은 시스템 UI(알림 패널)만 수행 가능
+  - onClick:
+    - 접근성 서비스 미활성화 시: 토스트 + STATE_UNAVAILABLE
+    - 활성화 시: `ToggleBroadcastReceiver.ACTION_TOGGLE` 브로드캐스트 전송 → 다른 진입점과 동일한 상태 전이 정책 사용
+
+- **부팅 복구 리시버 (`BootCompletedReceiver`)**
+  - Manifest: `android:exported="true"`, `RECEIVE_BOOT_COMPLETED` 권한 요구
+  - `Intent.ACTION_BOOT_COMPLETED` 자체는 시스템 보호 브로드캐스트이므로 일반 앱이 임의로 전송할 수 없음
+  - 동작:
+    - `AUTO_START_ON_BOOT` 설정이 false 이면 아무 것도 하지 않음
+    - `MimicServiceStateStore.readTargetState()` 로 읽은 목표 상태가 `ServiceState.isStarted == true` 인 경우에만 복구
+    - `ServiceStatePolicy.shouldRestoreService(targetState)` 사용
+    - 목표 상태가 `Stopped` 인 경우에는 부팅 후 자동 복구하지 않음 (사용자의 명시적 완전 종료 존중)
+
+### 10.6.3 상태 모델과 사용자 의도 매핑
+
+- **Running**
+  - 표정 감지 + 트리거 매칭 + 액션 실행이 활성화된 상태
+  - 부팅/접근성 재연결 시 `AUTO_START_ON_BOOT` 및 `shouldRestoreService(...)`에 따라 자동 복구 대상
+- **Paused**
+  - 서비스 프로세스와 포그라운드 알림은 유지되지만 감지/액션이 일시 중지된 상태
+  - 화면 꺼짐, 알림의 일시정지 버튼, 일시적인 정책에 사용
+  - Boot/접근성 재연결 시 복구 대상 (`shouldRestoreService(Paused) == true`)
+- **Stopped**
+  - 카메라/분석/알림이 완전히 중지된 상태
+  - Home 화면의 "정지" 버튼, 브로드캐스트/글로벌 토글의 disable, 알림의 "정지" 액션은 모두 `Stopped`를 목표 상태로 만든다
+  - Boot/접근성 재연결에서 자동 복구되지 않음 (`shouldRestoreService(Stopped) == false`)
+
+이 상태 모델 덕분에 다음이 보장된다:
+
+- 사용자가 "정지/disable"을 명시적으로 선택하면, 부팅 후에도 서비스가 자동으로 다시 켜지지 않는다.
+- 일시정지(Paused)는 화면 꺼짐/잠깐 끔 등의 일시 상태로, Boot/재연결에서 원래 의도대로 복구된다.

@@ -8,33 +8,27 @@ import android.os.VibratorManager
 import android.speech.tts.TextToSpeech
 import android.view.KeyEvent
 import com.mimicease.data.local.AppSettings
+import com.mimicease.domain.model.ServiceState
 import timber.log.Timber
 import java.util.Locale
 
 /**
  * 다중 채널 글로벌 토글 컨트롤러.
- * 물리키 조합, 표정, BroadcastReceiver(AI 어시스턴트) 등 다양한 입력으로
- * 앱 전체 기능을 ON/OFF할 수 있습니다.
- *
- * IoT 디바이스 제어처럼, 여러 채널이 동일한 toggleService()를 호출합니다.
+ * 물리 키 조합, 표정, BroadcastReceiver를 같은 상태 기준으로 묶어 처리한다.
  */
 class GlobalToggleController(
     private val context: Context,
-    private val onToggle: () -> Unit,
-    private val onEnable: () -> Unit,
-    private val onDisable: () -> Unit,
-    private val isPaused: () -> Boolean
+    private val onToggle: () -> ServiceState,
+    private val onEnable: () -> ServiceState,
+    private val onDisable: () -> ServiceState
 ) {
     private var settings: AppSettings = AppSettings()
     private var tts: TextToSpeech? = null
     private var ttsReady = false
 
-    // 물리키 조합 추적용
     private var volumeUpPressed = false
     private var volumeDownPressed = false
     private var comboStartTime = 0L
-
-    // 표정 토글 추적용
     private var expressionHoldStart = 0L
 
     init {
@@ -46,7 +40,7 @@ class GlobalToggleController(
                 }
             }
         } catch (e: Exception) {
-            Timber.w(e, "TTS initialization failed — TTS feedback disabled")
+            Timber.w(e, "TTS initialization failed - TTS feedback disabled")
         }
     }
 
@@ -54,15 +48,6 @@ class GlobalToggleController(
         settings = newSettings
     }
 
-    // ═══════════════════════════════════════════════════
-    // 채널 1: 물리키 (볼륨 Up+Down 동시 홀드)
-    // AccessibilityService.onKeyEvent()에서 호출
-    // ═══════════════════════════════════════════════════
-
-    /**
-     * 키 이벤트를 처리합니다. 토글 조건이 충족되면 true 반환 (이벤트 소비).
-     * 처리하지 않으면 false 반환 (다른 앱에 전달).
-     */
     fun handleKeyEvent(event: KeyEvent): Boolean {
         if (!settings.toggleByKeyCombo) return false
 
@@ -88,16 +73,14 @@ class GlobalToggleController(
             else -> return false
         }
 
-        // 양쪽 동시 누르기 진행 중이면 이벤트 소비
         if (volumeUpPressed && volumeDownPressed) {
             val elapsed = System.currentTimeMillis() - comboStartTime
             if (elapsed >= settings.toggleKeyHoldMs) {
-                onToggle()
-                announceState()
+                announceState(onToggle())
                 resetCombo()
                 return true
             }
-            return true  // 아직 홀드 중 — 볼륨 변경 방지
+            return true
         }
         return false
     }
@@ -114,19 +97,9 @@ class GlobalToggleController(
         }
     }
 
-    // ═══════════════════════════════════════════════════
-    // 채널 2: 표정 (양쪽 눈 감기 등)
-    // FaceDetectionForegroundService.processResults()에서 호출
-    // ═══════════════════════════════════════════════════
-
-    /**
-     * 블렌드쉐이프 값으로 표정 토글을 확인합니다.
-     * @return true이면 토글이 발동되어 이번 프레임의 다른 트리거는 건너뜀
-     */
     fun checkExpressionToggle(smoothedValues: Map<String, Float>): Boolean {
         if (!settings.toggleByExpression) return false
 
-        // 기본: 양쪽 눈 감기 (eyeBlinkLeft + eyeBlinkRight)
         val leftEye = smoothedValues["eyeBlinkLeft"] ?: 0f
         val rightEye = smoothedValues["eyeBlinkRight"] ?: 0f
         val threshold = 0.7f
@@ -137,8 +110,7 @@ class GlobalToggleController(
             }
             val elapsed = System.currentTimeMillis() - expressionHoldStart
             if (elapsed >= settings.toggleExpressionHoldMs) {
-                onToggle()
-                announceState()
+                announceState(onToggle())
                 expressionHoldStart = 0L
                 return true
             }
@@ -148,56 +120,50 @@ class GlobalToggleController(
         return false
     }
 
-    // ═══════════════════════════════════════════════════
-    // 채널 3: 브로드캐스트 (AI 어시스턴트 / 외부 앱)
-    // ToggleBroadcastReceiver에서 호출
-    // ═══════════════════════════════════════════════════
-
     fun handleBroadcastToggle() {
-        onToggle()
-        announceState()
+        announceState(onToggle())
     }
 
     fun handleBroadcastEnable() {
-        onEnable()
-        announceState()
+        announceState(onEnable())
     }
 
     fun handleBroadcastDisable() {
-        onDisable()
-        announceState()
+        announceState(onDisable())
     }
 
-    // ═══════════════════════════════════════════════════
-    // 상태 피드백: TTS + 진동
-    // ═══════════════════════════════════════════════════
+    private fun announceState(state: ServiceState) {
+        val message = when (state) {
+            ServiceState.Running -> "미믹이즈 활성화"
+            ServiceState.Paused -> "미믹이즈 일시정지"
+            ServiceState.Stopped -> "미믹이즈 종료"
+        }
 
-    private fun announceState() {
-        val paused = isPaused()
-        val message = if (paused) "미믹이즈 일시정지" else "미믹이즈 활성화"
-
-        // TTS 안내
         if (ttsReady) {
             tts?.speak(message, TextToSpeech.QUEUE_FLUSH, null, "toggle_announce")
         }
 
-        // 진동 피드백
         try {
             val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                vm.defaultVibrator
+                val vibratorManager =
+                    context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                vibratorManager.defaultVibrator
             } else {
                 @Suppress("DEPRECATION")
                 context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val pattern = if (paused) {
-                    // 일시정지: 짧은 2회 진동
-                    VibrationEffect.createWaveform(longArrayOf(0, 100, 100, 100), -1)
-                } else {
-                    // 활성화: 긴 1회 진동
-                    VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE)
+                val pattern = when (state) {
+                    ServiceState.Running -> {
+                        VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE)
+                    }
+                    ServiceState.Paused -> {
+                        VibrationEffect.createWaveform(longArrayOf(0, 100, 100, 100), -1)
+                    }
+                    ServiceState.Stopped -> {
+                        VibrationEffect.createWaveform(longArrayOf(0, 80, 80, 80, 80, 80), -1)
+                    }
                 }
                 vibrator.vibrate(pattern)
             }

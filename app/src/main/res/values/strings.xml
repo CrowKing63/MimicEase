@@ -128,6 +128,13 @@
     <string name="profiles_name_label">Name</string>
     <string name="profiles_icon_label">Icon</string>
     <string name="profiles_create_confirm">Create</string>
+    <string name="profiles_import">Import Profiles</string>
+    <string name="profiles_export">Export Profiles</string>
+    <string name="profiles_export_all">Export All Profiles</string>
+    <string name="profiles_export_success">Profiles exported successfully</string>
+    <string name="profiles_import_success">Imported %1$d profiles</string>
+    <string name="profiles_import_error">Import failed: %1$s</string>
+    <string name="profiles_export_error">Export failed</string>
 
     <!-- Profile Edit -->
     <string name="profile_edit_title">Edit Profile</string>
@@ -212,7 +219,7 @@
     <string name="settings_mode_head_mouse">Head Mouse</string>
     <string name="settings_mode_head_mouse_desc">Control cursor with head movement, dwell click</string>
     <string name="settings_overlay_permission_title">Overlay Permission Required</string>
-    <string name="settings_overlay_permission_desc">\'Display over other apps\' permission is required to show the head mouse cursor on screen.</string>
+    <string name="settings_overlay_permission_desc">\'Display over other apps\' permission is only used to show the optional head mouse cursor overlay in HEAD_MOUSE mode. Other features work without this permission.</string>
     <string name="settings_overlay_allow">Allow</string>
     <string name="settings_head_mouse_section">Head Mouse</string>
     <string name="settings_sensitivity">Sensitivity: %1$s×</string>

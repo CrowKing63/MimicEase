@@ -39,7 +39,17 @@
 
 # Lint with auto-fix where possible
 ./gradlew lintDebug
+
+# Generate lint baseline (requires approval)
+./scripts/generate-lint-baseline.ps1  # Windows
+./scripts/generate-lint-baseline.sh   # Mac/Linux
+
+# View lint report
+# Windows: start app/build/reports/lint-results-debug.html
+# Mac/Linux: open app/build/reports/lint-results-debug.html
 ```
+
+**Lint Baseline System**: We use a baseline to grandfather existing issues. New critical issues will fail the build. See `docs/lint_baseline_guide.md` for workflow details.
 
 ---
 

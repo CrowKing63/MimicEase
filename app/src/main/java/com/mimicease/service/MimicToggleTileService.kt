@@ -3,18 +3,11 @@ package com.mimicease.service
 import android.content.Intent
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
+import android.widget.Toast
 import com.mimicease.R
+import com.mimicease.domain.model.ServiceState
 import timber.log.Timber
 
-/**
- * 빠른 설정(Quick Settings) 타일 서비스.
- *
- * 알림 창을 내려서 타일을 탭하거나, Bixby 루틴의 "빠른 설정 변경" 동작으로
- * MimicEase를 ON/OFF할 수 있습니다.
- *
- * Bixby 루틴 연동 방법:
- *   루틴 추가 → 동작 추가 → 빠른 설정 → 미믹이즈 타일 선택
- */
 class MimicToggleTileService : TileService() {
 
     override fun onStartListening() {
@@ -24,43 +17,52 @@ class MimicToggleTileService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        val isRunning = FaceDetectionForegroundService.isRunning
-        val isPaused = FaceDetectionForegroundService.isPaused.value
 
-        Timber.d("MimicToggleTile: onClick — isRunning=$isRunning, isPaused=$isPaused")
-
-        val action = when {
-            !isRunning -> {
-                // 서비스 미실행 → 접근성 서비스가 켜야 하므로 여기선 안내만
-                Timber.w("MimicToggleTile: FaceDetectionForegroundService가 실행 중이 아님")
-                return
-            }
-            isPaused -> FaceDetectionForegroundService.ACTION_RESUME
-            else     -> FaceDetectionForegroundService.ACTION_PAUSE
+        val snapshot = MimicServiceStateStore.readSnapshotBlocking(this)
+        if (!snapshot.isAccessibilityServiceEnabled) {
+            Timber.w("MimicToggleTile: accessibility service is disabled")
+            showToast("MimicEase 접근성 서비스를 먼저 활성화하세요")
+            refreshTile()
+            return
         }
 
-        startForegroundService(
-            Intent(this, FaceDetectionForegroundService::class.java).setAction(action)
-        )
-        refreshTile()
+        try {
+            // QS 타일 토글도 브로드캐스트 기반 글로벌 토글 경로를 사용한다.
+            // → ToggleBroadcastReceiver + ServiceStatePolicy + MimicServiceStateStore 공통 처리
+            sendBroadcast(
+                Intent(ToggleBroadcastReceiver.ACTION_TOGGLE).setPackage(packageName)
+            )
+            refreshTile()
+        } catch (e: Exception) {
+            Timber.e(e, "MimicToggleTile: failed to send control intent")
+            showToast("MimicEase 제어 실패")
+        }
     }
 
     private fun refreshTile() {
         val tile = qsTile ?: return
-        val isRunning = FaceDetectionForegroundService.isRunning
-        val isPaused  = FaceDetectionForegroundService.isPaused.value
+        val snapshot = MimicServiceStateStore.readSnapshotBlocking(this)
 
         tile.state = when {
-            !isRunning -> Tile.STATE_UNAVAILABLE
-            isPaused   -> Tile.STATE_INACTIVE
-            else       -> Tile.STATE_ACTIVE
+            !snapshot.isAccessibilityServiceEnabled -> Tile.STATE_UNAVAILABLE
+            snapshot.runtimeState == ServiceState.Running -> Tile.STATE_ACTIVE
+            else -> Tile.STATE_INACTIVE
         }
         tile.label = getString(R.string.tile_label)
         tile.contentDescription = when {
-            !isRunning -> getString(R.string.tile_unavailable)
-            isPaused   -> getString(R.string.tile_paused)
-            else       -> getString(R.string.tile_active)
+            !snapshot.isAccessibilityServiceEnabled -> getString(R.string.tile_unavailable)
+            snapshot.runtimeState == ServiceState.Paused -> getString(R.string.tile_paused)
+            snapshot.runtimeState == ServiceState.Running -> getString(R.string.tile_active)
+            else -> getString(R.string.tile_unavailable)
         }
         tile.updateTile()
+    }
+
+    private fun showToast(message: String) {
+        try {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Timber.w(e, "Toast 표시 실패")
+        }
     }
 }

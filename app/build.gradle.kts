@@ -41,7 +41,28 @@ android {
         buildConfig = true
     }
     lint {
-        abortOnError = false
+        // Phase 1: Baseline existing issues, fail on new critical problems
+        abortOnError = true
+        baseline = file("lint-baseline.xml")
+        checkDependencies = true
+        
+        // Fail build on new critical issues
+        fatal.add("NewApi")
+        fatal.add("InlinedApi")
+        error.add("MissingPermission")
+        error.add("ProtectedPermissions")
+        
+        // Acceptable warnings to suppress
+        disable.add("UnusedResources")  // Clean up in maintenance cycle
+        disable.add("IconDensities")    // Vector drawables handle this
+        disable.add("IconMissingDensityFolder")
+        
+        // Translation warnings tracked separately (Session 09)
+        warning.add("MissingTranslation")
+        
+        // Generate reports for analysis
+        htmlReport = true
+        xmlReport = true
     }
 }
 

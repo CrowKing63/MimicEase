@@ -20,8 +20,11 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideProfileRepository(profileDao: ProfileDao): ProfileRepository {
-        return ProfileRepositoryImpl(profileDao)
+    fun provideProfileRepository(
+        profileDao: ProfileDao,
+        triggerDao: TriggerDao
+    ): ProfileRepository {
+        return ProfileRepositoryImpl(profileDao, triggerDao)
     }
 
     @Provides

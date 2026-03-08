@@ -115,4 +115,81 @@ class ActionSerializerTest {
         val result = ActionSerializer.deserialize("DragEndAtCursor", "{}")
         assertEquals(Action.DragToggleAtCursor, result)
     }
+
+    @Test
+    fun `NoOp 직렬화 후 역직렬화`() {
+        assertEquals(Action.NoOp, roundTrip(Action.NoOp))
+    }
+
+    @Test
+    fun `알 수 없는 액션 타입 - NoOp으로 안전 폴백`() {
+        val result = ActionSerializer.deserialize("UnknownActionType", "{}")
+        assertEquals(Action.NoOp, result)
+    }
+
+    @Test
+    fun `손상된 JSON - NoOp으로 안전 폴백`() {
+        val result = ActionSerializer.deserialize("TapCustom", "{not-valid-json")
+        assertEquals(Action.NoOp, result)
+    }
+
+    @Test
+    fun `TapCustom 좌표 누락 - NoOp으로 안전 폴백`() {
+        val result = ActionSerializer.deserialize("TapCustom", "{}")
+        assertEquals(Action.NoOp, result)
+    }
+
+    @Test
+    fun `TapCustom 좌표 범위 초과 - NoOp으로 안전 폴백`() {
+        val result = ActionSerializer.deserialize("TapCustom", """{"x": 1.5, "y": 0.5}""")
+        assertEquals(Action.NoOp, result)
+    }
+
+    @Test
+    fun `SwipeUp 잘못된 duration - NoOp으로 안전 폴백`() {
+        val result = ActionSerializer.deserialize("SwipeUp", """{"duration": "oops"}""")
+        assertEquals(Action.NoOp, result)
+    }
+
+    @Test
+    fun `Drag 파라미터 일부 누락 - NoOp으로 안전 폴백`() {
+        val result = ActionSerializer.deserialize("Drag", """{"startX": 0.1}""")
+        assertEquals(Action.NoOp, result)
+    }
+
+    @Test
+    fun `SwitchKey 잘못된 keyCode - NoOp으로 안전 폴백`() {
+        val result = ActionSerializer.deserialize("SwitchKey", """{"keyCode": 0, "label": "invalid"}""")
+        assertEquals(Action.NoOp, result)
+    }
+
+    @Test
+    fun `손상된 액션 타입 - NoOp으로 안전 폴백`() {
+        val result = ActionSerializer.deserialize("CorruptedAction123", "{}")
+        assertEquals(Action.NoOp, result)
+    }
+
+    @Test
+    fun `빈 액션 타입 - NoOp으로 안전 폴백`() {
+        val result = ActionSerializer.deserialize("", "{}")
+        assertEquals(Action.NoOp, result)
+    }
+
+    @Test
+    fun `알 수 없는 타입이지만 파라미터가 있는 경우 - NoOp으로 안전 폴백`() {
+        val result = ActionSerializer.deserialize("FutureAction", """{"x": 0.5, "y": 0.5}""")
+        assertEquals(Action.NoOp, result)
+    }
+
+    @Test
+    fun `레거시 마이그레이션은 여전히 동작 - DragStartAtCursor`() {
+        val result = ActionSerializer.deserialize("DragStartAtCursor", "{}")
+        assertEquals(Action.DragToggleAtCursor, result)
+    }
+
+    @Test
+    fun `레거시 마이그레이션은 여전히 동작 - DragEndAtCursor`() {
+        val result = ActionSerializer.deserialize("DragEndAtCursor", "{}")
+        assertEquals(Action.DragToggleAtCursor, result)
+    }
 }

@@ -1,11 +1,13 @@
 package com.mimicease.data.repository
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.mimicease.data.local.AppSettings
 import com.mimicease.data.local.AppSettingsKeys
 import com.mimicease.data.local.appSettingsDataStore
 import com.mimicease.domain.model.InteractionMode
+import com.mimicease.domain.model.ServiceState
 import com.mimicease.domain.repository.SettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -18,70 +20,23 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override fun getSettings(): Flow<AppSettings> {
         return context.appSettingsDataStore.data.map { preferences ->
-            AppSettings(
-                cameraFacing = preferences[AppSettingsKeys.CAMERA_FACING] ?: androidx.camera.core.CameraSelector.LENS_FACING_FRONT,
-                emaAlpha = preferences[AppSettingsKeys.EMA_ALPHA] ?: 0.5f,
-                consecutiveFrames = preferences[AppSettingsKeys.CONSECUTIVE_FRAMES] ?: 3,
-                showForegroundNotification = preferences[AppSettingsKeys.SHOW_NOTIFICATION] ?: true,
-                isDeveloperMode = preferences[AppSettingsKeys.DEVELOPER_MODE] ?: false,
-                isServiceEnabled = preferences[AppSettingsKeys.SERVICE_ENABLED] ?: false,
-                activeProfileId = preferences[AppSettingsKeys.ACTIVE_PROFILE_ID],
-                onboardingCompleted = preferences[AppSettingsKeys.ONBOARDING_COMPLETED] ?: false,
-                activeMode = InteractionMode.fromString(
-                    preferences[AppSettingsKeys.ACTIVE_MODE] ?: InteractionMode.EXPRESSION_ONLY.name
-                ),
-                toggleByExpression = preferences[AppSettingsKeys.TOGGLE_BY_EXPRESSION] ?: false,
-                toggleExpressionHoldMs = preferences[AppSettingsKeys.TOGGLE_EXPRESSION_HOLD_MS] ?: 3000,
-                toggleByKeyCombo = preferences[AppSettingsKeys.TOGGLE_BY_KEY_COMBO] ?: true,
-                toggleKeyHoldMs = preferences[AppSettingsKeys.TOGGLE_KEY_HOLD_MS] ?: 2000,
-                headMouseSensitivity = preferences[AppSettingsKeys.HEAD_MOUSE_SENSITIVITY] ?: 1.0f,
-                headMouseDeadZone = preferences[AppSettingsKeys.HEAD_MOUSE_DEAD_ZONE] ?: 0.02f,
-                dwellClickEnabled = preferences[AppSettingsKeys.DWELL_CLICK_ENABLED] ?: true,
-                dwellClickTimeMs = preferences[AppSettingsKeys.DWELL_CLICK_TIME_MS] ?: 1000L,
-                dwellClickRadiusPx = preferences[AppSettingsKeys.DWELL_CLICK_RADIUS_PX] ?: 30f,
-                autoStartOnBoot = preferences[AppSettingsKeys.AUTO_START_ON_BOOT] ?: false,
-                voiceCommandStop = preferences[AppSettingsKeys.VOICE_CMD_STOP] ?: "표정 인식 정지",
-                voiceCommandStart = preferences[AppSettingsKeys.VOICE_CMD_START] ?: "표정 인식 시작"
-            )
+            preferences.toAppSettings()
         }
     }
 
     override suspend fun updateSettings(updateParams: (AppSettings) -> AppSettings) {
         context.appSettingsDataStore.edit { preferences ->
-            val current = AppSettings(
-                cameraFacing = preferences[AppSettingsKeys.CAMERA_FACING] ?: androidx.camera.core.CameraSelector.LENS_FACING_FRONT,
-                emaAlpha = preferences[AppSettingsKeys.EMA_ALPHA] ?: 0.5f,
-                consecutiveFrames = preferences[AppSettingsKeys.CONSECUTIVE_FRAMES] ?: 3,
-                showForegroundNotification = preferences[AppSettingsKeys.SHOW_NOTIFICATION] ?: true,
-                isDeveloperMode = preferences[AppSettingsKeys.DEVELOPER_MODE] ?: false,
-                isServiceEnabled = preferences[AppSettingsKeys.SERVICE_ENABLED] ?: false,
-                activeProfileId = preferences[AppSettingsKeys.ACTIVE_PROFILE_ID],
-                onboardingCompleted = preferences[AppSettingsKeys.ONBOARDING_COMPLETED] ?: false,
-                activeMode = InteractionMode.fromString(
-                    preferences[AppSettingsKeys.ACTIVE_MODE] ?: InteractionMode.EXPRESSION_ONLY.name
-                ),
-                toggleByExpression = preferences[AppSettingsKeys.TOGGLE_BY_EXPRESSION] ?: false,
-                toggleExpressionHoldMs = preferences[AppSettingsKeys.TOGGLE_EXPRESSION_HOLD_MS] ?: 3000,
-                toggleByKeyCombo = preferences[AppSettingsKeys.TOGGLE_BY_KEY_COMBO] ?: true,
-                toggleKeyHoldMs = preferences[AppSettingsKeys.TOGGLE_KEY_HOLD_MS] ?: 2000,
-                headMouseSensitivity = preferences[AppSettingsKeys.HEAD_MOUSE_SENSITIVITY] ?: 1.0f,
-                headMouseDeadZone = preferences[AppSettingsKeys.HEAD_MOUSE_DEAD_ZONE] ?: 0.02f,
-                dwellClickEnabled = preferences[AppSettingsKeys.DWELL_CLICK_ENABLED] ?: true,
-                dwellClickTimeMs = preferences[AppSettingsKeys.DWELL_CLICK_TIME_MS] ?: 1000L,
-                dwellClickRadiusPx = preferences[AppSettingsKeys.DWELL_CLICK_RADIUS_PX] ?: 30f,
-                autoStartOnBoot = preferences[AppSettingsKeys.AUTO_START_ON_BOOT] ?: false,
-                voiceCommandStop = preferences[AppSettingsKeys.VOICE_CMD_STOP] ?: "표정 인식 정지",
-                voiceCommandStart = preferences[AppSettingsKeys.VOICE_CMD_START] ?: "표정 인식 시작"
-            )
-            
+            val current = preferences.toAppSettings()
             val updated = updateParams(current)
-            
+
             preferences[AppSettingsKeys.CAMERA_FACING] = updated.cameraFacing
             preferences[AppSettingsKeys.EMA_ALPHA] = updated.emaAlpha
             preferences[AppSettingsKeys.CONSECUTIVE_FRAMES] = updated.consecutiveFrames
             preferences[AppSettingsKeys.SHOW_NOTIFICATION] = updated.showForegroundNotification
             preferences[AppSettingsKeys.DEVELOPER_MODE] = updated.isDeveloperMode
-            preferences[AppSettingsKeys.SERVICE_ENABLED] = updated.isServiceEnabled
+            preferences[AppSettingsKeys.TARGET_SERVICE_STATE] = updated.targetServiceState.name
+            preferences[AppSettingsKeys.SERVICE_STATE] = updated.serviceState.name
+            preferences[AppSettingsKeys.LEGACY_SERVICE_ENABLED] = updated.targetServiceState.isStarted
             if (updated.activeProfileId != null) {
                 preferences[AppSettingsKeys.ACTIVE_PROFILE_ID] = updated.activeProfileId
             } else {
@@ -105,3 +60,35 @@ class SettingsRepositoryImpl @Inject constructor(
     }
 }
 
+private fun Preferences.toAppSettings(): AppSettings {
+    val legacyEnabled = this[AppSettingsKeys.LEGACY_SERVICE_ENABLED] ?: false
+
+    return AppSettings(
+        cameraFacing = this[AppSettingsKeys.CAMERA_FACING] ?: androidx.camera.core.CameraSelector.LENS_FACING_FRONT,
+        emaAlpha = this[AppSettingsKeys.EMA_ALPHA] ?: 0.5f,
+        consecutiveFrames = this[AppSettingsKeys.CONSECUTIVE_FRAMES] ?: 3,
+        showForegroundNotification = this[AppSettingsKeys.SHOW_NOTIFICATION] ?: true,
+        isDeveloperMode = this[AppSettingsKeys.DEVELOPER_MODE] ?: false,
+        targetServiceState = this[AppSettingsKeys.TARGET_SERVICE_STATE]?.let(ServiceState::fromStorage)
+            ?: if (legacyEnabled) ServiceState.Running else ServiceState.Stopped,
+        serviceState = this[AppSettingsKeys.SERVICE_STATE]?.let(ServiceState::fromStorage)
+            ?: ServiceState.Stopped,
+        activeProfileId = this[AppSettingsKeys.ACTIVE_PROFILE_ID],
+        onboardingCompleted = this[AppSettingsKeys.ONBOARDING_COMPLETED] ?: false,
+        activeMode = InteractionMode.fromString(
+            this[AppSettingsKeys.ACTIVE_MODE] ?: InteractionMode.EXPRESSION_ONLY.name
+        ),
+        toggleByExpression = this[AppSettingsKeys.TOGGLE_BY_EXPRESSION] ?: false,
+        toggleExpressionHoldMs = this[AppSettingsKeys.TOGGLE_EXPRESSION_HOLD_MS] ?: 3000,
+        toggleByKeyCombo = this[AppSettingsKeys.TOGGLE_BY_KEY_COMBO] ?: true,
+        toggleKeyHoldMs = this[AppSettingsKeys.TOGGLE_KEY_HOLD_MS] ?: 2000,
+        headMouseSensitivity = this[AppSettingsKeys.HEAD_MOUSE_SENSITIVITY] ?: 1.0f,
+        headMouseDeadZone = this[AppSettingsKeys.HEAD_MOUSE_DEAD_ZONE] ?: 0.02f,
+        dwellClickEnabled = this[AppSettingsKeys.DWELL_CLICK_ENABLED] ?: true,
+        dwellClickTimeMs = this[AppSettingsKeys.DWELL_CLICK_TIME_MS] ?: 1000L,
+        dwellClickRadiusPx = this[AppSettingsKeys.DWELL_CLICK_RADIUS_PX] ?: 30f,
+        autoStartOnBoot = this[AppSettingsKeys.AUTO_START_ON_BOOT] ?: false,
+        voiceCommandStop = this[AppSettingsKeys.VOICE_CMD_STOP] ?: "표정 인식 정지",
+        voiceCommandStart = this[AppSettingsKeys.VOICE_CMD_START] ?: "표정 인식 시작"
+    )
+}

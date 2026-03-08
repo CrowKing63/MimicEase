@@ -105,9 +105,10 @@ cd MimicEase
 | `CAMERA` | Real-time face detection via front camera |
 | `FOREGROUND_SERVICE` | Keep the face-detection service running while the screen is on |
 | `FOREGROUND_SERVICE_CAMERA` | Required on Android 12+ for foreground camera access |
+| `SYSTEM_ALERT_WINDOW` | Optional: show the head mouse cursor overlay in HEAD_MOUSE mode only |
 | `VIBRATE` | Haptic feedback on toggle events |
 | `RECEIVE_BOOT_COMPLETED` | Optional auto-start on device boot |
-| `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Prevent the OS from suspending the foreground service |
+| `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Optional: help prevent the OS from aggressively suspending the foreground service (user may safely decline) |
 | Accessibility Service | Execute gestures and system actions on behalf of the user |
 
 ---

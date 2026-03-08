@@ -26,6 +26,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import com.mimicease.MainActivity
 import com.mimicease.domain.model.Action
+import com.mimicease.domain.model.InteractionMode
+import com.mimicease.domain.model.ModeManager
+import com.mimicease.domain.model.ServiceState
 import com.mimicease.domain.repository.ProfileRepository
 import com.mimicease.domain.repository.SettingsRepository
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
@@ -43,8 +46,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import com.mimicease.domain.model.InteractionMode
-import com.mimicease.domain.model.ModeManager
 import timber.log.Timber
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -57,9 +58,11 @@ class FaceDetectionForegroundService : LifecycleService() {
         const val NOTIFICATION_ID = 1001
         const val CHANNEL_ID = "mimic_ease_service_channel"
 
+        const val ACTION_START = "com.mimicease.ACTION_START"
         const val ACTION_PAUSE = "com.mimicease.ACTION_PAUSE"
         const val ACTION_RESUME = "com.mimicease.ACTION_RESUME"
         const val ACTION_STOP = "com.mimicease.ACTION_STOP"
+        private const val EXTRA_TARGET_STATE = "extra_target_state"
 
         // SharedFlow exposed for UI screens to observe real-time blendshapes
         private val _blendShapeFlow = MutableSharedFlow<Map<String, Float>>(replay = 1)
@@ -79,14 +82,17 @@ class FaceDetectionForegroundService : LifecycleService() {
         private val _isFaceVisible = MutableStateFlow(false)
         val isFaceVisible: StateFlow<Boolean> = _isFaceVisible.asStateFlow()
 
-        private val _isPaused = MutableStateFlow(false)
-        val isPaused: StateFlow<Boolean> = _isPaused.asStateFlow()
+        private val _serviceState = MutableStateFlow(ServiceState.Stopped)
+        val serviceState: StateFlow<ServiceState> = _serviceState.asStateFlow()
 
         // Service instance for direct Preview SurfaceProvider attachment (test screen only)
         private var _instance: FaceDetectionForegroundService? = null
 
-        /** QS 타일 등 외부에서 서비스 실행 여부 확인용 */
-        val isRunning: Boolean get() = _instance != null
+        /**
+         * 서비스 실행 상태.
+         * - true: 서비스가 실행 중 (일시정지 여부와 무관)
+         * - false: 서비스가 완전히 정지됨
+         */
 
         fun attachPreviewSurfaceProvider(surfaceProvider: Preview.SurfaceProvider) {
             _instance?.previewUseCase?.setSurfaceProvider(surfaceProvider)
@@ -110,6 +116,13 @@ class FaceDetectionForegroundService : LifecycleService() {
                 nm.createNotificationChannel(channel)
             }
         }
+
+        fun createStartIntent(context: Context, targetState: ServiceState): Intent {
+            return Intent(context, FaceDetectionForegroundService::class.java).apply {
+                action = ACTION_START
+                putExtra(EXTRA_TARGET_STATE, targetState.name)
+            }
+        }
     }
 
     inner class LocalBinder : Binder() {
@@ -122,7 +135,7 @@ class FaceDetectionForegroundService : LifecycleService() {
 
     private lateinit var faceLandmarkerHelper: FaceLandmarkerHelper
     private lateinit var expressionAnalyzer: ExpressionAnalyzer
-    private lateinit var triggerMatcher: TriggerMatcher
+    private var triggerMatcher: TriggerMatcher? = null
     private lateinit var actionExecutor: ActionExecutor
 
     // Phase 3: Head Tracking components
@@ -130,11 +143,13 @@ class FaceDetectionForegroundService : LifecycleService() {
     private lateinit var cursorOverlayView: CursorOverlayView
     private lateinit var dwellClickController: DwellClickController
 
-    private var isAnalyzing = true
+    private var isAnalyzing = false
     private var activeProfileName: String? = null
     private var currentMode: InteractionMode = InteractionMode.EXPRESSION_ONLY
+    private var targetServiceState: ServiceState = ServiceState.Stopped
     private var globalToggleController: GlobalToggleController? = null
     private var cameraProvider: ProcessCameraProvider? = null
+    private var dwellClickEnabled = true
 
     // Preview UseCase: SurfaceProvider가 없으면 프리뷰 미표시, 테스트 화면에서 연결 가능
     private val previewUseCase: Preview = Preview.Builder().build()
@@ -178,16 +193,16 @@ class FaceDetectionForegroundService : LifecycleService() {
         initFaceLandmarker()
         observeSettingsAndProfile()
         registerScreenStateReceiver()
-        if (hasCameraPermission) {
-            setupCamera()
-        } else {
-            Timber.w("Camera permission not granted — skipping camera setup")
-        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+        val targetState = intent?.getStringExtra(EXTRA_TARGET_STATE)?.let(ServiceState::fromStorage)
+            ?: targetServiceState
         when (intent?.action) {
+            ACTION_START, null -> {
+                applyTargetState(targetState)
+            }
             ACTION_PAUSE -> {
                 pauseAnalysis()
             }
@@ -195,19 +210,13 @@ class FaceDetectionForegroundService : LifecycleService() {
                 resumeAnalysis()
             }
             ACTION_STOP -> {
-                if (::actionExecutor.isInitialized) actionExecutor.cancelCurrentGesture()
+                stopServiceRuntime()
                 // 카메라 해제 후 서비스 자체 종료 (BIND_AUTO_CREATE 바인딩이 해제되면 완전 종료)
-                unbindCamera()
-                isAnalyzing = false
-                _isPaused.value = true
-                faceLandmarkerHelper.pauseThread()
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
                 return START_NOT_STICKY
             }
             else -> updateNotification()
         }
-        return START_STICKY
+        return if (_serviceState.value == ServiceState.Stopped) START_NOT_STICKY else START_STICKY
     }
 
     override fun onBind(intent: Intent): IBinder {
@@ -314,7 +323,8 @@ class FaceDetectionForegroundService : LifecycleService() {
         if (currentMode == InteractionMode.HEAD_MOUSE) {
             val (cx, cy) = headTracker.updatePosition(yaw, pitch)
             MimicAccessibilityService.instance?.cursorTracker?.updateFromHeadTracker(cx, cy)
-            val progress = if (::dwellClickController.isInitialized) {
+            // Dwell click은 설정이 활성화된 경우에만 동작
+            val progress = if (dwellClickEnabled && ::dwellClickController.isInitialized) {
                 dwellClickController.update(cx, cy, System.currentTimeMillis())
             } else 0f
             serviceScope.launch(Dispatchers.Main) {
@@ -330,7 +340,8 @@ class FaceDetectionForegroundService : LifecycleService() {
         }
 
         // 트리거 매칭/액션 실행은 triggerMatcher + actionExecutor 초기화 후에만 가능
-        if (!::triggerMatcher.isInitialized || !::actionExecutor.isInitialized) return
+        val matcher = triggerMatcher
+        if (matcher == null || !::actionExecutor.isInitialized) return
 
         val smoothed = expressionAnalyzer.processSmoothed(rawValues)
 
@@ -339,7 +350,7 @@ class FaceDetectionForegroundService : LifecycleService() {
             return  // 토글이 발동되면 이번 프레임의 다른 트리거는 무시
         }
 
-        val actions = triggerMatcher.match(smoothed)
+        val actions = matcher.match(smoothed)
 
         if (actions.isNotEmpty()) {
             serviceScope.launch(Dispatchers.Main) {
@@ -367,19 +378,18 @@ class FaceDetectionForegroundService : LifecycleService() {
             ) { settings, profile -> Pair(settings, profile) }
                 .collect { (settings, profile) ->
                     // Update EMA analyzer with settings
-                    expressionAnalyzer.updateSettings(
-                        emaAlpha = settings.emaAlpha,
-                        consecutiveFrames = settings.consecutiveFrames
-                    )
+                    expressionAnalyzer.updateSettings(emaAlpha = settings.emaAlpha)
 
                     // Update camera facing if needed (requires restart)
                     // 모드 업데이트
                     currentMode = settings.activeMode
+                    targetServiceState = settings.targetServiceState
 
                     // 글로벌 토글 설정 업데이트
                     globalToggleController?.updateSettings(settings)
 
                     // Phase 3: Head Mouse settings
+                    dwellClickEnabled = settings.dwellClickEnabled
                     if (::headTracker.isInitialized) {
                         // Base sensitivity 2500f * multiplier
                         headTracker.sensitivityX = 2500f * settings.headMouseSensitivity
@@ -392,14 +402,19 @@ class FaceDetectionForegroundService : LifecycleService() {
                     }
 
                     // Profile triggers and cooldown
-                    profile?.let { p ->
-                        activeProfileName = p.name
+                    if (profile != null) {
+                        activeProfileName = profile.name
                         triggerMatcher = TriggerMatcher(
-                            triggers = p.triggers.filter { t -> t.isEnabled },
-                            globalCooldownMs = p.globalCooldownMs
+                            triggers = profile.triggers.filter { t -> t.isEnabled },
+                            globalCooldownMs = profile.globalCooldownMs,
+                            requiredFrames = settings.consecutiveFrames
                         )
-                        updateNotification()
+                    } else {
+                        // 활성 프로필이 없으면 트리거 매칭 비활성화
+                        activeProfileName = null
+                        triggerMatcher = null
                     }
+                    updateNotification()
                 }
         }
     }
@@ -466,7 +481,9 @@ class FaceDetectionForegroundService : LifecycleService() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 Intent.ACTION_SCREEN_OFF -> pauseAnalysis()
-                Intent.ACTION_SCREEN_ON  -> if (!_isPaused.value) resumeAnalysis()
+                Intent.ACTION_SCREEN_ON  -> if (ServiceStatePolicy.shouldResumeAfterScreenOn(targetServiceState)) {
+                    resumeAnalysis()
+                }
             }
         }
     }
@@ -474,25 +491,21 @@ class FaceDetectionForegroundService : LifecycleService() {
     fun pauseAnalysis() {
         if (::actionExecutor.isInitialized) actionExecutor.cancelCurrentGesture()
         isAnalyzing = false
-        _isPaused.value = true
         faceLandmarkerHelper.pauseThread()
         // CameraX 언바인드: 카메라 하드웨어를 실제로 해제해야 다른 앱(잠금 해제 등)이 카메라 사용 가능
         unbindCamera()
         serviceScope.launch(Dispatchers.Main) {
             cursorOverlayView.hide()
         }
-        updateNotification()
-        requestTileUpdate()
+        updateRuntimeState(ServiceState.Paused)
     }
 
     fun resumeAnalysis() {
         isAnalyzing = true
-        _isPaused.value = false
         faceLandmarkerHelper.resumeThread()
         // CameraX 재바인드: 카메라를 다시 열어 감지 재개
         setupCamera()
-        updateNotification()
-        requestTileUpdate()
+        updateRuntimeState(ServiceState.Running)
     }
 
     /** QS 타일에 상태 변경을 알려 Bixby 등 외부 도구가 최신 상태를 읽을 수 있게 함. */
@@ -507,8 +520,39 @@ class FaceDetectionForegroundService : LifecycleService() {
         }
     }
 
+    private fun applyTargetState(targetState: ServiceState) {
+        targetServiceState = targetState
+        when (targetState) {
+            ServiceState.Running -> resumeAnalysis()
+            ServiceState.Paused -> pauseAnalysis()
+            ServiceState.Stopped -> stopServiceRuntime()
+        }
+    }
+
+    private fun updateRuntimeState(state: ServiceState) {
+        _serviceState.value = state
+        serviceScope.launch {
+            MimicServiceStateStore.persistRuntimeState(this@FaceDetectionForegroundService, state)
+        }
+        updateNotification()
+        requestTileUpdate()
+    }
+
+    private fun stopServiceRuntime() {
+        if (::actionExecutor.isInitialized) actionExecutor.cancelCurrentGesture()
+        isAnalyzing = false
+        faceLandmarkerHelper.pauseThread()
+        unbindCamera()
+        // 사용자의 "정지" 액션은 부팅/접근성 재연결에서도 자동 복구되지 않는
+        // 완전 중지 의도로 간주한다.
+        MimicServiceStateStore.persistTargetStateBlocking(this, ServiceState.Stopped)
+        updateRuntimeState(ServiceState.Stopped)
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
+    }
+
     fun togglePause() {
-        if (_isPaused.value) resumeAnalysis() else pauseAnalysis()
+        if (_serviceState.value == ServiceState.Paused) resumeAnalysis() else pauseAnalysis()
     }
 
     private fun updateNotification() {
@@ -523,7 +567,7 @@ class FaceDetectionForegroundService : LifecycleService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val paused = _isPaused.value
+        val paused = _serviceState.value == ServiceState.Paused
         val pauseResumeIntent = PendingIntent.getService(
             this, 1,
             Intent(this, FaceDetectionForegroundService::class.java).apply {
@@ -571,18 +615,18 @@ class FaceDetectionForegroundService : LifecycleService() {
     override fun onDestroy() {
         super.onDestroy()
         if (_instance == this) _instance = null
+        _serviceState.value = ServiceState.Stopped
+        MimicServiceStateStore.persistRuntimeStateBlocking(this, ServiceState.Stopped)
         // 서비스 종료 → QS 타일을 "미실행" 상태로 갱신
         requestTileUpdate()
+        // cursorOverlayView는 Main thread에서 해제 — serviceScope.cancel() 이전에 처리해야 합니다.
+        // cancel 이후 serviceScope.launch()는 즉시 CancellationException으로 실패합니다.
+        if (::cursorOverlayView.isInitialized) {
+            ContextCompat.getMainExecutor(this).execute { cursorOverlayView.hide() }
+        }
         serviceScope.cancel()
         cameraExecutor.shutdown()
         unregisterReceiver(screenStateReceiver)
-        
-        serviceScope.launch(Dispatchers.Main) {
-            if (::cursorOverlayView.isInitialized) {
-                cursorOverlayView.hide()
-            }
-        }
-        
         faceLandmarkerHelper.destroy()
     }
 }

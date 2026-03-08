@@ -5,18 +5,23 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavController
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import com.mimicease.R
 import com.mimicease.domain.model.Profile
+import com.mimicease.domain.repository.ImportResult
 import com.mimicease.domain.repository.ProfileRepository
 import com.mimicease.presentation.ui.home.MimicBottomNavigation
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,6 +31,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
+import java.io.OutputStreamWriter
+import androidx.navigation.NavController
 
 // ─── ViewModel ───────────────────────────────────────────────────────────
 
@@ -60,6 +67,15 @@ class ProfileListViewModel @Inject constructor(
             profileRepository.saveProfile(profile)
         }
     }
+
+    fun exportProfiles(ids: List<String>, onResult: (String) -> Unit) {
+        viewModelScope.launch {
+            val json = profileRepository.exportProfiles(ids)
+            onResult(json)
+        }
+    }
+
+    suspend fun importProfiles(json: String) = profileRepository.importProfiles(json)
 }
 
 // ─── UI ──────────────────────────────────────────────────────────────────
@@ -72,12 +88,73 @@ fun ProfileListScreen(
 ) {
     val profiles by viewModel.profiles.collectAsState()
     var showCreateDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // ─── Export Logic ───────────────────────────────────────────
+    var pendingExportJson by remember { mutableStateOf<String?>(null) }
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let {
+            try {
+                context.contentResolver.openOutputStream(it)?.use { os ->
+                    OutputStreamWriter(os).use { writer ->
+                        writer.write(pendingExportJson ?: "")
+                    }
+                }
+                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.profiles_export_success)) }
+            } catch (e: Exception) {
+                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.profiles_export_error)) }
+            } finally {
+                pendingExportJson = null
+            }
+        }
+    }
+
+    // ─── Import Logic ───────────────────────────────────────────
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            scope.launch {
+                try {
+                    val json = context.contentResolver.openInputStream(it)?.bufferedReader()?.use { r -> r.readText() }
+                    if (json != null) {
+                        when (val result = viewModel.importProfiles(json)) {
+                            is ImportResult.Success -> {
+                                snackbarHostState.showSnackbar(context.getString(R.string.profiles_import_success, result.importedCount))
+                            }
+                            is ImportResult.Error -> {
+                                snackbarHostState.showSnackbar(context.getString(R.string.profiles_import_error, result.message))
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    snackbarHostState.showSnackbar(context.getString(R.string.profiles_import_error, e.localizedMessage))
+                }
+            }
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.profiles_title)) },
                 actions = {
+                    IconButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) }) {
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.profiles_import)) // Note: Reuse Add icon or find Import icon
+                    }
+                    IconButton(onClick = {
+                        viewModel.exportProfiles(profiles.map { it.id }) { json ->
+                            pendingExportJson = json
+                            exportLauncher.launch("mimic_profiles_all.json")
+                        }
+                    }) {
+                        Icon(Icons.Default.Share, contentDescription = stringResource(R.string.profiles_export_all))
+                    }
                     IconButton(onClick = { showCreateDialog = true }) {
                         Icon(Icons.Default.Add, contentDescription = stringResource(R.string.profiles_add))
                     }
@@ -113,7 +190,13 @@ fun ProfileListScreen(
                         profile = profile,
                         onActivate = { viewModel.activateProfile(profile.id) },
                         onClick = { navController.navigate("triggerList/${profile.id}") },
-                        onDelete = { viewModel.deleteProfile(profile) }
+                        onDelete = { viewModel.deleteProfile(profile) },
+                        onExport = {
+                            viewModel.exportProfiles(listOf(profile.id)) { json ->
+                                pendingExportJson = json
+                                exportLauncher.launch("mimic_profile_${profile.name}.json")
+                            }
+                        }
                     )
                 }
             }
@@ -139,9 +222,11 @@ fun ProfileItemCard(
     profile: Profile,
     onActivate: () -> Unit,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onExport: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
 
     val cardColors = if (profile.isActive) {
         CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
@@ -188,12 +273,31 @@ fun ProfileItemCard(
                         modifier = Modifier.padding(end = 8.dp)
                     )
                 }
-                TextButton(
-                    onClick = { showDeleteDialog = true },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) { Text(stringResource(R.string.profiles_delete)) }
+                
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.profiles_export)) },
+                            onClick = { 
+                                showMenu = false
+                                onExport() 
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.profiles_delete)) },
+                            onClick = { 
+                                showMenu = false
+                                showDeleteDialog = true
+                            }
+                        )
+                    }
+                }
             }
         }
     }

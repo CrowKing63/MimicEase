@@ -59,4 +59,7 @@ sealed class Action {
 
     // ── MimicEase 내부 ───────────────────────────
     object MimicPause : Action()
+
+    // ── 안전 폴백 (알 수 없는 액션 타입 처리용) ──────
+    object NoOp : Action()
 }

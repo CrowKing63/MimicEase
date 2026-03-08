@@ -10,15 +10,26 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.camera.core.CameraSelector
 import com.mimicease.domain.model.InteractionMode
+import com.mimicease.domain.model.ServiceState
 
 data class AppSettings(
     val cameraFacing: Int = CameraSelector.LENS_FACING_FRONT,
     val emaAlpha: Float = 0.5f,              // EMA 필터 계수 (0.1~0.9)
     val consecutiveFrames: Int = 3,          // 표정 확정 필요 연속 프레임 수
     val showForegroundNotification: Boolean = true,
-    val notificationTapAction: String = "OPEN_APP",  // "OPEN_APP" | "PAUSE"
     val isDeveloperMode: Boolean = false,
-    val isServiceEnabled: Boolean = false,
+    /**
+     * 사용자가 마지막으로 요청한 서비스 목표 상태입니다.
+     * - Running: 앱을 활성 상태로 복구해야 함
+     * - Paused: 앱을 일시정지 상태로 복구해야 함
+     * - Stopped: 접근성 재연결/부팅 후에도 자동으로 켜지지 않음
+     */
+    val targetServiceState: ServiceState = ServiceState.Stopped,
+    /**
+     * 실제 런타임 상태의 마지막 스냅샷입니다.
+     * Home UI, QS Tile, Broadcast 경로는 이 값을 단일 기준으로 사용합니다.
+     */
+    val serviceState: ServiceState = ServiceState.Stopped,
     val activeProfileId: String? = null,
     val onboardingCompleted: Boolean = false,
 
@@ -55,7 +66,9 @@ object AppSettingsKeys {
     val CONSECUTIVE_FRAMES   = intPreferencesKey("consecutive_frames")
     val SHOW_NOTIFICATION    = booleanPreferencesKey("show_notification")
     val DEVELOPER_MODE       = booleanPreferencesKey("developer_mode")
-    val SERVICE_ENABLED      = booleanPreferencesKey("service_enabled")
+    val LEGACY_SERVICE_ENABLED = booleanPreferencesKey("service_enabled")
+    val TARGET_SERVICE_STATE = stringPreferencesKey("target_service_state")
+    val SERVICE_STATE        = stringPreferencesKey("service_state")
     val ACTIVE_PROFILE_ID    = stringPreferencesKey("active_profile_id")
     val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
 

@@ -6,18 +6,13 @@ import android.content.Intent
 import android.os.Build
 import com.mimicease.data.local.AppSettingsKeys
 import com.mimicease.data.local.appSettingsDataStore
-import androidx.datastore.preferences.core.Preferences
+import com.mimicease.domain.model.ServiceState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-/**
- * 부팅 완료 시 설정에 따라 FaceDetectionForegroundService를 자동 시작합니다.
- * 기본 동작: opt-out (autoStartOnBoot == false이면 시작하지 않음).
- */
 class BootCompletedReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -25,31 +20,42 @@ class BootCompletedReceiver : BroadcastReceiver() {
 
         Timber.d("BootCompletedReceiver: BOOT_COMPLETED received")
 
-        // DataStore에서 autoStartOnBoot 설정 읽기 (비동기)
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val prefs = context.appSettingsDataStore.data.first()
-                val autoStart = prefs[AppSettingsKeys.AUTO_START_ON_BOOT] ?: false
+                val preferences = context.appSettingsDataStore.data.first()
+                val autoStartOnBoot = preferences[AppSettingsKeys.AUTO_START_ON_BOOT] ?: false
+                val targetState = MimicServiceStateStore.readTargetState(preferences)
 
-                if (autoStart) {
-                    Timber.d("BootCompletedReceiver: autoStartOnBoot=true → starting service")
-                    FaceDetectionForegroundService.createNotificationChannel(context)
-                    val serviceIntent = Intent(context, FaceDetectionForegroundService::class.java)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        context.startForegroundService(serviceIntent)
-                    } else {
-                        context.startService(serviceIntent)
-                    }
+                MimicServiceStateStore.persistRuntimeState(context, ServiceState.Stopped)
+
+                if (!autoStartOnBoot) {
+                    Timber.d("BootCompletedReceiver: autoStartOnBoot=false -> skipping")
+                    return@launch
+                }
+
+                if (!ServiceStatePolicy.shouldRestoreService(targetState)) {
+                    Timber.d("BootCompletedReceiver: target state is stopped -> skipping")
+                    return@launch
+                }
+
+                if (!context.isMimicAccessibilityServiceEnabled()) {
+                    Timber.w("BootCompletedReceiver: accessibility service is disabled -> not restoring runtime")
+                    return@launch
+                }
+
+                FaceDetectionForegroundService.createNotificationChannel(context)
+                val serviceIntent = FaceDetectionForegroundService.createStartIntent(context, targetState)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(serviceIntent)
                 } else {
-                    Timber.d("BootCompletedReceiver: autoStartOnBoot=false → skipping")
+                    context.startService(serviceIntent)
                 }
             } catch (e: Exception) {
-                Timber.e(e, "BootCompletedReceiver: failed to check settings")
+                Timber.e(e, "BootCompletedReceiver: failed to restore service state")
             } finally {
                 pendingResult.finish()
             }
         }
     }
 }
-
