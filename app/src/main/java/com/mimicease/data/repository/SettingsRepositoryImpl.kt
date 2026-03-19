@@ -56,6 +56,8 @@ class SettingsRepositoryImpl @Inject constructor(
             preferences[AppSettingsKeys.AUTO_START_ON_BOOT] = updated.autoStartOnBoot
             preferences[AppSettingsKeys.VOICE_CMD_STOP] = updated.voiceCommandStop
             preferences[AppSettingsKeys.VOICE_CMD_START] = updated.voiceCommandStart
+            preferences[AppSettingsKeys.AUTO_UPDATE_ENABLED] = updated.autoUpdateEnabled
+            preferences[AppSettingsKeys.LAST_UPDATE_CHECK_MS] = updated.lastUpdateCheckMs
         }
     }
 }
@@ -89,6 +91,8 @@ private fun Preferences.toAppSettings(): AppSettings {
         dwellClickRadiusPx = this[AppSettingsKeys.DWELL_CLICK_RADIUS_PX] ?: 30f,
         autoStartOnBoot = this[AppSettingsKeys.AUTO_START_ON_BOOT] ?: false,
         voiceCommandStop = this[AppSettingsKeys.VOICE_CMD_STOP] ?: "표정 인식 정지",
-        voiceCommandStart = this[AppSettingsKeys.VOICE_CMD_START] ?: "표정 인식 시작"
+        voiceCommandStart = this[AppSettingsKeys.VOICE_CMD_START] ?: "표정 인식 시작",
+        autoUpdateEnabled = this[AppSettingsKeys.AUTO_UPDATE_ENABLED] ?: true,
+        lastUpdateCheckMs = this[AppSettingsKeys.LAST_UPDATE_CHECK_MS] ?: 0L
     )
 }
