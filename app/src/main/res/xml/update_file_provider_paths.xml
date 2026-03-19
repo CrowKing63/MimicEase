@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!--
+        Context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) 에 해당합니다.
+        앱 전용 외부 저장소로, WRITE_EXTERNAL_STORAGE 권한 없이도 접근 가능합니다.
+    -->
+    <external-files-path
+        name="apk_downloads"
+        path="Download/" />
+</paths>
