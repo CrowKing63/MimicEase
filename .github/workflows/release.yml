@@ -49,14 +49,21 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew assembleRelease
 
-      - name: Rename APK
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Rename APKs
         run: |
           mv app/build/outputs/apk/release/app-release.apk \
              MimicEase-${{ github.ref_name }}.apk
+          mv app/build/outputs/apk/debug/app-debug.apk \
+             MimicEase-${{ github.ref_name }}-debug.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: MimicEase ${{ github.ref_name }}
-          files: MimicEase-${{ github.ref_name }}.apk
+          files: |
+            MimicEase-${{ github.ref_name }}.apk
+            MimicEase-${{ github.ref_name }}-debug.apk
           generate_release_notes: true
