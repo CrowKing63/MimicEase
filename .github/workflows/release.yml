@@ -94,7 +94,7 @@ jobs:
       - name: Create installer ZIP
         run: |
           TAG=${{ github.ref_name }}
-          zip -r "MimicEase-${TAG}-installer.zip" installer/
+          zip -r "MimicEase-${TAG}-installer.zip" "MimicEase-${TAG}/"
           ls -lh "MimicEase-${TAG}-installer.zip"
 
       - name: Create GitHub Release
