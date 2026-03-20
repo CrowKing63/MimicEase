@@ -1599,9 +1599,9 @@ function Install-ViaUsb {
 
         $unauthorized = $lines | Where-Object { $_ -match "unauthorized" }
         $offline      = $lines | Where-Object { $_ -match "offline" }
-        $ready        = $lines | Where-Object { $_ -match "\tdevice$" }
+        $ready        = @($lines | Where-Object { $_ -match "\tdevice$" })
 
-        if ($ready) {
+        if ($ready.Count -gt 0) {
             $deviceSerial = ($ready[0] -split "\t")[0].Trim()
             Write-Ok "$($S.UsbFound): $deviceSerial"
             break
@@ -1713,17 +1713,10 @@ function Install-ViaWifi {
         exit 1
     }
 
-    $readyLines = (& $AdbPath devices 2>&1 | Where-Object { $_ -match "\tdevice$" })
-    if (-not $readyLines) {
-        Write-Err $S.WifiConnFail
-        Pause-Enter $S.PressEnterExit
-        exit 1
-    }
+    # $connAddr is the ADB serial for Wi-Fi devices (e.g. 192.168.1.100:41391)
+    Write-Ok "$($S.WifiConnOk) [$connAddr]"
 
-    $deviceSerial = ($readyLines[0] -split "\t")[0].Trim()
-    Write-Ok "$($S.WifiConnOk) [$deviceSerial]"
-
-    Install-Apk -Serial $deviceSerial
+    Install-Apk -Serial $connAddr
 }
 
 # ─── Common APK Install Function ──────────────────────────────
