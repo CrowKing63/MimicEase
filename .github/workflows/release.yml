@@ -59,6 +59,43 @@ jobs:
           mv app/build/outputs/apk/debug/app-debug.apk \
              MimicEase-${{ github.ref_name }}-debug.apk
 
+      - name: Download Windows ADB platform-tools
+        run: |
+          curl -L -o platform-tools-windows.zip \
+            "https://dl.google.com/android/repository/platform-tools-latest-windows.zip"
+
+      - name: Extract ADB executables only
+        run: |
+          unzip -j platform-tools-windows.zip \
+            "platform-tools/adb.exe" \
+            "platform-tools/AdbWinApi.dll" \
+            "platform-tools/AdbWinUsbApi.dll" \
+            -d adb-extracted/
+
+      - name: Assemble installer package
+        run: |
+          TAG=${{ github.ref_name }}
+          PKG_DIR="installer"
+
+          mkdir -p "$PKG_DIR/adb"
+
+          cp adb-extracted/adb.exe          "$PKG_DIR/adb/"
+          cp adb-extracted/AdbWinApi.dll    "$PKG_DIR/adb/"
+          cp adb-extracted/AdbWinUsbApi.dll "$PKG_DIR/adb/"
+
+          cp scripts/install.ps1            "$PKG_DIR/"
+          cp scripts/install.bat            "$PKG_DIR/설치하기.bat"
+
+          cp "MimicEase-${TAG}.apk"         "$PKG_DIR/"
+
+          find "$PKG_DIR" -type f
+
+      - name: Create installer ZIP
+        run: |
+          TAG=${{ github.ref_name }}
+          zip -r "MimicEase-${TAG}-installer.zip" installer/
+          ls -lh "MimicEase-${TAG}-installer.zip"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -66,4 +103,5 @@ jobs:
           files: |
             MimicEase-${{ github.ref_name }}.apk
             MimicEase-${{ github.ref_name }}-debug.apk
+            MimicEase-${{ github.ref_name }}-installer.zip
           generate_release_notes: true
