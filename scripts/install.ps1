@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 #  MimicEase Installer (PowerShell)
 #  Installs MimicEase APK via ADB (USB or Wi-Fi).
 #  No internet connection or admin rights required.

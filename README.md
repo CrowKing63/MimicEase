@@ -72,14 +72,45 @@ In **Head Mouse** mode, the head-pose transformation matrix is additionally rout
 
 ## Installation
 
-### From Releases (recommended)
+> **Modern Android blocks direct APK installation in most cases.**
+> Use the Windows Installer below — no developer tools needed.
 
-1. Download the latest .apk from the Releases page.
-(MimicEase is currently distributed via GitHub instead of Google Play. No account or store needed — just download and install.)
-2. Enable **Install from unknown sources** in your Android settings.
-3. Install the APK.
-4. Open MimicEase and follow the onboarding flow.
-5. Go to **Settings → Accessibility → MimicEase** and enable the accessibility service.
+---
+
+### 🖥️ Windows Installer *(Recommended)*
+
+Bundles portable ADB and walks you through every step. Works over USB or Wi-Fi. Supports 9 languages.
+
+1. Go to the [**Releases page**](../../releases) and download **`MimicEase-vX.X.X-installer.zip`**
+2. Extract the ZIP to any folder
+3. Double-click **`install.bat`** ← start here
+4. Select your language and follow the on-screen instructions
+
+> 📄 For detailed instructions and troubleshooting, open **`INSTALL_GUIDE.md`** inside the ZIP.
+>
+> ⚠️ Do **not** double-click `install.ps1` — it opens in Notepad. Always use `install.bat`.
+
+**Package contents after extraction:**
+
+```
+MimicEase-vX.X.X/
+├── INSTALL_GUIDE.md    ← read this if anything goes wrong
+├── install.bat         ← double-click to start
+├── install.ps1         ← runs automatically (do not open directly)
+├── MimicEase-vX.X.X.apk
+└── adb/                ← portable ADB tools (no install needed)
+```
+
+---
+
+### Direct APK *(Advanced — may be blocked by Android)*
+
+1. Download `MimicEase-vX.X.X.apk` from the [Releases page](../../releases)
+2. Enable **Install from unknown sources** in Android Settings → Security
+3. Open the downloaded APK and install
+4. Follow MimicEase onboarding and enable the accessibility service
+
+---
 
 ### Build from Source
 

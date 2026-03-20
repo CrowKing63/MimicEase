@@ -75,7 +75,7 @@ jobs:
       - name: Assemble installer package
         run: |
           TAG=${{ github.ref_name }}
-          PKG_DIR="installer"
+          PKG_DIR="MimicEase-${TAG}"
 
           mkdir -p "$PKG_DIR/adb"
 
@@ -84,7 +84,8 @@ jobs:
           cp adb-extracted/AdbWinUsbApi.dll "$PKG_DIR/adb/"
 
           cp scripts/install.ps1            "$PKG_DIR/"
-          cp scripts/install.bat            "$PKG_DIR/설치하기.bat"
+          cp scripts/install.bat            "$PKG_DIR/"
+          cp scripts/INSTALL_GUIDE.md       "$PKG_DIR/"
 
           cp "MimicEase-${TAG}.apk"         "$PKG_DIR/"
 
