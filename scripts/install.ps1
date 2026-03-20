@@ -103,7 +103,9 @@ $AllStrings = @{
       "Tap 'Allow' on the 'Allow wireless debugging on this network?' prompt."
     )
     WifiEnableDone   = "Press Enter after enabling Wireless Debugging..."
-    WifiPairTitle    = "Pair device with pairing code"
+    WifiPairTitle         = "Pair device with pairing code"
+    WifiAlreadyPairedQ    = "Is this PC already paired with your device? (y/N)"
+    WifiAlreadyPairedSkip = "Already paired — skipping to the connection step."
     WifiPairSteps    = @(
       "Tap 'Wireless debugging' (the label, not the toggle).",
       "Tap 'Pair device with pairing code'.",
@@ -252,7 +254,9 @@ $AllStrings = @{
       "'이 네트워크에서 무선 디버깅을 허용하시겠습니까?' 팝업에서 '허용'을 탭합니다."
     )
     WifiEnableDone   = "무선 디버깅을 켠 후 Enter 키를 누르세요..."
-    WifiPairTitle    = "페어링 코드로 기기 페어링"
+    WifiPairTitle         = "페어링 코드로 기기 페어링"
+    WifiAlreadyPairedQ    = "이 PC와 기기가 이미 페어링되어 있나요? (y/N)"
+    WifiAlreadyPairedSkip = "이미 페어링됨 — 페어링 단계를 건너뜁니다."
     WifiPairSteps    = @(
       "'무선 디버깅' 이름 부분(토글 아님)을 탭합니다.",
       "'페어링 코드로 기기 페어링'을 탭합니다.",
@@ -401,7 +405,9 @@ $AllStrings = @{
       "「このネットワークでワイヤレスデバッグを許可しますか？」で「許可」をタップします。"
     )
     WifiEnableDone   = "ワイヤレスデバッグを有効にしたらEnterキーを押してください..."
-    WifiPairTitle    = "ペアリングコードでデバイスをペアリング"
+    WifiPairTitle         = "ペアリングコードでデバイスをペアリング"
+    WifiAlreadyPairedQ    = "このPCはすでにデバイスとペアリング済みですか？(y/N)"
+    WifiAlreadyPairedSkip = "ペアリング済み — ペアリング手順をスキップします。"
     WifiPairSteps    = @(
       "「ワイヤレスデバッグ」の名前部分(トグルではなく)をタップします。",
       "「ペアリングコードでデバイスをペアリング」をタップします。",
@@ -550,7 +556,9 @@ $AllStrings = @{
       "在「是否允许在此网络上进行无线调试？」提示中点击「允许」。"
     )
     WifiEnableDone   = "启用无线调试后，请按Enter键..."
-    WifiPairTitle    = "使用配对码配对设备"
+    WifiPairTitle         = "使用配对码配对设备"
+    WifiAlreadyPairedQ    = "此PC是否已与设备配对？(y/N)"
+    WifiAlreadyPairedSkip = "已配对 — 跳过配对步骤。"
     WifiPairSteps    = @(
       "点击「无线调试」的名称部分（不是开关）。",
       "点击「使用配对码配对设备」。",
@@ -699,7 +707,9 @@ $AllStrings = @{
       "在「是否允許在此網路上進行無線偵錯？」提示中點選「允許」。"
     )
     WifiEnableDone   = "啟用無線偵錯後，請按Enter鍵..."
-    WifiPairTitle    = "使用配對碼配對裝置"
+    WifiPairTitle         = "使用配對碼配對裝置"
+    WifiAlreadyPairedQ    = "此PC是否已與裝置配對？(y/N)"
+    WifiAlreadyPairedSkip = "已配對 — 跳過配對步驟。"
     WifiPairSteps    = @(
       "點選「無線偵錯」的名稱部分（不是開關）。",
       "點選「使用配對碼配對裝置」。",
@@ -848,7 +858,9 @@ $AllStrings = @{
       "Pulsa 'Permitir' en el aviso '¿Permitir depuración inalámbrica en esta red?'."
     )
     WifiEnableDone   = "Pulsa Enter cuando hayas activado la depuración inalámbrica..."
-    WifiPairTitle    = "Emparejar dispositivo con código de emparejamiento"
+    WifiPairTitle         = "Emparejar dispositivo con código de emparejamiento"
+    WifiAlreadyPairedQ    = "¿Este PC ya está emparejado con el dispositivo? (y/N)"
+    WifiAlreadyPairedSkip = "Ya emparejado — se omite el paso de emparejamiento."
     WifiPairSteps    = @(
       "Pulsa el texto 'Depuración inalámbrica' (no el interruptor).",
       "Pulsa 'Emparejar dispositivo con código de emparejamiento'.",
@@ -997,7 +1009,9 @@ $AllStrings = @{
       "Appuyez sur 'Autoriser' dans l'invite 'Autoriser le débogage sans fil sur ce réseau ?'."
     )
     WifiEnableDone   = "Appuyez sur Entrée après avoir activé le débogage sans fil..."
-    WifiPairTitle    = "Associer l'appareil avec un code d'association"
+    WifiPairTitle         = "Associer l'appareil avec un code d'association"
+    WifiAlreadyPairedQ    = "Ce PC est-il déjà associé à l'appareil ? (y/N)"
+    WifiAlreadyPairedSkip = "Déjà associé — étape d'association ignorée."
     WifiPairSteps    = @(
       "Appuyez sur le texte 'Débogage sans fil' (pas le bouton bascule).",
       "Appuyez sur 'Associer l'appareil avec un code d'association'.",
@@ -1146,7 +1160,9 @@ $AllStrings = @{
       "Tippen Sie auf 'Zulassen' bei 'Drahtloses Debugging in diesem Netzwerk zulassen?'."
     )
     WifiEnableDone   = "Drücken Sie Enter, nachdem Sie drahtloses Debugging aktiviert haben..."
-    WifiPairTitle    = "Gerät mit Kopplungscode koppeln"
+    WifiPairTitle         = "Gerät mit Kopplungscode koppeln"
+    WifiAlreadyPairedQ    = "Ist dieser PC bereits mit dem Gerät gekoppelt? (j/N)"
+    WifiAlreadyPairedSkip = "Bereits gekoppelt — Kopplungsschritt wird übersprungen."
     WifiPairSteps    = @(
       "Tippen Sie auf den Text 'Drahtloses Debugging' (nicht den Schalter).",
       "Tippen Sie auf 'Gerät mit Kopplungscode koppeln'.",
@@ -1295,7 +1311,9 @@ $AllStrings = @{
       "Toque em 'Permitir' no aviso 'Permitir depuração sem fio nesta rede?'."
     )
     WifiEnableDone   = "Pressione Enter após ativar a Depuração sem fio..."
-    WifiPairTitle    = "Parear dispositivo com código de pareamento"
+    WifiPairTitle         = "Parear dispositivo com código de pareamento"
+    WifiAlreadyPairedQ    = "Este PC já está pareado com o dispositivo? (y/N)"
+    WifiAlreadyPairedSkip = "Já pareado — etapa de pareamento ignorada."
     WifiPairSteps    = @(
       "Toque no texto 'Depuração sem fio' (não no botão de alternância).",
       "Toque em 'Parear dispositivo com código de pareamento'.",
@@ -1626,39 +1644,48 @@ function Install-ViaWifi {
     Pause-Enter $S.WifiEnableDone
 
     Write-Header $S.WifiPairTitle
-    for ($i = 0; $i -lt $S.WifiPairSteps.Count; $i++) {
-        Write-Step ($i + 1) $S.WifiPairSteps[$i]
-    }
     Write-Host ""
-    Write-Warn $S.WifiPairWarning
-    Write-Host ""
+    $alreadyPaired = (Read-Host "  $($S.WifiAlreadyPairedQ)").Trim()
+    $skipPairing   = $alreadyPaired -match '^[yYjJoO]'
 
-    do {
-        $pairAddr = (Read-Host "  $($S.WifiPairAddrPrompt)").Trim()
-        if ([string]::IsNullOrEmpty($pairAddr)) { Write-Warn $S.InputEmpty }
-    } while ([string]::IsNullOrEmpty($pairAddr))
-
-    do {
-        $pairCode = (Read-Host "  $($S.WifiPairCodePrompt)").Trim()
-        if ([string]::IsNullOrEmpty($pairCode)) { Write-Warn $S.InputEmpty }
-    } while ([string]::IsNullOrEmpty($pairCode))
-
-    Write-Host ""
-    Write-Info $S.WifiPairing
-    $pairResult = & $AdbPath pair $pairAddr $pairCode 2>&1
-    Write-Info $pairResult
-
-    if ($LASTEXITCODE -ne 0 -or ($pairResult -join "") -match "failed|error|Failed") {
-        Write-Err $S.WifiPairFail
+    if ($skipPairing) {
+        Write-Ok $S.WifiAlreadyPairedSkip
         Write-Host ""
-        Write-Host "  ── $($S.WifiPairFixTitle) ──" -ForegroundColor Yellow
-        Write-NumberedList $S.WifiPairFix
-        Pause-Enter $S.PressEnterExit
-        exit 1
-    }
+    } else {
+        for ($i = 0; $i -lt $S.WifiPairSteps.Count; $i++) {
+            Write-Step ($i + 1) $S.WifiPairSteps[$i]
+        }
+        Write-Host ""
+        Write-Warn $S.WifiPairWarning
+        Write-Host ""
 
-    Write-Ok $S.WifiPairOk
-    Write-Host ""
+        do {
+            $pairAddr = (Read-Host "  $($S.WifiPairAddrPrompt)").Trim()
+            if ([string]::IsNullOrEmpty($pairAddr)) { Write-Warn $S.InputEmpty }
+        } while ([string]::IsNullOrEmpty($pairAddr))
+
+        do {
+            $pairCode = (Read-Host "  $($S.WifiPairCodePrompt)").Trim()
+            if ([string]::IsNullOrEmpty($pairCode)) { Write-Warn $S.InputEmpty }
+        } while ([string]::IsNullOrEmpty($pairCode))
+
+        Write-Host ""
+        Write-Info $S.WifiPairing
+        $pairResult = & $AdbPath pair $pairAddr $pairCode 2>&1
+        Write-Info $pairResult
+
+        if ($LASTEXITCODE -ne 0 -or ($pairResult -join "") -match "failed|error|Failed") {
+            Write-Err $S.WifiPairFail
+            Write-Host ""
+            Write-Host "  ── $($S.WifiPairFixTitle) ──" -ForegroundColor Yellow
+            Write-NumberedList $S.WifiPairFix
+            Pause-Enter $S.PressEnterExit
+            exit 1
+        }
+
+        Write-Ok $S.WifiPairOk
+        Write-Host ""
+    }
 
     Write-Header $S.WifiConnTitle
     Write-Host "  $($S.WifiConnDesc)" -ForegroundColor White
