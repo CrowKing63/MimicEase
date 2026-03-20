@@ -6,7 +6,7 @@
 #            Español, Français, Deutsch, Português
 # ============================================================
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
