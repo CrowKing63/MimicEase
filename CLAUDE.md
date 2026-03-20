@@ -26,6 +26,10 @@ MimicEase/
 ├── gameFace/                         # GameFace 라이브러리 모듈 (얼굴 인식 엔진)
 │   └── src/main/java/com/mimicease/gameface/
 │       └── FaceLandmarkerHelper.java # MediaPipe 핵심 얼굴 감지 (Java)
+├── scripts/                          # Windows ADB 인스톨러 (GitHub Releases에 포함)
+│   ├── install.bat                   # 런처 — UTF-8 콘솔, 에러 시 창 유지
+│   ├── install.ps1                   # 메인 인스톨러 — UTF-8 BOM 필수 (PS5.1 한글 파싱)
+│   └── INSTALL_GUIDE.md              # 영/한 이중 언어 설치 가이드
 ├── docs/                             # 상세 문서 (12개 마크다운 파일)
 ├── gradle/
 │   └── libs.versions.toml            # Gradle 버전 카탈로그
@@ -151,6 +155,11 @@ CursorOverlayView  [오버레이 커서 표시]
 - **서비스 재시작**: `onStartCommand()`에서 `intent`가 null일 수 있음 (`START_STICKY` 재시작 시)
 - **FaceDetectionForegroundService 초기화 순서**: `startForeground()`는 `onCreate()` 초반에 호출해야 5초 타임아웃 방지. MediaPipe 모델 로딩은 `Handler(faceLandmarkerHelper.looper).post { init() }`로 HandlerThread에서 비동기 실행
 - **Navigation triggerId**: `triggerEdit/{profileId}/{triggerId}` 라우트에서 `triggerId`는 `TriggerEditViewModel`의 `SavedStateHandle`에 Navigation이 자동 주입함. 명시적 추출 코드(`backStackEntry.arguments?.getString("triggerId")`)를 추가하여 null 라우팅 방지 완료.
+- **PS5.1 UTF-8 BOM**: `install.ps1`은 반드시 UTF-8 BOM(`EF BB BF`)으로 저장해야 함 — BOM 없는 UTF-8은 PS5.1에서 한글 파싱 오류로 즉시 종료. `New-Object System.Text.UTF8Encoding $true`로 저장.
+- **ADB + $ErrorActionPreference**: `$ErrorActionPreference = "Stop"` + ADB는 치명적 조합 — ADB는 성공 시에도 stderr에 메시지를 쓰므로 `NativeCommandError`로 스크립트가 종료됨. 반드시 `"Continue"` 사용, 에러 판정은 `$LASTEXITCODE`로.
+- **PowerShell 파이프라인 단일 항목**: `$lines = & adb devices | Where-Object { ... }`에서 결과가 1개이면 배열이 아닌 문자열 반환 — `$lines[0]`이 문자열 첫 번째 **문자**를 반환함(예: IP `192.168...`의 `'1'`). 반드시 `@(& adb devices | Where-Object { ... })`로 강제 배열.
+- **자동 업데이트 설계**: 업데이트 감지(GitHub Releases API, 24h 쓰로틀)만 수행 — 자동 다운로드/설치 없음. 신규 버전 감지 시 GitHub Releases 페이지 링크 버튼만 표시. `ReleaseInfo`에 `apkDownloadUrl` 없음 (제거됨). 관련: `CheckForUpdateUseCase`, `UpdateRepositoryImpl`, `SettingsViewModel.UpdateUiState`.
+- **versionName 필수 동기화**: `app/build.gradle.kts`의 `versionName`이 `BuildConfig.VERSION_NAME`의 기준값 — 릴리즈 태그 배포 시 반드시 함께 업데이트. 이 값이 낮으면 업데이트 체커가 항상 최신 버전으로 오탐.
 
 ### 주요 도메인 모델
 
@@ -170,7 +179,8 @@ CursorOverlayView  [오버레이 커서 표시]
 5. **감지 설정** — EMA α, 연속 프레임
 6. **알림 설정** — 포그라운드 알림 스위치
 7. **시스템** — 접근성 서비스 상태, 배터리 최적화 제외
-8. **기타** — 개발자 모드, 버전
+8. **자동 업데이트** — 활성화 스위치(기본 ON), 수동 체크 버튼, 신규 버전 감지 시 GitHub Releases 링크
+9. **기타** — 개발자 모드, 버전, 튜토리얼 다시보기
 
 ### 권한
 
@@ -179,6 +189,7 @@ CursorOverlayView  [오버레이 커서 표시]
 - `FOREGROUND_SERVICE` — 백그라운드 실행
 - `FOREGROUND_SERVICE_CAMERA` — 포그라운드 카메라 사용
 - `VIBRATE` — 토글 시 진동 피드백
+- `INTERNET` — GitHub Releases API 업데이트 체크 전용
 - 접근성 서비스 활성화 — 사용자가 직접 설정에서 활성화 필요
 
 ## 유닛 테스트 현황

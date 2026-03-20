@@ -1,21 +1,16 @@
 package com.mimicease.presentation.ui.settings
 
 import android.annotation.SuppressLint
-import android.app.DownloadManager
 import android.app.StatusBarManager
-import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.os.PowerManager
 import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
-import androidx.core.content.FileProvider
 import com.mimicease.R
 import com.mimicease.service.MimicToggleTileService
 import androidx.compose.foundation.layout.*
@@ -52,8 +47,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import timber.log.Timber
-import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -772,11 +765,15 @@ fun SettingsScreen(
                                 )
                                 Button(
                                     onClick = {
-                                        startApkDownload(context, state.release.apkDownloadUrl, state.release.tagName)
+                                        val intent = Intent(
+                                            Intent.ACTION_VIEW,
+                                            Uri.parse("https://github.com/CrowKing63/MimicEase/releases/latest")
+                                        ).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                                        context.startActivity(intent)
                                     },
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text(stringResource(R.string.settings_download_install))
+                                    Text(stringResource(R.string.settings_open_releases))
                                 }
                             }
                             else -> Unit
@@ -807,81 +804,6 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
-}
-
-/**
- * DownloadManager로 APK를 다운로드하고, 완료 시 시스템 설치 UI를 시작합니다.
- */
-private fun startApkDownload(context: Context, apkUrl: String, tagName: String) {
-    val fileName = "MimicEase-${tagName}.apk"
-    val request = DownloadManager.Request(Uri.parse(apkUrl)).apply {
-        setTitle("MimicEase 업데이트")
-        setDescription("$tagName 다운로드 중…")
-        setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-        setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, fileName)
-        setMimeType("application/vnd.android.package-archive")
-        setAllowedOverMetered(true)
-        setAllowedOverRoaming(false)
-    }
-    val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-    val downloadId = dm.enqueue(request)
-
-    val receiver = object : BroadcastReceiver() {
-        override fun onReceive(ctx: Context, intent: Intent) {
-            val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
-            if (id != downloadId) return
-            ctx.unregisterReceiver(this)
-
-            val query = DownloadManager.Query().setFilterById(downloadId)
-            val cursor = dm.query(query)
-            if (cursor.moveToFirst()) {
-                val statusCol = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                if (cursor.getInt(statusCol) == DownloadManager.STATUS_SUCCESSFUL) {
-                    val uriCol = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI)
-                    val localUri = Uri.parse(cursor.getString(uriCol))
-                    val file = File(localUri.path!!)
-                    installApk(ctx, file)
-                } else {
-                    Timber.w("APK download failed for $tagName")
-                }
-            }
-            cursor.close()
-        }
-    }
-    val filter = IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-    } else {
-        @Suppress("UnspecifiedRegisterReceiverFlag")
-        context.registerReceiver(receiver, filter)
-    }
-}
-
-/**
- * FileProvider로 content:// URI를 생성하고 시스템 설치 인텐트를 시작합니다.
- * Android 8+에서는 "알 수 없는 출처" 설치 권한이 필요합니다.
- */
-private fun installApk(context: Context, apkFile: File) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        if (!context.packageManager.canRequestPackageInstalls()) {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                Uri.parse("package:${context.packageName}")
-            ).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
-            context.startActivity(intent)
-            return
-        }
-    }
-    val apkUri = FileProvider.getUriForFile(
-        context,
-        "${context.packageName}.update.provider",
-        apkFile
-    )
-    val installIntent = Intent(Intent.ACTION_VIEW).apply {
-        setDataAndType(apkUri, "application/vnd.android.package-archive")
-        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
-    }
-    context.startActivity(installIntent)
 }
 
 /**

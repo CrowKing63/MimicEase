@@ -36,18 +36,9 @@ class UpdateRepositoryImpl @Inject constructor() : UpdateRepository {
             val tagName = json.get("tag_name")?.asString ?: return null
             val releaseNotes = json.get("body")?.asString ?: ""
 
-            val assets = json.getAsJsonArray("assets") ?: return null
-            val apkAsset = assets.firstOrNull { element ->
-                element.asJsonObject.get("name")?.asString?.endsWith(".apk") == true
-            }?.asJsonObject ?: return null
-
-            val apkUrl = apkAsset.get("browser_download_url")?.asString ?: return null
-            val versionName = tagName.removePrefix("v")
-
             ReleaseInfo(
                 tagName = tagName,
-                versionName = versionName,
-                apkDownloadUrl = apkUrl,
+                versionName = tagName.removePrefix("v"),
                 releaseNotes = releaseNotes
             )
         } catch (e: Exception) {

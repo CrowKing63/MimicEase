@@ -1,10 +1,9 @@
 package com.mimicease.domain.repository
 
 data class ReleaseInfo(
-    val tagName: String,         // e.g. "v1.2"
-    val versionName: String,     // tagName without 'v' prefix → "1.2"
-    val apkDownloadUrl: String,  // direct download URL for the APK asset
-    val releaseNotes: String     // body field from GitHub API
+    val tagName: String,      // e.g. "v1.2"
+    val versionName: String,  // tagName without 'v' prefix → "1.2"
+    val releaseNotes: String  // body field from GitHub API
 )
 
 interface UpdateRepository {
