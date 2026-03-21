@@ -201,9 +201,7 @@ fun SettingsScreen(
 
     // 앱 시작 시 자동 업데이트 체크 (24시간 쓰로틀 적용)
     LaunchedEffect(Unit) {
-        if (settings.autoUpdateEnabled) {
-            viewModel.checkForUpdate(forceCheck = false)
-        }
+        viewModel.checkForUpdate(forceCheck = false)
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -316,93 +314,94 @@ fun SettingsScreen(
                 }
             }
 
-            // ── Head mouse ────────────────────────────────────────────────
-            SettingsSectionHeader(stringResource(R.string.settings_head_mouse_section))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        stringResource(R.string.settings_sensitivity, "%.1f".format(settings.headMouseSensitivity)),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Slider(
-                        value = settings.headMouseSensitivity,
-                        onValueChange = { viewModel.updateHeadMouseSensitivity(it) },
-                        valueRange = 0.5f..3.0f,
-                        steps = 24
-                    )
+            // ── Head mouse + Dwell click (HEAD_MOUSE 모드일 때만 표시) ───────
+            if (settings.activeMode == InteractionMode.HEAD_MOUSE) {
+                SettingsSectionHeader(stringResource(R.string.settings_head_mouse_section))
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            stringResource(R.string.settings_sensitivity, "%.1f".format(settings.headMouseSensitivity)),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Slider(
+                            value = settings.headMouseSensitivity,
+                            onValueChange = { viewModel.updateHeadMouseSensitivity(it) },
+                            valueRange = 0.5f..3.0f,
+                            steps = 24
+                        )
 
-                    HorizontalDivider()
+                        HorizontalDivider()
 
-                    Text(
-                        stringResource(R.string.settings_dead_zone, "%.2f".format(settings.headMouseDeadZone)),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        stringResource(R.string.settings_dead_zone_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Slider(
-                        value = settings.headMouseDeadZone,
-                        onValueChange = { viewModel.updateHeadMouseDeadZone(it) },
-                        valueRange = 0.0f..0.1f,
-                        steps = 9
-                    )
-                }
-            }
-
-            // ── Dwell click ───────────────────────────────────────────────
-            SettingsSectionHeader(stringResource(R.string.settings_dwell_section))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(stringResource(R.string.settings_dwell_enable))
-                        Switch(
-                            checked = settings.dwellClickEnabled,
-                            onCheckedChange = { viewModel.toggleDwellClick(it) }
+                        Text(
+                            stringResource(R.string.settings_dead_zone, "%.2f".format(settings.headMouseDeadZone)),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            stringResource(R.string.settings_dead_zone_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Slider(
+                            value = settings.headMouseDeadZone,
+                            onValueChange = { viewModel.updateHeadMouseDeadZone(it) },
+                            valueRange = 0.0f..0.1f,
+                            steps = 9
                         )
                     }
+                }
 
-                    HorizontalDivider()
+                SettingsSectionHeader(stringResource(R.string.settings_dwell_section))
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(stringResource(R.string.settings_dwell_enable))
+                            Switch(
+                                checked = settings.dwellClickEnabled,
+                                onCheckedChange = { viewModel.toggleDwellClick(it) }
+                            )
+                        }
 
-                    Text(
-                        stringResource(R.string.settings_dwell_time, settings.dwellClickTimeMs.toInt()),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (settings.dwellClickEnabled) MaterialTheme.colorScheme.onSurface
-                                else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Slider(
-                        value = settings.dwellClickTimeMs.toFloat(),
-                        onValueChange = { viewModel.updateDwellClickTime(it.toLong()) },
-                        valueRange = 500f..3000f,
-                        steps = 24,
-                        enabled = settings.dwellClickEnabled
-                    )
+                        HorizontalDivider()
 
-                    HorizontalDivider()
+                        Text(
+                            stringResource(R.string.settings_dwell_time, settings.dwellClickTimeMs.toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (settings.dwellClickEnabled) MaterialTheme.colorScheme.onSurface
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Slider(
+                            value = settings.dwellClickTimeMs.toFloat(),
+                            onValueChange = { viewModel.updateDwellClickTime(it.toLong()) },
+                            valueRange = 500f..3000f,
+                            steps = 24,
+                            enabled = settings.dwellClickEnabled
+                        )
 
-                    Text(
-                        stringResource(R.string.settings_dwell_radius, settings.dwellClickRadiusPx.toInt()),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (settings.dwellClickEnabled) MaterialTheme.colorScheme.onSurface
-                                else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        stringResource(R.string.settings_dwell_radius_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Slider(
-                        value = settings.dwellClickRadiusPx,
-                        onValueChange = { viewModel.updateDwellClickRadius(it) },
-                        valueRange = 10f..100f,
-                        steps = 17,
-                        enabled = settings.dwellClickEnabled
-                    )
+                        HorizontalDivider()
+
+                        Text(
+                            stringResource(R.string.settings_dwell_radius, settings.dwellClickRadiusPx.toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (settings.dwellClickEnabled) MaterialTheme.colorScheme.onSurface
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            stringResource(R.string.settings_dwell_radius_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Slider(
+                            value = settings.dwellClickRadiusPx,
+                            onValueChange = { viewModel.updateDwellClickRadius(it) },
+                            valueRange = 10f..100f,
+                            steps = 17,
+                            enabled = settings.dwellClickEnabled
+                        )
+                    }
                 }
             }
 
@@ -563,6 +562,49 @@ fun SettingsScreen(
                 }
             }
 
+            // ── Overlay permission warning (visual feedback) ──────────────
+            if (settings.actionFeedbackVisual && !isOverlayPermGranted) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                stringResource(R.string.settings_overlay_permission_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Text(
+                                stringResource(R.string.settings_overlay_permission_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TextButton(
+                            onClick = {
+                                context.startActivity(
+                                    Intent(
+                                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                        Uri.parse("package:${context.packageName}")
+                                    )
+                                )
+                            }
+                        ) {
+                            Text(stringResource(R.string.settings_overlay_allow),
+                                color = MaterialTheme.colorScheme.onErrorContainer)
+                        }
+                    }
+                }
+            }
+
             // ── Detection settings ────────────────────────────────────────
             SettingsSectionHeader(stringResource(R.string.settings_detection_section))
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -670,49 +712,6 @@ fun SettingsScreen(
                 }
             }
 
-            // ── Notification settings ─────────────────────────────────────
-            SettingsSectionHeader(stringResource(R.string.settings_notification_section))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(stringResource(R.string.settings_show_notification))
-                        Switch(
-                            checked = settings.showForegroundNotification,
-                            onCheckedChange = { viewModel.toggleNotification(it) }
-                        )
-                    }
-                }
-            }
-
-            // ── Auto start on boot ────────────────────────────────────────
-            SettingsSectionHeader(stringResource(R.string.settings_auto_start_section))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(stringResource(R.string.settings_auto_start_on_boot))
-                            Text(
-                                stringResource(R.string.settings_auto_start_on_boot_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = settings.autoStartOnBoot,
-                            onCheckedChange = { viewModel.toggleAutoStartOnBoot(it) }
-                        )
-                    }
-                }
-            }
-
             // ── System ────────────────────────────────────────────────────
             SettingsSectionHeader(stringResource(R.string.settings_system_section))
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -792,6 +791,41 @@ fun SettingsScreen(
                             }) { Text(stringResource(R.string.settings_battery_request)) }
                         }
                     }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(stringResource(R.string.settings_show_notification))
+                        Switch(
+                            checked = settings.showForegroundNotification,
+                            onCheckedChange = { viewModel.toggleNotification(it) }
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.settings_auto_start_on_boot))
+                            Text(
+                                stringResource(R.string.settings_auto_start_on_boot_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = settings.autoStartOnBoot,
+                            onCheckedChange = { viewModel.toggleAutoStartOnBoot(it) }
+                        )
+                    }
                 }
             }
 
@@ -819,28 +853,6 @@ fun SettingsScreen(
                         Text(stringResource(R.string.settings_version))
                         Text(BuildConfig.VERSION_NAME, style = MaterialTheme.typography.bodySmall)
                     }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                    // ── 자동 업데이트 토글 ─────────────────────────────────
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(stringResource(R.string.settings_auto_update))
-                            Text(
-                                stringResource(R.string.settings_auto_update_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = settings.autoUpdateEnabled,
-                            onCheckedChange = { viewModel.toggleAutoUpdate(it) }
-                        )
-                    }
-
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                     // ── 업데이트 확인 버튼 + 상태 표시 ────────────────────
