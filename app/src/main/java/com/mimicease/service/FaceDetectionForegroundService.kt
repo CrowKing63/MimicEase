@@ -147,6 +147,8 @@ class FaceDetectionForegroundService : LifecycleService() {
     private var activeProfileName: String? = null
     private var currentMode: InteractionMode = InteractionMode.EXPRESSION_ONLY
     private var targetServiceState: ServiceState = ServiceState.Stopped
+    // CURSOR_CLICK 모드에서 마우스 인터셉트 활성화 여부 (일시정지/재개 시 복원용)
+    private var currentShouldIntercept = false
     private var globalToggleController: GlobalToggleController? = null
     private var cameraProvider: ProcessCameraProvider? = null
     private var dwellClickEnabled = true
@@ -419,7 +421,9 @@ class FaceDetectionForegroundService : LifecycleService() {
                     // 패스스루 ON → setMotionEventSources(0) → 네이티브 마우스 유지
                     // 패스스루 OFF → setMotionEventSources(SOURCE_MOUSE) → 앱이 인터셉트
                     val shouldIntercept = currentMode == InteractionMode.CURSOR_CLICK && !settings.btMousePassthrough
-                    MimicAccessibilityService.instance?.updateMouseInterceptMode(shouldIntercept)
+                    currentShouldIntercept = shouldIntercept
+                    // 현재 분석 중인 경우에만 인터셉트 적용 (일시정지/중지 상태에서는 인터셉트 OFF 유지)
+                    MimicAccessibilityService.instance?.updateMouseInterceptMode(shouldIntercept && isAnalyzing)
 
                     // Profile triggers and cooldown
                     if (profile != null) {
@@ -511,6 +515,8 @@ class FaceDetectionForegroundService : LifecycleService() {
     fun pauseAnalysis() {
         if (::actionExecutor.isInitialized) actionExecutor.cancelCurrentGesture()
         isAnalyzing = false
+        // 일시정지 시 마우스 인터셉트 해제 → 네이티브 마우스 동작 복원
+        MimicAccessibilityService.instance?.updateMouseInterceptMode(false)
         faceLandmarkerHelper.pauseThread()
         // CameraX 언바인드: 카메라 하드웨어를 실제로 해제해야 다른 앱(잠금 해제 등)이 카메라 사용 가능
         unbindCamera()
@@ -522,6 +528,8 @@ class FaceDetectionForegroundService : LifecycleService() {
 
     fun resumeAnalysis() {
         isAnalyzing = true
+        // 재개 시 인터셉트 상태 복원 (설정에 따라 저장된 currentShouldIntercept 값 사용)
+        MimicAccessibilityService.instance?.updateMouseInterceptMode(currentShouldIntercept)
         faceLandmarkerHelper.resumeThread()
         // CameraX 재바인드: 카메라를 다시 열어 감지 재개
         setupCamera()
@@ -561,6 +569,8 @@ class FaceDetectionForegroundService : LifecycleService() {
     private fun stopServiceRuntime() {
         if (::actionExecutor.isInitialized) actionExecutor.cancelCurrentGesture()
         isAnalyzing = false
+        // 중지 시 마우스 인터셉트 해제 → 네이티브 마우스 동작 복원
+        MimicAccessibilityService.instance?.updateMouseInterceptMode(false)
         faceLandmarkerHelper.pauseThread()
         unbindCamera()
         // 사용자의 "정지" 액션은 부팅/접근성 재연결에서도 자동 복구되지 않는
