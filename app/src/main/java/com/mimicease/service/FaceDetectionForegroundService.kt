@@ -150,6 +150,7 @@ class FaceDetectionForegroundService : LifecycleService() {
     private var globalToggleController: GlobalToggleController? = null
     private var cameraProvider: ProcessCameraProvider? = null
     private var dwellClickEnabled = true
+    private lateinit var actionFeedbackController: ActionFeedbackController
 
     // Preview UseCase: SurfaceProvider가 없으면 프리뷰 미표시, 테스트 화면에서 연결 가능
     private val previewUseCase: Preview = Preview.Builder().build()
@@ -188,6 +189,7 @@ class FaceDetectionForegroundService : LifecycleService() {
         // Initialize Phase 3 components
         headTracker = HeadTracker(this)
         cursorOverlayView = CursorOverlayView(this)
+        actionFeedbackController = ActionFeedbackController(this)
         // actionExecutor is injected later via bind, so dwell controller is initialized in setActionExecutor
         
         initFaceLandmarker()
@@ -358,6 +360,9 @@ class FaceDetectionForegroundService : LifecycleService() {
                     // 모드별 Action 필터링
                      if (ModeManager.isActionAllowed(currentMode, action)) {
                         actionExecutor.execute(action)
+                        if (::actionFeedbackController.isInitialized) {
+                            actionFeedbackController.onActionTriggered()
+                        }
                         // Manual gesture tap in Head Mouse mode should reset the dwell timer
                         if (currentMode == InteractionMode.HEAD_MOUSE && action is Action.TapAtCursor) {
                             if (::dwellClickController.isInitialized) {
@@ -400,6 +405,21 @@ class FaceDetectionForegroundService : LifecycleService() {
                         dwellClickController.dwellDurationMs = settings.dwellClickTimeMs
                         dwellClickController.thresholdPixel = settings.dwellClickRadiusPx
                     }
+
+                    // 액션 피드백 설정 업데이트
+                    if (::actionFeedbackController.isInitialized) {
+                        actionFeedbackController.updateSettings(
+                            visual = settings.actionFeedbackVisual,
+                            audio = settings.actionFeedbackAudio,
+                            vibrate = settings.actionFeedbackVibrate
+                        )
+                    }
+
+                    // BT 마우스 패스스루 모드: CURSOR_CLICK 모드일 때만 적용
+                    // 패스스루 ON → setMotionEventSources(0) → 네이티브 마우스 유지
+                    // 패스스루 OFF → setMotionEventSources(SOURCE_MOUSE) → 앱이 인터셉트
+                    val shouldIntercept = currentMode == InteractionMode.CURSOR_CLICK && !settings.btMousePassthrough
+                    MimicAccessibilityService.instance?.updateMouseInterceptMode(shouldIntercept)
 
                     // Profile triggers and cooldown
                     if (profile != null) {
@@ -624,6 +644,7 @@ class FaceDetectionForegroundService : LifecycleService() {
         if (::cursorOverlayView.isInitialized) {
             ContextCompat.getMainExecutor(this).execute { cursorOverlayView.hide() }
         }
+        if (::actionFeedbackController.isInitialized) actionFeedbackController.destroy()
         serviceScope.cancel()
         cameraExecutor.shutdown()
         unregisterReceiver(screenStateReceiver)

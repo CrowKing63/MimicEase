@@ -51,6 +51,10 @@ data class AppSettings(
     val dwellClickTimeMs: Long = 1000L,        // 드웰 클릭 시간 (500~3000)
     val dwellClickRadiusPx: Float = 30f,       // 드웰 영역 반경
 
+    // ── BT 마우스 패스스루 ────────────────────────
+    val btMousePassthrough: Boolean = true,     // true: 네이티브 마우스 유지, false: 앱이 인터셉트
+
+
     // ── 부팅 시 자동 서비스 시작 (기본 opt-out) ──
     val autoStartOnBoot: Boolean = false,
 
@@ -60,7 +64,12 @@ data class AppSettings(
 
     // ── 자동 업데이트 ────────────────────────────────
     val autoUpdateEnabled: Boolean = true,
-    val lastUpdateCheckMs: Long = 0L
+    val lastUpdateCheckMs: Long = 0L,
+
+    // ── 액션 피드백 ──────────────────────────────────
+    val actionFeedbackVisual: Boolean = false,   // 액션 실행 시 화면 플래시
+    val actionFeedbackAudio: Boolean = false,    // 액션 실행 시 비프음
+    val actionFeedbackVibrate: Boolean = false   // 액션 실행 시 진동
 )
 
 // DataStore Keys
@@ -91,6 +100,7 @@ object AppSettingsKeys {
     val DWELL_CLICK_ENABLED    = booleanPreferencesKey("dwell_click_enabled")
     val DWELL_CLICK_TIME_MS    = longPreferencesKey("dwell_click_time_ms")
     val DWELL_CLICK_RADIUS_PX  = floatPreferencesKey("dwell_click_radius_px")
+    val BT_MOUSE_PASSTHROUGH   = booleanPreferencesKey("bt_mouse_passthrough")
 
     // 부팅 자동 시작
     val AUTO_START_ON_BOOT     = booleanPreferencesKey("auto_start_on_boot")
@@ -102,6 +112,11 @@ object AppSettingsKeys {
     // 자동 업데이트
     val AUTO_UPDATE_ENABLED    = booleanPreferencesKey("auto_update_enabled")
     val LAST_UPDATE_CHECK_MS   = longPreferencesKey("last_update_check_ms")
+
+    // 액션 피드백
+    val ACTION_FEEDBACK_VISUAL   = booleanPreferencesKey("action_feedback_visual")
+    val ACTION_FEEDBACK_AUDIO    = booleanPreferencesKey("action_feedback_audio")
+    val ACTION_FEEDBACK_VIBRATE  = booleanPreferencesKey("action_feedback_vibrate")
 }
 
 /**

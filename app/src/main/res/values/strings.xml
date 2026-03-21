@@ -209,6 +209,15 @@
     <string name="test_threshold_preview">Threshold Preview: %1$s</string>
     <string name="test_threshold_exceeded">✓ Current value exceeds threshold</string>
 
+    <!-- Settings — Action Feedback -->
+    <string name="settings_action_feedback_section">Action Feedback</string>
+    <string name="settings_feedback_visual">Visual Flash</string>
+    <string name="settings_feedback_visual_desc">Flash the screen briefly when an action is triggered (requires overlay permission)</string>
+    <string name="settings_feedback_audio">Beep Sound</string>
+    <string name="settings_feedback_audio_desc">Play a short beep when an action is triggered</string>
+    <string name="settings_feedback_vibrate">Vibration</string>
+    <string name="settings_feedback_vibrate_desc">Vibrate briefly when an action is triggered</string>
+
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_interaction_mode">Interaction Mode</string>
@@ -230,6 +239,10 @@
     <string name="settings_dwell_time">Click Dwell Time: %1$dms</string>
     <string name="settings_dwell_radius">Click Radius: %1$dpx</string>
     <string name="settings_dwell_radius_desc">Stay within this radius to click</string>
+    <string name="settings_bt_mouse_section">BT Mouse (Cursor Click Mode)</string>
+    <string name="settings_bt_mouse_passthrough">Mouse Passthrough</string>
+    <string name="settings_bt_mouse_passthrough_desc">ON: Native mouse (click/scroll/right-click preserved). Cursor position tracked via accessibility events.\nOFF: App intercepts all mouse input. Use for games or apps without hover events.</string>
+    <string name="settings_bt_mouse_passthrough_warning">Passthrough mode cannot track cursor position in games or fullscreen SurfaceView apps. Switch to Intercept mode for those.</string>
     <string name="settings_global_toggle_section">Global Toggle</string>
     <string name="settings_volume_key_combo">Volume Key Combo (Up+Down Hold)</string>
     <string name="settings_volume_key_desc">Hold for %1$dms to toggle</string>

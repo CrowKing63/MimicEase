@@ -53,11 +53,15 @@ class SettingsRepositoryImpl @Inject constructor(
             preferences[AppSettingsKeys.DWELL_CLICK_ENABLED] = updated.dwellClickEnabled
             preferences[AppSettingsKeys.DWELL_CLICK_TIME_MS] = updated.dwellClickTimeMs
             preferences[AppSettingsKeys.DWELL_CLICK_RADIUS_PX] = updated.dwellClickRadiusPx
+            preferences[AppSettingsKeys.BT_MOUSE_PASSTHROUGH] = updated.btMousePassthrough
             preferences[AppSettingsKeys.AUTO_START_ON_BOOT] = updated.autoStartOnBoot
             preferences[AppSettingsKeys.VOICE_CMD_STOP] = updated.voiceCommandStop
             preferences[AppSettingsKeys.VOICE_CMD_START] = updated.voiceCommandStart
             preferences[AppSettingsKeys.AUTO_UPDATE_ENABLED] = updated.autoUpdateEnabled
             preferences[AppSettingsKeys.LAST_UPDATE_CHECK_MS] = updated.lastUpdateCheckMs
+            preferences[AppSettingsKeys.ACTION_FEEDBACK_VISUAL] = updated.actionFeedbackVisual
+            preferences[AppSettingsKeys.ACTION_FEEDBACK_AUDIO] = updated.actionFeedbackAudio
+            preferences[AppSettingsKeys.ACTION_FEEDBACK_VIBRATE] = updated.actionFeedbackVibrate
         }
     }
 }
@@ -89,10 +93,14 @@ private fun Preferences.toAppSettings(): AppSettings {
         dwellClickEnabled = this[AppSettingsKeys.DWELL_CLICK_ENABLED] ?: true,
         dwellClickTimeMs = this[AppSettingsKeys.DWELL_CLICK_TIME_MS] ?: 1000L,
         dwellClickRadiusPx = this[AppSettingsKeys.DWELL_CLICK_RADIUS_PX] ?: 30f,
+        btMousePassthrough = this[AppSettingsKeys.BT_MOUSE_PASSTHROUGH] ?: true,
         autoStartOnBoot = this[AppSettingsKeys.AUTO_START_ON_BOOT] ?: false,
         voiceCommandStop = this[AppSettingsKeys.VOICE_CMD_STOP] ?: "표정 인식 정지",
         voiceCommandStart = this[AppSettingsKeys.VOICE_CMD_START] ?: "표정 인식 시작",
         autoUpdateEnabled = this[AppSettingsKeys.AUTO_UPDATE_ENABLED] ?: true,
-        lastUpdateCheckMs = this[AppSettingsKeys.LAST_UPDATE_CHECK_MS] ?: 0L
+        lastUpdateCheckMs = this[AppSettingsKeys.LAST_UPDATE_CHECK_MS] ?: 0L,
+        actionFeedbackVisual = this[AppSettingsKeys.ACTION_FEEDBACK_VISUAL] ?: false,
+        actionFeedbackAudio = this[AppSettingsKeys.ACTION_FEEDBACK_AUDIO] ?: false,
+        actionFeedbackVibrate = this[AppSettingsKeys.ACTION_FEEDBACK_VIBRATE] ?: false
     )
 }

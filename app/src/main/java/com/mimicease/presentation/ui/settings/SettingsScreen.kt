@@ -102,6 +102,10 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settingsRepository.updateSettings { it.copy(dwellClickRadiusPx = px) } }
     }
 
+    fun toggleBtMousePassthrough(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.updateSettings { it.copy(btMousePassthrough = enabled) } }
+    }
+
     fun toggleByKeyCombo(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.updateSettings { it.copy(toggleByKeyCombo = enabled) } }
     }
@@ -112,6 +116,18 @@ class SettingsViewModel @Inject constructor(
 
     fun toggleAutoStartOnBoot(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.updateSettings { it.copy(autoStartOnBoot = enabled) } }
+    }
+
+    fun toggleActionFeedbackVisual(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.updateSettings { it.copy(actionFeedbackVisual = enabled) } }
+    }
+
+    fun toggleActionFeedbackAudio(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.updateSettings { it.copy(actionFeedbackAudio = enabled) } }
+    }
+
+    fun toggleActionFeedbackVibrate(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.updateSettings { it.copy(actionFeedbackVibrate = enabled) } }
     }
 
     // ── 자동 업데이트 ──────────────────────────────────────────────────────
@@ -390,6 +406,41 @@ fun SettingsScreen(
                 }
             }
 
+            // ── BT Mouse passthrough (CURSOR_CLICK mode only) ────────────
+            if (settings.activeMode == InteractionMode.CURSOR_CLICK) {
+                SettingsSectionHeader(stringResource(R.string.settings_bt_mouse_section))
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(stringResource(R.string.settings_bt_mouse_passthrough))
+                                Text(
+                                    stringResource(R.string.settings_bt_mouse_passthrough_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Switch(
+                                checked = settings.btMousePassthrough,
+                                onCheckedChange = { viewModel.toggleBtMousePassthrough(it) }
+                            )
+                        }
+                        if (settings.btMousePassthrough) {
+                            Text(
+                                stringResource(R.string.settings_bt_mouse_passthrough_warning),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                        }
+                    }
+                }
+            }
+
             // ── Global toggle ─────────────────────────────────────────────
             SettingsSectionHeader(stringResource(R.string.settings_global_toggle_section))
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -549,6 +600,73 @@ fun SettingsScreen(
                         valueRange = 1f..10f,
                         steps = 8
                     )
+                }
+            }
+
+            // ── Action feedback ───────────────────────────────────────────
+            SettingsSectionHeader(stringResource(R.string.settings_action_feedback_section))
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.settings_feedback_visual))
+                            Text(
+                                stringResource(R.string.settings_feedback_visual_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = settings.actionFeedbackVisual,
+                            onCheckedChange = { viewModel.toggleActionFeedbackVisual(it) }
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.settings_feedback_audio))
+                            Text(
+                                stringResource(R.string.settings_feedback_audio_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = settings.actionFeedbackAudio,
+                            onCheckedChange = { viewModel.toggleActionFeedbackAudio(it) }
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.settings_feedback_vibrate))
+                            Text(
+                                stringResource(R.string.settings_feedback_vibrate_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = settings.actionFeedbackVibrate,
+                            onCheckedChange = { viewModel.toggleActionFeedbackVibrate(it) }
+                        )
+                    }
                 }
             }
 

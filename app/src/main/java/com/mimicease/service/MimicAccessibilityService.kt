@@ -51,11 +51,8 @@ class MimicAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         instance = this
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            serviceInfo = serviceInfo?.apply {
-                setMotionEventSources(InputDevice.SOURCE_MOUSE)
-            }
-        }
+        // setMotionEventSources는 updateMouseInterceptMode()에서 동적으로 설정합니다.
+        // 패스스루 모드(기본)에서는 BT 마우스 이벤트를 시스템에 그대로 전달합니다.
 
         globalToggleController = GlobalToggleController(
             context = this,
@@ -114,6 +111,30 @@ class MimicAccessibilityService : AccessibilityService() {
         cursorTracker.onAccessibilityEvent(event)
     }
 
+    /**
+     * BT 마우스 이벤트 인터셉트 모드를 런타임에 전환합니다.
+     * @param intercept true → SOURCE_MOUSE 이벤트를 인터셉트 (게임 등 호버 이벤트 없는 앱용)
+     *                  false → SOURCE_MOUSE 이벤트를 시스템에 패스스루 (네이티브 마우스 동작 유지)
+     */
+    fun updateMouseInterceptMode(intercept: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            try {
+                serviceInfo = serviceInfo?.apply {
+                    setMotionEventSources(if (intercept) InputDevice.SOURCE_MOUSE else 0)
+                }
+                Timber.i("Mouse intercept mode: ${if (intercept) "INTERCEPT" else "PASSTHROUGH"}")
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to update mouse intercept mode")
+            }
+        }
+    }
+
+    // ── 인터셉트 모드: 마우스 이벤트 → 제스처 재주입 ──────────────────────
+    private var mouseDownTimeMs = 0L
+    private var mouseDownX = 0f
+    private var mouseDownY = 0f
+    private var isMouseButtonDown = false
+
     override fun onMotionEvent(event: MotionEvent) {
         when (event.action) {
             MotionEvent.ACTION_HOVER_MOVE,
@@ -123,18 +144,89 @@ class MimicAccessibilityService : AccessibilityService() {
 
             MotionEvent.ACTION_DOWN -> {
                 cursorTracker.updateFromHeadTracker(event.x, event.y)
+                mouseDownX = event.x
+                mouseDownY = event.y
+                mouseDownTimeMs = System.currentTimeMillis()
+                isMouseButtonDown = true
+
+                // 우클릭(BUTTON_SECONDARY) → 즉시 롱프레스 제스처
+                if (event.buttonState and MotionEvent.BUTTON_SECONDARY != 0) {
+                    val isExpressionGestureActive = faceDetectionService?.isGestureDispatching() ?: false
+                    if (!isExpressionGestureActive) {
+                        val path = Path().apply { moveTo(event.x, event.y) }
+                        val stroke = GestureDescription.StrokeDescription(path, 0L, 800L)
+                        dispatchGesture(
+                            GestureDescription.Builder().addStroke(stroke).build(),
+                            mouseClickCallback,
+                            null
+                        )
+                    }
+                    isMouseButtonDown = false // 우클릭은 DOWN에서 완결
+                }
+            }
+
+            MotionEvent.ACTION_UP -> {
+                cursorTracker.updateFromHeadTracker(event.x, event.y)
+                if (isMouseButtonDown) {
+                    isMouseButtonDown = false
+                    val isExpressionGestureActive = faceDetectionService?.isGestureDispatching() ?: false
+                    if (!isExpressionGestureActive) {
+                        val holdMs = System.currentTimeMillis() - mouseDownTimeMs
+                        if (holdMs >= 500L) {
+                            // 길게 눌렀으면 롱프레스 제스처
+                            val path = Path().apply { moveTo(event.x, event.y) }
+                            val stroke = GestureDescription.StrokeDescription(path, 0L, 800L)
+                            dispatchGesture(
+                                GestureDescription.Builder().addStroke(stroke).build(),
+                                mouseClickCallback,
+                                null
+                            )
+                        } else {
+                            // 짧게 클릭
+                            val path = Path().apply { moveTo(event.x, event.y) }
+                            val stroke = GestureDescription.StrokeDescription(path, 0L, 50L)
+                            dispatchGesture(
+                                GestureDescription.Builder().addStroke(stroke).build(),
+                                mouseClickCallback,
+                                null
+                            )
+                        }
+                    }
+                }
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                cursorTracker.updateFromHeadTracker(event.x, event.y)
+            }
+
+            MotionEvent.ACTION_SCROLL -> {
+                cursorTracker.updateFromHeadTracker(event.x, event.y)
                 val isExpressionGestureActive = faceDetectionService?.isGestureDispatching() ?: false
                 if (!isExpressionGestureActive) {
-                    val path = Path().apply { moveTo(event.x, event.y) }
-                    val stroke = GestureDescription.StrokeDescription(path, 0L, 50L)
-                    dispatchGesture(
-                        GestureDescription.Builder().addStroke(stroke).build(),
-                        mouseClickCallback,
-                        null
-                    )
+                    val vScroll = event.getAxisValue(MotionEvent.AXIS_VSCROLL)
+                    val dm = resources.displayMetrics
+                    val cx = dm.widthPixels / 2f
+                    val scrollDist = dm.heightPixels * 0.25f
+                    if (vScroll != 0f) {
+                        val startY = if (vScroll > 0) cy(cx, scrollDist, true) else cy(cx, scrollDist, false)
+                        val endY = if (vScroll > 0) cy(cx, scrollDist, false) else cy(cx, scrollDist, true)
+                        val path = Path().apply { moveTo(cx, startY); lineTo(cx, endY) }
+                        val stroke = GestureDescription.StrokeDescription(path, 0L, 200L)
+                        dispatchGesture(
+                            GestureDescription.Builder().addStroke(stroke).build(),
+                            mouseClickCallback,
+                            null
+                        )
+                    }
                 }
             }
         }
+    }
+
+    /** 스크롤 Helper: 화면 중앙 기준 스크롤 시작/끝 Y좌표 계산 */
+    private fun cy(cx: Float, dist: Float, isTop: Boolean): Float {
+        val center = resources.displayMetrics.heightPixels / 2f
+        return if (isTop) center - dist else center + dist
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
