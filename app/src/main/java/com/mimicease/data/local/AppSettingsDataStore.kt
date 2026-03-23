@@ -40,10 +40,6 @@ data class AppSettings(
     val toggleByExpression: Boolean = false,
     val toggleExpressionHoldMs: Int = 3000,
 
-    // ── 글로벌 토글: 물리키/외부기기 채널 (기본 ON) ──
-    val toggleByKeyCombo: Boolean = true,
-    val toggleKeyHoldMs: Int = 2000,
-
     // ── 헤드 마우스 설정 ──────────────────────────
     val headMouseSensitivity: Float = 1.0f,    // 0.5 ~ 3.0
     val headMouseDeadZone: Float = 0.02f,      // 데드존 (0.0 ~ 0.1)
@@ -87,9 +83,6 @@ object AppSettingsKeys {
     // 글로벌 토글
     val TOGGLE_BY_EXPRESSION     = booleanPreferencesKey("toggle_by_expression")
     val TOGGLE_EXPRESSION_HOLD_MS = intPreferencesKey("toggle_expression_hold_ms")
-    val TOGGLE_BY_KEY_COMBO      = booleanPreferencesKey("toggle_by_key_combo")
-    val TOGGLE_KEY_HOLD_MS       = intPreferencesKey("toggle_key_hold_ms")
-
     // 헤드 마우스
     val HEAD_MOUSE_SENSITIVITY = floatPreferencesKey("head_mouse_sensitivity")
     val HEAD_MOUSE_DEAD_ZONE   = floatPreferencesKey("head_mouse_dead_zone")

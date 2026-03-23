@@ -10,7 +10,6 @@ import android.graphics.Path
 import android.os.Build
 import android.os.IBinder
 import android.view.InputDevice
-import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.accessibility.AccessibilityEvent
 import com.mimicease.domain.model.ServiceState
@@ -141,11 +140,12 @@ class MimicAccessibilityService : AccessibilityService() {
     private val EDGE_THRESHOLD_DP = 10f
 
     /**
-     * 마우스 커서가 화면 하단/상단 가장자리에 진입하면, 해당 위치에 짧은 탭 제스처를 주입하여
-     * 삼성 One UI의 "시스템 UI 엿보기(peek)" 동작을 대신 트리거한다.
+     * 마우스 커서가 화면 가장자리에 진입하면 제스처를 주입해 시스템 UI 엿보기를 트리거한다.
+     * - 상단: 아래로 짧은 스와이프 → 상태 표시줄 표시
+     * - 하단/좌우: 해당 가장자리에 탭 → 네비게이션 바 표시 (가로 모드 포함)
      *
      * 배경: setMotionEventSources(SOURCE_MOUSE)로 마우스를 인터셉트하면 삼성 포인터 레이어가
-     * HOVER_MOVE 이벤트를 가장자리 감지 파이프라인에 넘기지 않아 네비게이션 바가 나타나지 않음.
+     * HOVER_MOVE를 가장자리 감지 파이프라인에 넘기지 않아 시스템 UI가 나타나지 않음.
      */
     private fun maybeRevealSystemBar(x: Float, y: Float) {
         val now = System.currentTimeMillis()
@@ -155,17 +155,33 @@ class MimicAccessibilityService : AccessibilityService() {
         val dm = resources.displayMetrics
         val edgePx = EDGE_THRESHOLD_DP * dm.density
 
-        val tapY = when {
-            y >= dm.heightPixels - edgePx -> dm.heightPixels.toFloat() - 1f  // 하단 가장자리
-            y <= edgePx -> 0f                                                  // 상단 가장자리
+        val path = when {
+            y <= edgePx -> {
+                // 상단 가장자리: 아래로 짧은 스와이프 → 상태 표시줄
+                Path().apply {
+                    moveTo(x, 0f)
+                    lineTo(x, edgePx * 3f)
+                }
+            }
+            y >= dm.heightPixels - edgePx -> {
+                // 하단 가장자리: 탭 → 네비게이션 바 (세로 모드)
+                Path().apply { moveTo(x, dm.heightPixels.toFloat() - 1f) }
+            }
+            x <= edgePx -> {
+                // 좌측 가장자리: 탭 → 네비게이션 바 (가로 모드)
+                Path().apply { moveTo(1f, y) }
+            }
+            x >= dm.widthPixels - edgePx -> {
+                // 우측 가장자리: 탭 → 네비게이션 바 (가로 모드)
+                Path().apply { moveTo(dm.widthPixels.toFloat() - 1f, y) }
+            }
             else -> return
         }
 
         edgeRevealLastMs = now
-        val path = Path().apply { moveTo(x, tapY) }
         dispatchGesture(
             GestureDescription.Builder()
-                .addStroke(GestureDescription.StrokeDescription(path, 0L, 50L))
+                .addStroke(GestureDescription.StrokeDescription(path, 0L, 80L))
                 .build(),
             null, null
         )
@@ -264,10 +280,6 @@ class MimicAccessibilityService : AccessibilityService() {
     private fun cy(cx: Float, dist: Float, isTop: Boolean): Float {
         val center = resources.displayMetrics.heightPixels / 2f
         return if (isTop) center - dist else center + dist
-    }
-
-    override fun onKeyEvent(event: KeyEvent): Boolean {
-        return globalToggleController?.handleKeyEvent(event) ?: false
     }
 
     override fun onInterrupt() {

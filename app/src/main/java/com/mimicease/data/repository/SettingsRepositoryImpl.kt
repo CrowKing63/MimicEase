@@ -46,8 +46,6 @@ class SettingsRepositoryImpl @Inject constructor(
             preferences[AppSettingsKeys.ACTIVE_MODE] = updated.activeMode.name
             preferences[AppSettingsKeys.TOGGLE_BY_EXPRESSION] = updated.toggleByExpression
             preferences[AppSettingsKeys.TOGGLE_EXPRESSION_HOLD_MS] = updated.toggleExpressionHoldMs
-            preferences[AppSettingsKeys.TOGGLE_BY_KEY_COMBO] = updated.toggleByKeyCombo
-            preferences[AppSettingsKeys.TOGGLE_KEY_HOLD_MS] = updated.toggleKeyHoldMs
             preferences[AppSettingsKeys.HEAD_MOUSE_SENSITIVITY] = updated.headMouseSensitivity
             preferences[AppSettingsKeys.HEAD_MOUSE_DEAD_ZONE] = updated.headMouseDeadZone
             preferences[AppSettingsKeys.DWELL_CLICK_ENABLED] = updated.dwellClickEnabled
@@ -84,8 +82,6 @@ private fun Preferences.toAppSettings(): AppSettings {
         ),
         toggleByExpression = this[AppSettingsKeys.TOGGLE_BY_EXPRESSION] ?: false,
         toggleExpressionHoldMs = this[AppSettingsKeys.TOGGLE_EXPRESSION_HOLD_MS] ?: 3000,
-        toggleByKeyCombo = this[AppSettingsKeys.TOGGLE_BY_KEY_COMBO] ?: true,
-        toggleKeyHoldMs = this[AppSettingsKeys.TOGGLE_KEY_HOLD_MS] ?: 2000,
         headMouseSensitivity = this[AppSettingsKeys.HEAD_MOUSE_SENSITIVITY] ?: 1.0f,
         headMouseDeadZone = this[AppSettingsKeys.HEAD_MOUSE_DEAD_ZONE] ?: 0.02f,
         dwellClickEnabled = this[AppSettingsKeys.DWELL_CLICK_ENABLED] ?: true,
