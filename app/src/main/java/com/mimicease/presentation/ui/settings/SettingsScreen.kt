@@ -5,6 +5,7 @@ import android.app.StatusBarManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.PowerManager
