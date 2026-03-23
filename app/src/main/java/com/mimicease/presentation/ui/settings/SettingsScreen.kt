@@ -99,10 +99,6 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settingsRepository.updateSettings { it.copy(btMousePassthrough = enabled) } }
     }
 
-    fun toggleByKeyCombo(enabled: Boolean) {
-        viewModelScope.launch { settingsRepository.updateSettings { it.copy(toggleByKeyCombo = enabled) } }
-    }
-
     fun toggleByExpression(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.updateSettings { it.copy(toggleByExpression = enabled) } }
     }
@@ -389,27 +385,6 @@ fun SettingsScreen(
             SettingsSectionHeader(stringResource(R.string.settings_global_toggle_section))
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(stringResource(R.string.settings_volume_key_combo))
-                            Text(
-                                stringResource(R.string.settings_volume_key_desc, settings.toggleKeyHoldMs.toInt()),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = settings.toggleByKeyCombo,
-                            onCheckedChange = { viewModel.toggleByKeyCombo(it) }
-                        )
-                    }
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,

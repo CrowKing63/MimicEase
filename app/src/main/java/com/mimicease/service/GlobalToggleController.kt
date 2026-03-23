@@ -9,7 +9,6 @@ import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import android.view.KeyEvent
 import com.mimicease.data.local.AppSettings
 import com.mimicease.domain.model.ServiceState
 import timber.log.Timber
@@ -26,64 +25,12 @@ class GlobalToggleController(
 ) {
     private var settings: AppSettings = AppSettings()
 
-    private var volumeUpPressed = false
-    private var volumeDownPressed = false
-    private var comboStartTime = 0L
     private var expressionHoldStart = 0L
 
     private val toneHandler = Handler(Looper.getMainLooper())
 
     fun updateSettings(newSettings: AppSettings) {
         settings = newSettings
-    }
-
-    fun handleKeyEvent(event: KeyEvent): Boolean {
-        if (!settings.toggleByKeyCombo) return false
-
-        when (event.keyCode) {
-            KeyEvent.KEYCODE_VOLUME_UP -> {
-                if (event.action == KeyEvent.ACTION_DOWN) {
-                    volumeUpPressed = true
-                    checkComboStart()
-                } else if (event.action == KeyEvent.ACTION_UP) {
-                    volumeUpPressed = false
-                    resetCombo()
-                }
-            }
-            KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                if (event.action == KeyEvent.ACTION_DOWN) {
-                    volumeDownPressed = true
-                    checkComboStart()
-                } else if (event.action == KeyEvent.ACTION_UP) {
-                    volumeDownPressed = false
-                    resetCombo()
-                }
-            }
-            else -> return false
-        }
-
-        if (volumeUpPressed && volumeDownPressed) {
-            val elapsed = System.currentTimeMillis() - comboStartTime
-            if (elapsed >= settings.toggleKeyHoldMs) {
-                announceState(onToggle())
-                resetCombo()
-                return true
-            }
-            return true
-        }
-        return false
-    }
-
-    private fun checkComboStart() {
-        if (volumeUpPressed && volumeDownPressed && comboStartTime == 0L) {
-            comboStartTime = System.currentTimeMillis()
-        }
-    }
-
-    private fun resetCombo() {
-        if (!volumeUpPressed || !volumeDownPressed) {
-            comboStartTime = 0L
-        }
     }
 
     fun checkExpressionToggle(smoothedValues: Map<String, Float>): Boolean {
