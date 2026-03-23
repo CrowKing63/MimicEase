@@ -97,6 +97,11 @@ public class FaceLandmarkerHelper extends HandlerThread {
     public int mpInputHeight;
     private float[] currBlendshapes;
 
+    // 매 프레임 Bitmap 할당/GC를 줄이기 위해 재사용 (단일 HandlerThread에서만 접근)
+    // rotatedBitmap은 MPImage로 비동기 전달되므로 재사용 불가
+    private Bitmap reusableRawBitmap = null;
+    private Bitmap reusablePaddedBitmap = null;
+
     /** How many milliseconds passed after previous image. */
     public long gapTimeMs = 1;
 
@@ -254,17 +259,40 @@ public class FaceLandmarkerHelper extends HandlerThread {
         int pixelStride = imageProxy.getPlanes()[0].getPixelStride(); // RGBA_8888 = 4
         int strideWidth = rowStride / pixelStride;
 
+        // 재사용 Bitmap에 카메라 버퍼를 덮어씀 (매 프레임 할당/GC 방지)
+        // 크기가 변경된 경우에만 재생성
         Bitmap bitmap;
         if (strideWidth == frameWidth) {
             // 패딩 없음 — 직접 복사
-            bitmap = Bitmap.createBitmap(frameWidth, frameHeight, Bitmap.Config.ARGB_8888);
-            bitmap.copyPixelsFromBuffer(imageProxy.getPlanes()[0].getBuffer());
+            if (reusableRawBitmap == null
+                    || reusableRawBitmap.getWidth() != frameWidth
+                    || reusableRawBitmap.getHeight() != frameHeight) {
+                if (reusableRawBitmap != null) reusableRawBitmap.recycle();
+                reusableRawBitmap = Bitmap.createBitmap(frameWidth, frameHeight, Bitmap.Config.ARGB_8888);
+            }
+            reusableRawBitmap.copyPixelsFromBuffer(imageProxy.getPlanes()[0].getBuffer());
+            bitmap = reusableRawBitmap;
         } else {
             // 패딩 있음 — stride 너비로 Bitmap을 생성한 뒤 실제 크기로 크롭
-            Bitmap fullBitmap = Bitmap.createBitmap(strideWidth, frameHeight, Bitmap.Config.ARGB_8888);
-            fullBitmap.copyPixelsFromBuffer(imageProxy.getPlanes()[0].getBuffer());
-            bitmap = Bitmap.createBitmap(fullBitmap, 0, 0, frameWidth, frameHeight);
-            fullBitmap.recycle();
+            if (reusablePaddedBitmap == null
+                    || reusablePaddedBitmap.getWidth() != strideWidth
+                    || reusablePaddedBitmap.getHeight() != frameHeight) {
+                if (reusablePaddedBitmap != null) reusablePaddedBitmap.recycle();
+                reusablePaddedBitmap = Bitmap.createBitmap(strideWidth, frameHeight, Bitmap.Config.ARGB_8888);
+            }
+            reusablePaddedBitmap.copyPixelsFromBuffer(imageProxy.getPlanes()[0].getBuffer());
+            if (reusableRawBitmap == null
+                    || reusableRawBitmap.getWidth() != frameWidth
+                    || reusableRawBitmap.getHeight() != frameHeight) {
+                if (reusableRawBitmap != null) reusableRawBitmap.recycle();
+                reusableRawBitmap = Bitmap.createBitmap(frameWidth, frameHeight, Bitmap.Config.ARGB_8888);
+            }
+            new android.graphics.Canvas(reusableRawBitmap).drawBitmap(
+                    reusablePaddedBitmap,
+                    new android.graphics.Rect(0, 0, frameWidth, frameHeight),
+                    new android.graphics.Rect(0, 0, frameWidth, frameHeight),
+                    null);
+            bitmap = reusableRawBitmap;
         }
 
         // Handle rotations.
@@ -447,5 +475,7 @@ public class FaceLandmarkerHelper extends HandlerThread {
         Log.i(TAG, "destroy");
         isRunning = false;
         ensurePauseThread();
+        if (reusableRawBitmap != null) { reusableRawBitmap.recycle(); reusableRawBitmap = null; }
+        if (reusablePaddedBitmap != null) { reusablePaddedBitmap.recycle(); reusablePaddedBitmap = null; }
     }
 }

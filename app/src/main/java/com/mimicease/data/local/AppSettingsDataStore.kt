@@ -62,10 +62,6 @@ data class AppSettings(
     val voiceCommandStop: String = "표정 인식 정지",
     val voiceCommandStart: String = "표정 인식 시작",
 
-    // ── 자동 업데이트 ────────────────────────────────
-    val autoUpdateEnabled: Boolean = true,
-    val lastUpdateCheckMs: Long = 0L,
-
     // ── 액션 피드백 ──────────────────────────────────
     val actionFeedbackVisual: Boolean = false,   // 액션 실행 시 화면 플래시
     val actionFeedbackAudio: Boolean = false,    // 액션 실행 시 비프음
@@ -108,10 +104,6 @@ object AppSettingsKeys {
     // 음성 관용구
     val VOICE_CMD_STOP         = stringPreferencesKey("voice_cmd_stop")
     val VOICE_CMD_START        = stringPreferencesKey("voice_cmd_start")
-
-    // 자동 업데이트
-    val AUTO_UPDATE_ENABLED    = booleanPreferencesKey("auto_update_enabled")
-    val LAST_UPDATE_CHECK_MS   = longPreferencesKey("last_update_check_ms")
 
     // 액션 피드백
     val ACTION_FEEDBACK_VISUAL   = booleanPreferencesKey("action_feedback_visual")

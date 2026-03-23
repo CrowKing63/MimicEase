@@ -11,12 +11,16 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.service.quicksettings.TileService
+import android.hardware.camera2.CaptureRequest
 import android.os.Binder
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.provider.Settings
+import android.util.Range
 import android.util.Size
+import androidx.camera.camera2.interop.Camera2Interop
+import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -443,6 +447,7 @@ class FaceDetectionForegroundService : LifecycleService() {
         }
     }
 
+    @OptIn(ExperimentalCamera2Interop::class)
     private fun setupCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
@@ -454,11 +459,15 @@ class FaceDetectionForegroundService : LifecycleService() {
                     .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
                     .build()
 
-                val imageAnalysis = ImageAnalysis.Builder()
-                    .setTargetResolution(Size(640, 480))
+                // 해상도 320×240: MediaPipe 내부 처리(213×160)보다 충분히 크면서 Bitmap 메모리/GC 부담 최소화
+                // FPS 10~15: 표정 인식에 충분하며 카메라 하드웨어 자체 전력 소비 감소
+                val imageAnalysisBuilder = ImageAnalysis.Builder()
+                    .setTargetResolution(Size(320, 240))
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
-                    .build()
+                Camera2Interop.Extender(imageAnalysisBuilder)
+                    .setCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range(10, 15))
+                val imageAnalysis = imageAnalysisBuilder.build()
                     .also { analysis ->
                         analysis.setAnalyzer(cameraExecutor) { imageProxy ->
                             // detectLiveStream calls postProcessLandmarks via MediaPipe async callback

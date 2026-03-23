@@ -11,11 +11,6 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Android 13+ (targetSdk 33+) 포그라운드 서비스 알림 표시에 필요 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- GitHub Releases API 및 APK 다운로드 -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <!-- APK 설치 (자동 업데이트) -->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-
     <!--
         Package visibility for App Picker (Android 11+).
         Allows TriggerEditScreen to query launchable apps for Action.OpenApp trigger.
@@ -25,9 +20,6 @@
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.INSTALL_PACKAGE" />
         </intent>
     </queries>
 
@@ -115,17 +107,6 @@
             빠른 설정(Quick Settings) 타일.
             알림 창에서 토글하거나 Bixby 루틴 "빠른 설정 변경"으로 연동.
         -->
-        <!-- 자동 업데이트: 다운로드된 APK를 설치 인텐트에 노출하기 위한 FileProvider -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.update.provider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/update_file_provider_paths" />
-        </provider>
-
         <service
             android:name=".service.MimicToggleTileService"
             android:exported="true"

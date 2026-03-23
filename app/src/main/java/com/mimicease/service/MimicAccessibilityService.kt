@@ -135,11 +135,48 @@ class MimicAccessibilityService : AccessibilityService() {
     private var mouseDownY = 0f
     private var isMouseButtonDown = false
 
+    // 화면 가장자리 진입 시 시스템 UI(네비게이션 바/상태 표시줄) 엿보기 트리거
+    private var edgeRevealLastMs = 0L
+    private val EDGE_REVEAL_COOLDOWN_MS = 800L
+    private val EDGE_THRESHOLD_DP = 10f
+
+    /**
+     * 마우스 커서가 화면 하단/상단 가장자리에 진입하면, 해당 위치에 짧은 탭 제스처를 주입하여
+     * 삼성 One UI의 "시스템 UI 엿보기(peek)" 동작을 대신 트리거한다.
+     *
+     * 배경: setMotionEventSources(SOURCE_MOUSE)로 마우스를 인터셉트하면 삼성 포인터 레이어가
+     * HOVER_MOVE 이벤트를 가장자리 감지 파이프라인에 넘기지 않아 네비게이션 바가 나타나지 않음.
+     */
+    private fun maybeRevealSystemBar(x: Float, y: Float) {
+        val now = System.currentTimeMillis()
+        if (now - edgeRevealLastMs < EDGE_REVEAL_COOLDOWN_MS) return
+        if (isMouseButtonDown) return  // 드래그 중에는 트리거하지 않음
+
+        val dm = resources.displayMetrics
+        val edgePx = EDGE_THRESHOLD_DP * dm.density
+
+        val tapY = when {
+            y >= dm.heightPixels - edgePx -> dm.heightPixels.toFloat() - 1f  // 하단 가장자리
+            y <= edgePx -> 0f                                                  // 상단 가장자리
+            else -> return
+        }
+
+        edgeRevealLastMs = now
+        val path = Path().apply { moveTo(x, tapY) }
+        dispatchGesture(
+            GestureDescription.Builder()
+                .addStroke(GestureDescription.StrokeDescription(path, 0L, 50L))
+                .build(),
+            null, null
+        )
+    }
+
     override fun onMotionEvent(event: MotionEvent) {
         when (event.action) {
             MotionEvent.ACTION_HOVER_MOVE,
             MotionEvent.ACTION_HOVER_ENTER -> {
                 cursorTracker.updateFromHeadTracker(event.x, event.y)
+                maybeRevealSystemBar(event.x, event.y)
             }
 
             MotionEvent.ACTION_DOWN -> {

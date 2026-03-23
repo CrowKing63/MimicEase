@@ -6,7 +6,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Icon
-import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
@@ -33,26 +32,19 @@ import androidx.navigation.NavController
 import com.mimicease.BuildConfig
 import com.mimicease.data.local.AppSettings
 import com.mimicease.domain.model.InteractionMode
-import com.mimicease.domain.repository.ReleaseInfo
 import com.mimicease.domain.repository.SettingsRepository
-import com.mimicease.domain.usecase.CheckForUpdateUseCase
-import com.mimicease.domain.usecase.CheckResult
 import com.mimicease.presentation.ui.home.MimicBottomNavigation
 import com.mimicease.service.MimicAccessibilityService
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val settingsRepository: SettingsRepository,
-    private val checkForUpdateUseCase: CheckForUpdateUseCase
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     val settings: StateFlow<AppSettings> = settingsRepository.getSettings()
@@ -130,48 +122,6 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settingsRepository.updateSettings { it.copy(actionFeedbackVibrate = enabled) } }
     }
 
-    // ── 자동 업데이트 ──────────────────────────────────────────────────────
-
-    sealed class UpdateUiState {
-        object Idle : UpdateUiState()
-        object Checking : UpdateUiState()
-        object UpToDate : UpdateUiState()
-        object CheckFailed : UpdateUiState()
-        data class Available(val release: ReleaseInfo) : UpdateUiState()
-    }
-
-    private val _updateState = MutableStateFlow<UpdateUiState>(UpdateUiState.Idle)
-    val updateState: StateFlow<UpdateUiState> = _updateState.asStateFlow()
-
-    fun checkForUpdate(forceCheck: Boolean = false) {
-        viewModelScope.launch(Dispatchers.IO) {
-            _updateState.value = UpdateUiState.Checking
-            val nowMs = System.currentTimeMillis()
-            val lastCheckMs = settings.value.lastUpdateCheckMs
-            when (val result = checkForUpdateUseCase.execute(lastCheckMs, nowMs, forceCheck)) {
-                is CheckResult.Skipped    -> _updateState.value = UpdateUiState.Idle
-                is CheckResult.Failed     -> _updateState.value = UpdateUiState.CheckFailed
-                is CheckResult.UpToDate   -> {
-                    _updateState.value = UpdateUiState.UpToDate
-                    persistLastCheckTime(nowMs)
-                }
-                is CheckResult.UpdateAvailable -> {
-                    _updateState.value = UpdateUiState.Available(result.release)
-                    persistLastCheckTime(nowMs)
-                }
-            }
-        }
-    }
-
-    fun toggleAutoUpdate(enabled: Boolean) {
-        viewModelScope.launch { settingsRepository.updateSettings { it.copy(autoUpdateEnabled = enabled) } }
-    }
-
-    private fun persistLastCheckTime(nowMs: Long) {
-        viewModelScope.launch {
-            settingsRepository.updateSettings { it.copy(lastUpdateCheckMs = nowMs) }
-        }
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -181,7 +131,6 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsState()
-    val updateState by viewModel.updateState.collectAsState()
     val context = LocalContext.current
 
     var isAccessibilityEnabled by remember {
@@ -198,11 +147,6 @@ fun SettingsScreen(
     }
 
     var isOverlayPermGranted by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
-
-    // 앱 시작 시 자동 업데이트 체크 (24시간 쓰로틀 적용)
-    LaunchedEffect(Unit) {
-        viewModel.checkForUpdate(forceCheck = false)
-    }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -853,63 +797,6 @@ fun SettingsScreen(
                         Text(stringResource(R.string.settings_version))
                         Text(BuildConfig.VERSION_NAME, style = MaterialTheme.typography.bodySmall)
                     }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                    // ── 업데이트 확인 버튼 + 상태 표시 ────────────────────
-                    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(stringResource(R.string.settings_check_update))
-                            if (updateState is SettingsViewModel.UpdateUiState.Checking) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                TextButton(onClick = { viewModel.checkForUpdate(forceCheck = true) }) {
-                                    Text(stringResource(R.string.settings_check_update_button))
-                                }
-                            }
-                        }
-                        when (val state = updateState) {
-                            is SettingsViewModel.UpdateUiState.UpToDate ->
-                                Text(
-                                    stringResource(R.string.settings_update_up_to_date),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            is SettingsViewModel.UpdateUiState.CheckFailed ->
-                                Text(
-                                    stringResource(R.string.settings_update_check_failed),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            is SettingsViewModel.UpdateUiState.Available -> {
-                                Text(
-                                    stringResource(R.string.settings_update_available, state.release.tagName),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.tertiary
-                                )
-                                Button(
-                                    onClick = {
-                                        val intent = Intent(
-                                            Intent.ACTION_VIEW,
-                                            Uri.parse("https://github.com/CrowKing63/MimicEase/releases/latest")
-                                        ).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
-                                        context.startActivity(intent)
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(stringResource(R.string.settings_open_releases))
-                                }
-                            }
-                            else -> Unit
-                        }
-                    }
-
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),

@@ -281,14 +281,6 @@
     <string name="settings_other_section">Other</string>
     <string name="settings_developer_mode">Developer Mode</string>
     <string name="settings_version">Version</string>
-    <string name="settings_auto_update">Auto Update</string>
-    <string name="settings_auto_update_desc">Check GitHub for updates every 24 hours on app start</string>
-    <string name="settings_check_update">Check for Updates</string>
-    <string name="settings_check_update_button">Check Now</string>
-    <string name="settings_update_up_to_date">You\'re on the latest version ✓</string>
-    <string name="settings_update_check_failed">Update check failed (check your internet connection)</string>
-    <string name="settings_update_available">New version %1$s available!</string>
-    <string name="settings_open_releases">View on GitHub Releases</string>
     <string name="settings_tutorial">Tutorial</string>
     <string name="settings_tutorial_desc">View step-by-step app usage guide</string>
     <string name="settings_tutorial_view">View Again</string>

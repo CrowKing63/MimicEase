@@ -1,16 +1,18 @@
 package com.mimicease.service
 
 import android.content.Context
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import android.speech.tts.TextToSpeech
 import android.view.KeyEvent
 import com.mimicease.data.local.AppSettings
 import com.mimicease.domain.model.ServiceState
 import timber.log.Timber
-import java.util.Locale
 
 /**
  * 다중 채널 글로벌 토글 컨트롤러.
@@ -23,26 +25,13 @@ class GlobalToggleController(
     private val onDisable: () -> ServiceState
 ) {
     private var settings: AppSettings = AppSettings()
-    private var tts: TextToSpeech? = null
-    private var ttsReady = false
 
     private var volumeUpPressed = false
     private var volumeDownPressed = false
     private var comboStartTime = 0L
     private var expressionHoldStart = 0L
 
-    init {
-        try {
-            tts = TextToSpeech(context) { status ->
-                if (status == TextToSpeech.SUCCESS) {
-                    tts?.language = Locale.KOREAN
-                    ttsReady = true
-                }
-            }
-        } catch (e: Exception) {
-            Timber.w(e, "TTS initialization failed - TTS feedback disabled")
-        }
-    }
+    private val toneHandler = Handler(Looper.getMainLooper())
 
     fun updateSettings(newSettings: AppSettings) {
         settings = newSettings
@@ -133,15 +122,7 @@ class GlobalToggleController(
     }
 
     private fun announceState(state: ServiceState) {
-        val message = when (state) {
-            ServiceState.Running -> "미믹이즈 활성화"
-            ServiceState.Paused -> "미믹이즈 일시정지"
-            ServiceState.Stopped -> "미믹이즈 종료"
-        }
-
-        if (ttsReady) {
-            tts?.speak(message, TextToSpeech.QUEUE_FLUSH, null, "toggle_announce")
-        }
+        playStateTone(state)
 
         try {
             val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -172,9 +153,47 @@ class GlobalToggleController(
         }
     }
 
+    /**
+     * 상태 변경 시 ToneGenerator로 짧은 비프음 재생.
+     * - Running : 높은 단음 1회  (활성화)
+     * - Paused  : 중간 음 1회    (일시정지)
+     * - Stopped : 낮은 음 2회    (종료)
+     *
+     * TTS 대신 사용하는 이유: 삼성 빅스비와 동일한 TTS 엔진을 공유하면
+     * 오디오 세션 경합으로 빅스비가 호출 직후 종료되는 문제가 발생함.
+     * ToneGenerator는 TTS 엔진과 독립적으로 동작한다.
+     */
+    private fun playStateTone(state: ServiceState) {
+        try {
+            when (state) {
+                ServiceState.Running -> {
+                    // 높은 단음 1회
+                    val toneGen = ToneGenerator(AudioManager.STREAM_NOTIFICATION, ToneGenerator.MAX_VOLUME)
+                    toneGen.startTone(ToneGenerator.TONE_PROP_BEEP2, 200)
+                    toneHandler.postDelayed({ toneGen.release() }, 300L)
+                }
+                ServiceState.Paused -> {
+                    // 중간 단음 1회
+                    val toneGen = ToneGenerator(AudioManager.STREAM_NOTIFICATION, ToneGenerator.MAX_VOLUME)
+                    toneGen.startTone(ToneGenerator.TONE_PROP_BEEP, 200)
+                    toneHandler.postDelayed({ toneGen.release() }, 300L)
+                }
+                ServiceState.Stopped -> {
+                    // 낮은 음 2회 (종료 느낌)
+                    val toneGen = ToneGenerator(AudioManager.STREAM_NOTIFICATION, ToneGenerator.MAX_VOLUME)
+                    toneGen.startTone(ToneGenerator.TONE_PROP_NACK, 150)
+                    toneHandler.postDelayed({
+                        toneGen.startTone(ToneGenerator.TONE_PROP_NACK, 150)
+                        toneHandler.postDelayed({ toneGen.release() }, 200L)
+                    }, 250L)
+                }
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "Tone playback failed")
+        }
+    }
+
     fun destroy() {
-        tts?.stop()
-        tts?.shutdown()
-        tts = null
+        toneHandler.removeCallbacksAndMessages(null)
     }
 }
