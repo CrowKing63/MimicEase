@@ -158,7 +158,8 @@ CursorOverlayView  [오버레이 커서 표시]
 - **PS5.1 UTF-8 BOM**: `install.ps1`은 반드시 UTF-8 BOM(`EF BB BF`)으로 저장해야 함 — BOM 없는 UTF-8은 PS5.1에서 한글 파싱 오류로 즉시 종료. `New-Object System.Text.UTF8Encoding $true`로 저장.
 - **ADB + $ErrorActionPreference**: `$ErrorActionPreference = "Stop"` + ADB는 치명적 조합 — ADB는 성공 시에도 stderr에 메시지를 쓰므로 `NativeCommandError`로 스크립트가 종료됨. 반드시 `"Continue"` 사용, 에러 판정은 `$LASTEXITCODE`로.
 - **PowerShell 파이프라인 단일 항목**: `$lines = & adb devices | Where-Object { ... }`에서 결과가 1개이면 배열이 아닌 문자열 반환 — `$lines[0]`이 문자열 첫 번째 **문자**를 반환함(예: IP `192.168...`의 `'1'`). 반드시 `@(& adb devices | Where-Object { ... })`로 강제 배열.
-- **자동 업데이트 제거 완료 (v1.4.2)**: `CheckForUpdateUseCase`, `UpdateRepositoryImpl`, `UpdateRepository`, `SettingsViewModel.UpdateUiState` 전부 삭제됨. 이 기능은 복원하지 않음 — 앱은 GitHub에서만 배포되며 네트워크 기능 불필요.
+- **자동 업데이트 제거 완료 (v1.4.0)**: `CheckForUpdateUseCase`, `UpdateRepositoryImpl`, `UpdateRepository`, `SettingsViewModel.UpdateUiState` 전부 삭제됨. 이 기능은 복원하지 않음 — 앱은 GitHub에서만 배포되며 네트워크 기능 불필요.
+- **볼륨 키 조합 토글 제거 완료 (v1.4.1)**: `handleKeyEvent()`, `onKeyEvent()`, `flagRequestFilterKeyEvents`, `canRequestFilterKeyEvents`, `toggleByKeyCombo`, `toggleKeyHoldMs` 전부 삭제됨. 복원하지 말 것 — 키 이벤트 파이프라인 개입이 빅스비 TTS 초기화 크래시를 유발함. `GlobalToggleController`는 표정/브로드캐스트 채널만 지원.
 - **versionName 필수 동기화**: `app/build.gradle.kts`의 `versionName`이 `BuildConfig.VERSION_NAME`의 기준값 — 릴리즈 태그 배포 시 반드시 함께 업데이트.
 - **라이브러리 manifest 권한 병합**: 의존성 라이브러리가 `INTERNET`/`ACCESS_NETWORK_STATE`를 자체 manifest에 선언해 자동 병합될 수 있음. 앱에서 불필요한 권한은 `<uses-permission android:name="android.permission.INTERNET" tools:node="remove" />`로 명시적 차단 필요.
 
@@ -176,12 +177,11 @@ CursorOverlayView  [오버레이 커서 표시]
 1. **상호작용 모드** — RadioButton으로 EXPRESSION_ONLY / CURSOR_CLICK / HEAD_MOUSE 전환
 2. **헤드 마우스** — 감도(0.5~3.0x), 데드존(0.0~0.1 rad) 슬라이더
 3. **드웰 클릭** — 활성화 스위치, 대기시간(500~3000ms), 반경(10~100px) 슬라이더 (비활성 시 슬라이더 dim)
-4. **글로벌 토글** — 볼륨키 조합 / 표정(오발동 경고) / 브로드캐스트 스위치
+4. **글로벌 토글** — 표정(오발동 경고) / 브로드캐스트 스위치 (볼륨키 조합 제거됨)
 5. **감지 설정** — EMA α, 연속 프레임
 6. **알림 설정** — 포그라운드 알림 스위치
 7. **시스템** — 접근성 서비스 상태, 배터리 최적화 제외
-8. **자동 업데이트** — 활성화 스위치(기본 ON), 수동 체크 버튼, 신규 버전 감지 시 GitHub Releases 링크
-9. **기타** — 개발자 모드, 버전, 튜토리얼 다시보기
+8. **기타** — 개발자 모드, 버전, 튜토리얼 다시보기
 
 ### 권한
 
@@ -190,7 +190,6 @@ CursorOverlayView  [오버레이 커서 표시]
 - `FOREGROUND_SERVICE` — 백그라운드 실행
 - `FOREGROUND_SERVICE_CAMERA` — 포그라운드 카메라 사용
 - `VIBRATE` — 토글 시 진동 피드백
-- `INTERNET` — GitHub Releases API 업데이트 체크 전용
 - 접근성 서비스 활성화 — 사용자가 직접 설정에서 활성화 필요
 
 ## 유닛 테스트 현황
