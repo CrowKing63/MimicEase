@@ -125,6 +125,7 @@ fun WelcomeStep(onNext: () -> Unit) {
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun CameraPermissionStep(onGranted: () -> Unit) {
+    val context = LocalContext.current
     val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
 
     LaunchedEffect(cameraPermissionState.status) {
@@ -149,11 +150,34 @@ fun CameraPermissionStep(onGranted: () -> Unit) {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 32.dp)
         )
-        Button(
-            onClick = { cameraPermissionState.launchPermissionRequest() },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(R.string.onboarding_camera_allow))
+        if (cameraPermissionState.status.shouldShowRationale) {
+            // 이미 거부한 경우 — 설정 앱으로 직접 안내
+            Text(
+                text = "카메라 권한이 거부되었습니다. 앱 설정에서 카메라 권한을 직접 허용해 주세요.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            Button(
+                onClick = {
+                    val intent = Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:${context.packageName}")
+                    ).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+                    context.startActivity(intent)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("앱 설정 열기")
+            }
+        } else {
+            Button(
+                onClick = { cameraPermissionState.launchPermissionRequest() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.onboarding_camera_allow))
+            }
         }
     }
 }

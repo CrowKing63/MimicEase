@@ -21,11 +21,12 @@ data class ServiceStateSnapshot(
 
 object MimicServiceStateStore {
     suspend fun readSnapshot(context: Context): ServiceStateSnapshot {
-        val preferences = context.appSettingsDataStore.data.first()
+        val appContext = context.applicationContext
+        val preferences = appContext.appSettingsDataStore.data.first()
         val targetState = readTargetState(preferences)
         val runtimeState = ServiceStatePolicy.resolveRuntimeState(
             storedRuntimeState = readStoredRuntimeState(preferences),
-            isForegroundServiceRunning = isForegroundServiceRunning(context)
+            isForegroundServiceRunning = isForegroundServiceRunning(appContext)
         )
         return ServiceStateSnapshot(
             runtimeState = runtimeState,
@@ -41,7 +42,7 @@ object MimicServiceStateStore {
     }
 
     suspend fun persistTargetState(context: Context, state: ServiceState) {
-        context.appSettingsDataStore.edit { preferences ->
+        context.applicationContext.appSettingsDataStore.edit { preferences ->
             preferences[AppSettingsKeys.TARGET_SERVICE_STATE] = state.name
             preferences[AppSettingsKeys.LEGACY_SERVICE_ENABLED] = state.isStarted
         }
@@ -54,7 +55,7 @@ object MimicServiceStateStore {
     }
 
     suspend fun persistRuntimeState(context: Context, state: ServiceState) {
-        context.appSettingsDataStore.edit { preferences ->
+        context.applicationContext.appSettingsDataStore.edit { preferences ->
             preferences[AppSettingsKeys.SERVICE_STATE] = state.name
         }
     }
