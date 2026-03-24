@@ -50,6 +50,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -590,13 +591,16 @@ class FaceDetectionForegroundService : LifecycleService() {
         faceLandmarkerHelper.pauseThread()
         unbindCamera()
         // 사용자의 "정지" 액션은 부팅/접근성 재연결에서도 자동 복구되지 않는
-        // 완전 중지 의도로 간주한다.
-        CoroutineScope(Dispatchers.IO).launch {
+        // 완전 중지 의도로 간주한다. persistTargetState 완료 후 stopSelf() 호출해야
+        // 서비스가 죽기 전에 Stopped 상태가 기록되어 재시작을 방지할 수 있다.
+        serviceScope.launch {
             MimicServiceStateStore.persistTargetState(this@FaceDetectionForegroundService, ServiceState.Stopped)
+            withContext(Dispatchers.Main) {
+                updateRuntimeState(ServiceState.Stopped)
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
         }
-        updateRuntimeState(ServiceState.Stopped)
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        stopSelf()
     }
 
     fun togglePause() {
