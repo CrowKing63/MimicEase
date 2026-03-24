@@ -73,6 +73,18 @@ class MimicAccessibilityService : AccessibilityService() {
         }
     }
 
+    fun unbindFaceDetectionService() {
+        faceDetectionServiceConnection?.let {
+            try {
+                unbindService(it)
+            } catch (e: Exception) {
+                Timber.w(e, "FaceDetectionForegroundService was already unbound")
+            }
+        }
+        faceDetectionService = null
+        isBindingFaceDetectionService = false
+    }
+
     fun ensureFaceDetectionServiceBound(targetState: ServiceState? = null) {
         if (targetState != null && targetState.isStarted) {
             startForegroundService(FaceDetectionForegroundService.createStartIntent(this, targetState))

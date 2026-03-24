@@ -590,6 +590,9 @@ class FaceDetectionForegroundService : LifecycleService() {
         MimicAccessibilityService.instance?.updateMouseInterceptMode(false)
         faceLandmarkerHelper.pauseThread()
         unbindCamera()
+        // BIND_AUTO_CREATE 바인딩이 살아있는 한 stopSelf()는 무효 — 서비스가 종료되지 않거나
+        // 재시작된다. stopSelf() 전에 접근성 서비스가 먼저 언바인딩해야 실제 종료된다.
+        MimicAccessibilityService.instance?.unbindFaceDetectionService()
         // 사용자의 "정지" 액션은 부팅/접근성 재연결에서도 자동 복구되지 않는
         // 완전 중지 의도로 간주한다. persistTargetState 완료 후 stopSelf() 호출해야
         // 서비스가 죽기 전에 Stopped 상태가 기록되어 재시작을 방지할 수 있다.
