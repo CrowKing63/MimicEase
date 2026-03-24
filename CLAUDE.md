@@ -162,6 +162,9 @@ CursorOverlayView  [오버레이 커서 표시]
 - **볼륨 키 조합 토글 제거 완료 (v1.4.1)**: `handleKeyEvent()`, `onKeyEvent()`, `flagRequestFilterKeyEvents`, `canRequestFilterKeyEvents`, `toggleByKeyCombo`, `toggleKeyHoldMs` 전부 삭제됨. 복원하지 말 것 — 키 이벤트 파이프라인 개입이 빅스비 TTS 초기화 크래시를 유발함. `GlobalToggleController`는 표정/브로드캐스트 채널만 지원.
 - **versionName 필수 동기화**: `app/build.gradle.kts`의 `versionName`이 `BuildConfig.VERSION_NAME`의 기준값 — 릴리즈 태그 배포 시 반드시 함께 업데이트.
 - **라이브러리 manifest 권한 병합**: 의존성 라이브러리가 `INTERNET`/`ACCESS_NETWORK_STATE`를 자체 manifest에 선언해 자동 병합될 수 있음. 앱에서 불필요한 권한은 `<uses-permission android:name="android.permission.INTERNET" tools:node="remove" />`로 명시적 차단 필요.
+- **DataStore 싱글턴 — applicationContext 필수**: `MimicServiceStateStore`처럼 Service context를 받는 코드에서 `context.appSettingsDataStore`를 직접 호출하면 `SettingsRepositoryImpl`(@ApplicationContext)과 별개 인스턴스가 생성 → `IllegalStateException: multiple DataStores active for the same file` 크래시. 반드시 `context.applicationContext.appSettingsDataStore` 사용.
+- **카메라 권한 없이 접근성 서비스 활성화**: 카메라 권한 미허용 상태로 `MimicAccessibilityService`가 활성화되면 앱이 "작동 안 함"으로 표시됨. 온보딩에서 카메라 권한이 거부된 경우 `shouldShowRationale`로 감지해 앱 설정 화면으로 안내.
+- **Gradle loopback 오류(Windows)**: Windows 환경에서 Gradle 데몬 기동 시 `java.io.IOException: Unable to establish loopback connection` 발생 가능 — `./gradlew --stop` 후 재시도. 지속되면 방화벽/VPN 확인.
 
 ### 주요 도메인 모델
 
