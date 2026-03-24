@@ -50,7 +50,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -590,20 +589,14 @@ class FaceDetectionForegroundService : LifecycleService() {
         MimicAccessibilityService.instance?.updateMouseInterceptMode(false)
         faceLandmarkerHelper.pauseThread()
         unbindCamera()
-        // BIND_AUTO_CREATE 바인딩이 살아있는 한 stopSelf()는 무효 — 서비스가 종료되지 않거나
-        // 재시작된다. stopSelf() 전에 접근성 서비스가 먼저 언바인딩해야 실제 종료된다.
+        // BIND_AUTO_CREATE 바인딩이 살아있는 한 stopSelf()는 무효 — 먼저 언바인딩.
         MimicAccessibilityService.instance?.unbindFaceDetectionService()
-        // 사용자의 "정지" 액션은 부팅/접근성 재연결에서도 자동 복구되지 않는
-        // 완전 중지 의도로 간주한다. persistTargetState 완료 후 stopSelf() 호출해야
-        // 서비스가 죽기 전에 Stopped 상태가 기록되어 재시작을 방지할 수 있다.
-        serviceScope.launch {
-            MimicServiceStateStore.persistTargetState(this@FaceDetectionForegroundService, ServiceState.Stopped)
-            withContext(Dispatchers.Main) {
-                updateRuntimeState(ServiceState.Stopped)
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
-            }
-        }
+        // targetServiceState 저장은 호출측(HomeViewModel / MimicAccessibilityService)에서
+        // ACTION_STOP 발송 전에 이미 처리한다. 여기서 비동기로 다시 저장하면 빠른 stop→start
+        // 시퀀스에서 코루틴이 늦게 실행되어 Stopped 상태를 덮어쓰는 경쟁 조건이 발생한다.
+        updateRuntimeState(ServiceState.Stopped)
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
 
     fun togglePause() {
