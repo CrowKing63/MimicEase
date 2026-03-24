@@ -591,7 +591,9 @@ class FaceDetectionForegroundService : LifecycleService() {
         unbindCamera()
         // 사용자의 "정지" 액션은 부팅/접근성 재연결에서도 자동 복구되지 않는
         // 완전 중지 의도로 간주한다.
-        MimicServiceStateStore.persistTargetStateBlocking(this, ServiceState.Stopped)
+        CoroutineScope(Dispatchers.IO).launch {
+            MimicServiceStateStore.persistTargetState(this@FaceDetectionForegroundService, ServiceState.Stopped)
+        }
         updateRuntimeState(ServiceState.Stopped)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -662,7 +664,9 @@ class FaceDetectionForegroundService : LifecycleService() {
         super.onDestroy()
         if (_instance == this) _instance = null
         _serviceState.value = ServiceState.Stopped
-        MimicServiceStateStore.persistRuntimeStateBlocking(this, ServiceState.Stopped)
+        CoroutineScope(Dispatchers.IO).launch {
+            MimicServiceStateStore.persistRuntimeState(this@FaceDetectionForegroundService, ServiceState.Stopped)
+        }
         // 서비스 종료 → QS 타일을 "미실행" 상태로 갱신
         requestTileUpdate()
         // cursorOverlayView는 Main thread에서 해제 — serviceScope.cancel() 이전에 처리해야 합니다.

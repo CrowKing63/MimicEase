@@ -17,6 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class MimicAccessibilityService : AccessibilityService() {
@@ -302,7 +303,9 @@ class MimicAccessibilityService : AccessibilityService() {
             }
         }
         stopService(Intent(this, FaceDetectionForegroundService::class.java))
-        MimicServiceStateStore.persistRuntimeStateBlocking(this, ServiceState.Stopped)
+        CoroutineScope(Dispatchers.IO).launch {
+            MimicServiceStateStore.persistRuntimeState(this@MimicAccessibilityService, ServiceState.Stopped)
+        }
         faceDetectionService = null
         isBindingFaceDetectionService = false
         instance = null
