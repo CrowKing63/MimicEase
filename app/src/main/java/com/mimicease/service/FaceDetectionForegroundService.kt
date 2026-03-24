@@ -176,9 +176,9 @@ class FaceDetectionForegroundService : LifecycleService() {
             this, android.Manifest.permission.CAMERA
         ) == PackageManager.PERMISSION_GRANTED
 
-        // startForeground() MUST be called early in onCreate() to satisfy the 5-second
-        // timeout on Android 12+. Calling it after slow initialization (like MediaPipe
-        // GPU model loading) causes ForegroundServiceDidNotStartInTimeException crash.
+        // 카메라 권한 없이 CameraX를 시작하면 SecurityException 크래시 발생.
+        // startForeground()는 5초 타임아웃 때문에 권한 여부와 무관하게 먼저 호출해야 하지만,
+        // 권한이 없으면 서비스를 즉시 종료한다.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && hasCameraPermission) {
             startForeground(
                 NOTIFICATION_ID,
@@ -189,15 +189,22 @@ class FaceDetectionForegroundService : LifecycleService() {
             startForeground(NOTIFICATION_ID, buildNotification())
         }
 
+        if (!hasCameraPermission) {
+            Timber.w("카메라 권한 없음 — FaceDetectionForegroundService 즉시 종료")
+            MimicServiceStateStore.persistRuntimeStateBlocking(this, ServiceState.Stopped)
+            stopSelf()
+            return
+        }
+
         cameraExecutor = Executors.newSingleThreadExecutor()
         expressionAnalyzer = ExpressionAnalyzer()
-        
+
         // Initialize Phase 3 components
         headTracker = HeadTracker(this)
         cursorOverlayView = CursorOverlayView(this)
         actionFeedbackController = ActionFeedbackController(this)
         // actionExecutor is injected later via bind, so dwell controller is initialized in setActionExecutor
-        
+
         initFaceLandmarker()
         observeSettingsAndProfile()
         registerScreenStateReceiver()

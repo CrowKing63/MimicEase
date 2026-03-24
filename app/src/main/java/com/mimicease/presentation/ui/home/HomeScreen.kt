@@ -19,17 +19,21 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import com.mimicease.R
 import com.mimicease.domain.model.Trigger
 import com.mimicease.presentation.ui.profile.actionDisplayName
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun HomeScreen(
     navController: NavController,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
 
     Scaffold(
         topBar = {
@@ -52,11 +56,26 @@ fun HomeScreen(
             contentPadding = PaddingValues(vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            if (!cameraPermissionState.status.isGranted) {
+                item {
+                    CameraPermissionBanner(
+                        onRequestPermission = { cameraPermissionState.launchPermissionRequest() }
+                    )
+                }
+            }
+
             item {
                 ServiceStatusCard(
                     uiState = uiState,
+                    hasCameraPermission = cameraPermissionState.status.isGranted,
                     onTogglePause = { viewModel.toggleServicePause() },
-                    onStartService = { viewModel.startService() },
+                    onStartService = {
+                        if (cameraPermissionState.status.isGranted) {
+                            viewModel.startService()
+                        } else {
+                            cameraPermissionState.launchPermissionRequest()
+                        }
+                    },
                     onStopService = { viewModel.stopService() }
                 )
             }
@@ -88,8 +107,33 @@ fun HomeScreen(
 }
 
 @Composable
+fun CameraPermissionBanner(onRequestPermission: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "카메라 권한이 없습니다. 서비스를 시작하려면 카메라 권한을 허용해 주세요.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = onRequestPermission) {
+                Text("허용", color = MaterialTheme.colorScheme.onErrorContainer)
+            }
+        }
+    }
+}
+
+@Composable
 fun ServiceStatusCard(
     uiState: HomeUiState,
+    hasCameraPermission: Boolean = true,
     onTogglePause: () -> Unit,
     onStartService: () -> Unit,
     onStopService: () -> Unit
@@ -134,7 +178,11 @@ fun ServiceStatusCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             if (!uiState.isServiceRunning) {
-                Button(onClick = onStartService, modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = onStartService,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = hasCameraPermission
+                ) {
                     Text(stringResource(R.string.home_start_service))
                 }
             } else {

@@ -60,8 +60,11 @@ class MimicAccessibilityService : AccessibilityService() {
             onDisable = { requestTargetState(ServiceStatePolicy.targetStateAfterDisable(currentRuntimeState())) }
         )
 
+        val hasCameraPermission = checkSelfPermission(android.Manifest.permission.CAMERA) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+
         val snapshot = MimicServiceStateStore.readSnapshotBlocking(this)
-        if (ServiceStatePolicy.shouldRestoreService(snapshot.targetState)) {
+        if (hasCameraPermission && ServiceStatePolicy.shouldRestoreService(snapshot.targetState)) {
             ensureFaceDetectionServiceBound(snapshot.targetState)
         } else {
             stopService(Intent(this, FaceDetectionForegroundService::class.java))
