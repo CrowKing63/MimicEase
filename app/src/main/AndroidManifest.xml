@@ -11,6 +11,9 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Android 13+ (targetSdk 33+) 포그라운드 서비스 알림 표시에 필요 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 라이브러리 의존성에서 자동 병합되는 네트워크 권한 차단 -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
     <!--
         Package visibility for App Picker (Android 11+).
         Allows TriggerEditScreen to query launchable apps for Action.OpenApp trigger.
