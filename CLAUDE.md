@@ -158,8 +158,9 @@ CursorOverlayView  [오버레이 커서 표시]
 - **PS5.1 UTF-8 BOM**: `install.ps1`은 반드시 UTF-8 BOM(`EF BB BF`)으로 저장해야 함 — BOM 없는 UTF-8은 PS5.1에서 한글 파싱 오류로 즉시 종료. `New-Object System.Text.UTF8Encoding $true`로 저장.
 - **ADB + $ErrorActionPreference**: `$ErrorActionPreference = "Stop"` + ADB는 치명적 조합 — ADB는 성공 시에도 stderr에 메시지를 쓰므로 `NativeCommandError`로 스크립트가 종료됨. 반드시 `"Continue"` 사용, 에러 판정은 `$LASTEXITCODE`로.
 - **PowerShell 파이프라인 단일 항목**: `$lines = & adb devices | Where-Object { ... }`에서 결과가 1개이면 배열이 아닌 문자열 반환 — `$lines[0]`이 문자열 첫 번째 **문자**를 반환함(예: IP `192.168...`의 `'1'`). 반드시 `@(& adb devices | Where-Object { ... })`로 강제 배열.
-- **자동 업데이트 설계**: 업데이트 감지(GitHub Releases API, 24h 쓰로틀)만 수행 — 자동 다운로드/설치 없음. 신규 버전 감지 시 GitHub Releases 페이지 링크 버튼만 표시. `ReleaseInfo`에 `apkDownloadUrl` 없음 (제거됨). 관련: `CheckForUpdateUseCase`, `UpdateRepositoryImpl`, `SettingsViewModel.UpdateUiState`.
-- **versionName 필수 동기화**: `app/build.gradle.kts`의 `versionName`이 `BuildConfig.VERSION_NAME`의 기준값 — 릴리즈 태그 배포 시 반드시 함께 업데이트. 이 값이 낮으면 업데이트 체커가 항상 최신 버전으로 오탐.
+- **자동 업데이트 제거 완료 (v1.4.2)**: `CheckForUpdateUseCase`, `UpdateRepositoryImpl`, `UpdateRepository`, `SettingsViewModel.UpdateUiState` 전부 삭제됨. 이 기능은 복원하지 않음 — 앱은 GitHub에서만 배포되며 네트워크 기능 불필요.
+- **versionName 필수 동기화**: `app/build.gradle.kts`의 `versionName`이 `BuildConfig.VERSION_NAME`의 기준값 — 릴리즈 태그 배포 시 반드시 함께 업데이트.
+- **라이브러리 manifest 권한 병합**: 의존성 라이브러리가 `INTERNET`/`ACCESS_NETWORK_STATE`를 자체 manifest에 선언해 자동 병합될 수 있음. 앱에서 불필요한 권한은 `<uses-permission android:name="android.permission.INTERNET" tools:node="remove" />`로 명시적 차단 필요.
 
 ### 주요 도메인 모델
 
