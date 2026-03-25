@@ -150,65 +150,11 @@ class MimicAccessibilityService : AccessibilityService() {
     private var mouseDownY = 0f
     private var isMouseButtonDown = false
 
-    // 화면 가장자리 진입 시 시스템 UI(네비게이션 바/상태 표시줄) 엿보기 트리거
-    private var edgeRevealLastMs = 0L
-    private val EDGE_REVEAL_COOLDOWN_MS = 800L
-    private val EDGE_THRESHOLD_DP = 10f
-
-    /**
-     * 마우스 커서가 화면 가장자리에 진입하면 제스처를 주입해 시스템 UI 엿보기를 트리거한다.
-     * - 상단: 아래로 짧은 스와이프 → 상태 표시줄 표시
-     * - 하단/좌우: 해당 가장자리에 탭 → 네비게이션 바 표시 (가로 모드 포함)
-     *
-     * 배경: setMotionEventSources(SOURCE_MOUSE)로 마우스를 인터셉트하면 삼성 포인터 레이어가
-     * HOVER_MOVE를 가장자리 감지 파이프라인에 넘기지 않아 시스템 UI가 나타나지 않음.
-     */
-    private fun maybeRevealSystemBar(x: Float, y: Float) {
-        val now = System.currentTimeMillis()
-        if (now - edgeRevealLastMs < EDGE_REVEAL_COOLDOWN_MS) return
-        if (isMouseButtonDown) return  // 드래그 중에는 트리거하지 않음
-
-        val dm = resources.displayMetrics
-        val edgePx = EDGE_THRESHOLD_DP * dm.density
-
-        val path = when {
-            y <= edgePx -> {
-                // 상단 가장자리: 아래로 짧은 스와이프 → 상태 표시줄
-                Path().apply {
-                    moveTo(x, 0f)
-                    lineTo(x, edgePx * 3f)
-                }
-            }
-            y >= dm.heightPixels - edgePx -> {
-                // 하단 가장자리: 탭 → 네비게이션 바 (세로 모드)
-                Path().apply { moveTo(x, dm.heightPixels.toFloat() - 1f) }
-            }
-            x <= edgePx -> {
-                // 좌측 가장자리: 탭 → 네비게이션 바 (가로 모드)
-                Path().apply { moveTo(1f, y) }
-            }
-            x >= dm.widthPixels - edgePx -> {
-                // 우측 가장자리: 탭 → 네비게이션 바 (가로 모드)
-                Path().apply { moveTo(dm.widthPixels.toFloat() - 1f, y) }
-            }
-            else -> return
-        }
-
-        edgeRevealLastMs = now
-        dispatchGesture(
-            GestureDescription.Builder()
-                .addStroke(GestureDescription.StrokeDescription(path, 0L, 80L))
-                .build(),
-            null, null
-        )
-    }
-
     override fun onMotionEvent(event: MotionEvent) {
         when (event.action) {
             MotionEvent.ACTION_HOVER_MOVE,
             MotionEvent.ACTION_HOVER_ENTER -> {
                 cursorTracker.updateFromHeadTracker(event.x, event.y)
-                maybeRevealSystemBar(event.x, event.y)
             }
 
             MotionEvent.ACTION_DOWN -> {
