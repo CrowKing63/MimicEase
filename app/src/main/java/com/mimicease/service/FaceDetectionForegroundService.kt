@@ -16,6 +16,7 @@ import android.os.Binder
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.provider.Settings
 import android.util.Range
 import android.util.Size
@@ -42,6 +43,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -49,6 +51,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.concurrent.ExecutorService
@@ -69,11 +72,16 @@ class FaceDetectionForegroundService : LifecycleService() {
         private const val EXTRA_TARGET_STATE = "extra_target_state"
 
         // SharedFlow exposed for UI screens to observe real-time blendshapes
-        private val _blendShapeFlow = MutableSharedFlow<Map<String, Float>>(replay = 1)
+        // extraBufferCapacity: UI 구독자가 느릴 때 emit이 블록되지 않도록, DROP_OLDEST로 최신값 유지
+        private val _blendShapeFlow = MutableSharedFlow<Map<String, Float>>(
+            replay = 1, extraBufferCapacity = 16, onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
         val blendShapeFlow: SharedFlow<Map<String, Float>> = _blendShapeFlow.asSharedFlow()
 
         // SharedFlow for face mesh landmark coordinates (for FaceMeshOverlay)
-        private val _faceLandmarksFlow = MutableSharedFlow<List<NormalizedLandmark>>(replay = 1)
+        private val _faceLandmarksFlow = MutableSharedFlow<List<NormalizedLandmark>>(
+            replay = 1, extraBufferCapacity = 8, onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
         val faceLandmarksFlow: SharedFlow<List<NormalizedLandmark>> = _faceLandmarksFlow.asSharedFlow()
 
         // MediaPipe 처리 이미지 크기 — FaceMeshOverlay 좌표 보정에 사용
@@ -99,11 +107,27 @@ class FaceDetectionForegroundService : LifecycleService() {
          */
 
         fun attachPreviewSurfaceProvider(surfaceProvider: Preview.SurfaceProvider) {
-            _instance?.previewUseCase?.setSurfaceProvider(surfaceProvider)
+            val svc = _instance ?: return
+            svc.activeSurfaceProvider = surfaceProvider
+            svc.previewUseCase.setSurfaceProvider(surfaceProvider)
+            // cameraProvider가 준비된 경우 Preview UseCase를 동적으로 추가 바인딩
+            val provider = svc.cameraProvider ?: return
+            if (!provider.isBound(svc.previewUseCase)) {
+                val cameraSelector = CameraSelector.Builder()
+                    .requireLensFacing(CameraSelector.LENS_FACING_FRONT).build()
+                try {
+                    provider.bindToLifecycle(svc, cameraSelector, svc.previewUseCase)
+                } catch (e: Exception) {
+                    Timber.w(e, "Preview UseCase 바인딩 실패")
+                }
+            }
         }
 
         fun detachPreviewSurfaceProvider() {
-            _instance?.previewUseCase?.setSurfaceProvider(null)
+            val svc = _instance ?: return
+            svc.activeSurfaceProvider = null
+            svc.previewUseCase.setSurfaceProvider(null)
+            svc.cameraProvider?.unbind(svc.previewUseCase)
         }
 
         fun createNotificationChannel(context: Context) {
@@ -158,8 +182,12 @@ class FaceDetectionForegroundService : LifecycleService() {
     private var dwellClickEnabled = true
     private lateinit var actionFeedbackController: ActionFeedbackController
 
-    // Preview UseCase: SurfaceProvider가 없으면 프리뷰 미표시, 테스트 화면에서 연결 가능
+    // Preview UseCase: 기본적으로 바인딩 안 됨 — 테스트 화면 진입 시에만 동적 바인딩
     private val previewUseCase: Preview = Preview.Builder().build()
+    // 테스트 화면이 열려있는 동안 유지되는 SurfaceProvider (pause/resume 후 자동 재바인딩용)
+    private var activeSurfaceProvider: Preview.SurfaceProvider? = null
+    // 매 프레임 코루틴 생성 오버헤드 제거: UI 업데이트는 mainHandler로 직접 post
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     @Inject lateinit var profileRepository: ProfileRepository
     @Inject lateinit var settingsRepository: SettingsRepository
@@ -285,9 +313,10 @@ class FaceDetectionForegroundService : LifecycleService() {
                 _imageSizeFlow.value = Pair(iw, ih)
             }
             if (faceVisible && blendshapes.isNotEmpty()) {
-                serviceScope.launch { _blendShapeFlow.emit(blendshapes) }
+                // DROP_OLDEST 버퍼 설정으로 tryEmit은 항상 성공 — 코루틴 생성 불필요
+                _blendShapeFlow.tryEmit(blendshapes)
                 if (landmarks.isNotEmpty()) {
-                    serviceScope.launch { _faceLandmarksFlow.emit(landmarks) }
+                    _faceLandmarksFlow.tryEmit(landmarks)
                 }
 
                 var yaw = 0f
@@ -336,13 +365,15 @@ class FaceDetectionForegroundService : LifecycleService() {
         // HEAD_MOUSE 커서 오버레이: triggerMatcher/actionExecutor 초기화와 독립적으로 동작
         // (커서는 프로필 미설정 상태나 접근성 서비스 바인딩 전에도 표시되어야 함)
         if (currentMode == InteractionMode.HEAD_MOUSE) {
-            val (cx, cy) = headTracker.updatePosition(yaw, pitch)
+            headTracker.updatePosition(yaw, pitch)
+            val cx = headTracker.currentX
+            val cy = headTracker.currentY
             MimicAccessibilityService.instance?.cursorTracker?.updateFromHeadTracker(cx, cy)
             // Dwell click은 설정이 활성화된 경우에만 동작
             val progress = if (dwellClickEnabled && ::dwellClickController.isInitialized) {
                 dwellClickController.update(cx, cy, System.currentTimeMillis())
             } else 0f
-            serviceScope.launch(Dispatchers.Main) {
+            mainHandler.post {
                 if (Settings.canDrawOverlays(this@FaceDetectionForegroundService)) {
                     if (cursorOverlayView.parent == null) cursorOverlayView.show()
                     cursorOverlayView.update(cx, cy, progress)
@@ -351,7 +382,7 @@ class FaceDetectionForegroundService : LifecycleService() {
                 }
             }
         } else {
-            serviceScope.launch(Dispatchers.Main) { cursorOverlayView.hide() }
+            mainHandler.post { cursorOverlayView.hide() }
         }
 
         // 트리거 매칭/액션 실행은 triggerMatcher + actionExecutor 초기화 후에만 가능
@@ -368,7 +399,7 @@ class FaceDetectionForegroundService : LifecycleService() {
         val actions = matcher.match(smoothed)
 
         if (actions.isNotEmpty()) {
-            serviceScope.launch(Dispatchers.Main) {
+            mainHandler.post {
                 actions.forEach { action ->
                     // 모드별 Action 필터링
                      if (ModeManager.isActionAllowed(currentMode, action)) {
@@ -394,6 +425,7 @@ class FaceDetectionForegroundService : LifecycleService() {
                 settingsRepository.getSettings(),
                 profileRepository.getActiveProfile()
             ) { settings, profile -> Pair(settings, profile) }
+                .conflate()  // 설정 변경이 빠르게 연속될 때 중간값 건너뜀 — 최신값만 처리
                 .collect { (settings, profile) ->
                     // Update EMA analyzer with settings
                     expressionAnalyzer.updateSettings(emaAlpha = settings.emaAlpha)
@@ -467,13 +499,14 @@ class FaceDetectionForegroundService : LifecycleService() {
                     .build()
 
                 // 해상도 320×240: MediaPipe 내부 처리(213×160)보다 충분히 크면서 Bitmap 메모리/GC 부담 최소화
-                // FPS 10~15: 표정 인식에 충분하며 카메라 하드웨어 자체 전력 소비 감소
+                // FPS: HEAD_MOUSE는 커서 부드러움을 위해 12~20, 그 외 표정 인식은 8~10으로 충분
+                val targetFps = if (currentMode == InteractionMode.HEAD_MOUSE) Range(12, 20) else Range(8, 10)
                 val imageAnalysisBuilder = ImageAnalysis.Builder()
                     .setTargetResolution(Size(320, 240))
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
                 Camera2Interop.Extender(imageAnalysisBuilder)
-                    .setCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range(10, 15))
+                    .setCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, targetFps)
                 val imageAnalysis = imageAnalysisBuilder.build()
                     .also { analysis ->
                         analysis.setAnalyzer(cameraExecutor) { imageProxy ->
@@ -484,12 +517,23 @@ class FaceDetectionForegroundService : LifecycleService() {
                     }
 
                 provider.unbindAll()
+                // Preview UseCase는 기본적으로 바인딩하지 않음 — 테스트 화면 열릴 때만 동적 추가
+                // ImageAnalysis(320×240) 단독 바인딩으로 카메라가 낮은 해상도로 동작
                 val camera = provider.bindToLifecycle(
                     this,
                     cameraSelector,
-                    imageAnalysis,
-                    previewUseCase
+                    imageAnalysis
                 )
+                // 테스트 화면이 열려있는 동안 pause/resume 시 Preview UseCase 자동 재바인딩
+                val sp = activeSurfaceProvider
+                if (sp != null) {
+                    previewUseCase.setSurfaceProvider(sp)
+                    try {
+                        provider.bindToLifecycle(this, cameraSelector, previewUseCase)
+                    } catch (e: Exception) {
+                        Timber.w(e, "Preview UseCase 재바인딩 실패")
+                    }
+                }
                 // Monitor camera state errors (e.g. another app using camera)
                 camera.cameraInfo.cameraState.observe(this) { state ->
                     state.error?.let { error ->
@@ -536,9 +580,7 @@ class FaceDetectionForegroundService : LifecycleService() {
         faceLandmarkerHelper.pauseThread()
         // CameraX 언바인드: 카메라 하드웨어를 실제로 해제해야 다른 앱(잠금 해제 등)이 카메라 사용 가능
         unbindCamera()
-        serviceScope.launch(Dispatchers.Main) {
-            cursorOverlayView.hide()
-        }
+        mainHandler.post { cursorOverlayView.hide() }
         updateRuntimeState(ServiceState.Paused)
     }
 

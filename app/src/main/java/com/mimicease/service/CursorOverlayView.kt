@@ -53,6 +53,9 @@ class CursorOverlayView(context: Context) : View(context) {
     private var currentX = 0f
     private var currentY = 0f
     private var progressRatio = 0f // 0.0 to 1.0
+    // 이전 레이아웃 좌표 캐시 — 실제로 변한 경우에만 updateViewLayout 호출
+    private var lastLayoutX = Int.MIN_VALUE
+    private var lastLayoutY = Int.MIN_VALUE
 
     // Bounding rect for drawing the arc
     private val arcRect = RectF()
@@ -91,14 +94,17 @@ class CursorOverlayView(context: Context) : View(context) {
         currentX = x
         currentY = y
         progressRatio = progress.coerceIn(0f, 1f)
-        
-        // Update layout params
-        // Offset by center so x,y is the center of the cursor
-        layoutParams.x = (x - layoutParams.width / 2f).toInt()
-        layoutParams.y = (y - layoutParams.height / 2f).toInt()
-        
-        if (parent != null) {
-            windowManager.updateViewLayout(this, layoutParams)
+
+        // 정수 픽셀 좌표가 실제로 바뀐 경우에만 updateViewLayout 호출
+        // (windowManager.updateViewLayout은 네이티브 컴포저 재레이아웃으로 매우 비쌈)
+        val newX = (x - layoutParams.width / 2f).toInt()
+        val newY = (y - layoutParams.height / 2f).toInt()
+        if (newX != lastLayoutX || newY != lastLayoutY) {
+            layoutParams.x = newX
+            layoutParams.y = newY
+            lastLayoutX = newX
+            lastLayoutY = newY
+            if (parent != null) windowManager.updateViewLayout(this, layoutParams)
         }
         invalidate() // Trigger redraw for progress
     }

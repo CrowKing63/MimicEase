@@ -48,11 +48,11 @@ class HeadTracker(context: Context) {
 
     /**
      * Updates the logical cursor position based on head rotation.
+     * 결과는 [currentX], [currentY] 프로퍼티로 읽음 — Pair 할당 없음.
      * @param yaw The yaw value in radians (positive = looking right, negative = looking left)
      * @param pitch The pitch value in radians (positive = looking up, negative = looking down)
-     * @return Pair of (x, y) representing the new cursor coordinates
      */
-    fun updatePosition(yaw: Float, pitch: Float): Pair<Float, Float> {
+    fun updatePosition(yaw: Float, pitch: Float) {
         // 1. Apply deadzone logic
         val activeYaw = applyDeadzone(yaw, deadzone)
         val activePitch = applyDeadzone(pitch, deadzone)
@@ -60,7 +60,7 @@ class HeadTracker(context: Context) {
         // 2. Apply acceleration curve (e.g., x^1.5 while preserving sign)
         val accelYaw = applyAcceleration(activeYaw, acceleration)
         val accelPitch = applyAcceleration(activePitch, acceleration)
-        
+
         // 3. Calculate delta movement (inverse pitch because looking UP corresponds to cursor UP which is negative Y in Android)
         val dx = accelYaw * sensitivityX
         val dy = -accelPitch * sensitivityY
@@ -68,8 +68,6 @@ class HeadTracker(context: Context) {
         // 4. Update and clamp to screen bounds
         currentX = (currentX + dx).coerceIn(0f, screenWidth.toFloat())
         currentY = (currentY + dy).coerceIn(0f, screenHeight.toFloat())
-
-        return Pair(currentX, currentY)
     }
     
     /**
