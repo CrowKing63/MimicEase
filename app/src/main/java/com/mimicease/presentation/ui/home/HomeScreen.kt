@@ -1,18 +1,26 @@
 package com.mimicease.presentation.ui.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -89,17 +97,30 @@ fun HomeScreen(
 
             if (uiState.quickTriggers.isNotEmpty()) {
                 item {
-                    Text(
-                        text = stringResource(R.string.home_quick_triggers),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                items(uiState.quickTriggers) { trigger ->
-                    QuickTriggerCard(
-                        trigger = trigger,
-                        onToggle = { isEnabled -> viewModel.toggleTriggerEnabled(trigger, isEnabled) }
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            text = stringResource(R.string.home_quick_triggers),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        uiState.quickTriggers.chunked(2).forEach { pair ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                pair.forEach { trigger ->
+                                    QuickTriggerCard(
+                                        trigger = trigger,
+                                        onToggle = { isEnabled ->
+                                            viewModel.toggleTriggerEnabled(trigger, isEnabled)
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -110,21 +131,32 @@ fun HomeScreen(
 fun CameraPermissionBanner(onRequestPermission: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Icon(
+                imageVector = Icons.Default.Face,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer
+            )
             Text(
                 text = "카메라 권한이 없습니다. 서비스를 시작하려면 카메라 권한을 허용해 주세요.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onErrorContainer,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier.weight(1f)
             )
-            TextButton(onClick = onRequestPermission) {
-                Text("허용", color = MaterialTheme.colorScheme.onErrorContainer)
+            Button(
+                onClick = onRequestPermission,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary
+                ),
+                shape = MaterialTheme.shapes.extraLarge
+            ) {
+                Text("허용", color = MaterialTheme.colorScheme.onTertiary)
             }
         }
     }
@@ -143,11 +175,26 @@ fun ServiceStatusCard(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = stringResource(R.string.home_service_status),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.align(Alignment.Start)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.home_service_status),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                val statusLabel = when {
+                    !uiState.isServiceRunning -> "중지됨"
+                    uiState.isPaused -> "일시정지"
+                    else -> "실행 중"
+                }
+                Text(
+                    text = statusLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Spacer(modifier = Modifier.height(12.dp))
 
             val (statusColor, statusText) = when {
@@ -156,12 +203,16 @@ fun ServiceStatusCard(
                 else -> Color(0xFF4CAF50) to stringResource(R.string.home_service_running)
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = statusColor,
-                    modifier = Modifier.size(12.dp)
-                ) {}
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(statusColor)
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = statusText, style = MaterialTheme.typography.bodyLarge)
             }
@@ -175,14 +226,17 @@ fun ServiceStatusCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             if (!uiState.isServiceRunning) {
                 Button(
                     onClick = onStartService,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = hasCameraPermission
+                    enabled = hasCameraPermission,
+                    shape = MaterialTheme.shapes.extraLarge
                 ) {
+                    Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(stringResource(R.string.home_start_service))
                 }
             } else {
@@ -192,14 +246,24 @@ fun ServiceStatusCard(
                 ) {
                     FilledTonalButton(
                         onClick = onTogglePause,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        shape = MaterialTheme.shapes.extraLarge
                     ) {
+                        Icon(
+                            if (uiState.isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                            null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(if (uiState.isPaused) stringResource(R.string.home_resume) else stringResource(R.string.home_pause))
                     }
                     OutlinedButton(
                         onClick = onStopService,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        shape = MaterialTheme.shapes.extraLarge
                     ) {
+                        Icon(Icons.Default.Stop, null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(stringResource(R.string.home_stop_service))
                     }
                 }
@@ -251,27 +315,49 @@ fun ActiveProfileCard(
 @Composable
 fun QuickTriggerCard(
     trigger: Trigger,
-    onToggle: (Boolean) -> Unit
+    onToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(modifier = modifier) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
+            modifier = Modifier
+                .padding(horizontal = 12.dp, vertical = 12.dp)
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.Face,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = trigger.name.ifBlank { trigger.blendShape },
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
                     color = if (trigger.isEnabled) MaterialTheme.colorScheme.onSurface
-                            else MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = "→ ${actionDisplayName(trigger.action, context)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = if (trigger.isEnabled) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
             Switch(

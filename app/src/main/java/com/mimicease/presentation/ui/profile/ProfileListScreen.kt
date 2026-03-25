@@ -5,15 +5,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -242,19 +245,51 @@ fun ProfileItemCard(
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            // 이모지 아이콘 박스
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = if (profile.isActive)
+                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)
+                else
+                    MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.size(52.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(text = profile.icon, fontSize = 26.sp)
+                }
+            }
+
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "${profile.icon} ${profile.name}",
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = profile.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (profile.isActive) {
+                        Surface(
+                            shape = MaterialTheme.shapes.extraLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        ) {
+                            Text(
+                                text = "활성",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
                 val triggerCountText = stringResource(R.string.profiles_trigger_count, profile.triggers.size)
-                val activeSuffix = if (profile.isActive) stringResource(R.string.profiles_active_suffix) else ""
                 Text(
-                    text = triggerCountText + activeSuffix,
+                    text = triggerCountText,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (profile.isActive) MaterialTheme.colorScheme.primary
+                    color = if (profile.isActive) MaterialTheme.colorScheme.onPrimaryContainer
                             else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -263,14 +298,15 @@ fun ProfileItemCard(
                 if (!profile.isActive) {
                     OutlinedButton(
                         onClick = onActivate,
-                        modifier = Modifier.padding(end = 8.dp)
+                        modifier = Modifier.padding(end = 4.dp),
+                        shape = MaterialTheme.shapes.extraLarge
                     ) { Text(stringResource(R.string.profiles_select)) }
                 } else {
-                    Text(
-                        stringResource(R.string.profiles_active_check),
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(end = 8.dp)
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(end = 8.dp).size(22.dp)
                     )
                 }
                 

@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -139,19 +140,14 @@ fun ExpressionTestScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Camera feed + mesh overlay (top 1/3 of screen)
+            // Camera feed + mesh overlay (top 1/3 of screen) — HUD 오버레이 내장
             CameraPreviewWithMesh(
                 landmarks = uiState.faceLandmarks,
                 imageSize = uiState.imageSize,
+                isFaceVisible = uiState.isFaceVisible,
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.33f)
-            )
-
-            // Face detection status banner
-            FaceStatusBanner(
-                isFaceVisible = uiState.isFaceVisible,
-                inferenceTimeMs = uiState.inferenceTimeMs
             )
 
             // Top 3 expressions summary
@@ -205,6 +201,7 @@ fun ExpressionTestScreen(
 private fun CameraPreviewWithMesh(
     landmarks: List<NormalizedLandmark>,
     imageSize: Pair<Int, Int>,
+    isFaceVisible: Boolean,
     modifier: Modifier = Modifier
 ) {
     // clipToBounds(): FaceMeshOverlay Canvas coordinates from FILL_CENTER transform can exceed
@@ -232,6 +229,34 @@ private fun CameraPreviewWithMesh(
                 imageSize = imageSize,
                 modifier = Modifier.fillMaxSize()
             )
+        }
+
+        // Live Tracking HUD: isFaceVisible에 따라 색상·텍스트 동적 변경
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(10.dp)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.55f))
+                .padding(horizontal = 12.dp, vertical = 5.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(if (isFaceVisible) Color(0xFF4CAF50) else Color(0xFFE53935))
+                )
+                Text(
+                    text = if (isFaceVisible) "감지 중" else "얼굴 없음",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
