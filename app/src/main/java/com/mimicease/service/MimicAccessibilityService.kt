@@ -8,7 +8,9 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.graphics.Path
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.view.InputDevice
 import android.view.MotionEvent
 import android.view.accessibility.AccessibilityEvent
@@ -25,6 +27,9 @@ class MimicAccessibilityService : AccessibilityService() {
     companion object {
         var instance: MimicAccessibilityService? = null
             private set
+
+        private const val EDGE_PX = 8f          // 화면 끝에서 이 px 이내 → 인터셉트 해제
+        private const val EDGE_REACTIVATE_MS = 2000L  // 해제 후 재활성화까지 대기 시간
     }
 
     private var faceDetectionServiceConnection: ServiceConnection? = null
@@ -144,6 +149,29 @@ class MimicAccessibilityService : AccessibilityService() {
         }
     }
 
+    // ── 가장자리 인터셉트 일시 해제 ────────────────────────────────────────
+    // 마우스가 화면 가장자리에 닿으면 인터셉트를 끄고 삼성 네이티브 가장자리 동작
+    // (네비게이션 바/상태 표시줄 엿보기)이 작동하도록 합니다.
+    // 인터셉트가 꺼진 동안 마우스 클릭은 시스템으로 바로 전달되므로
+    // 네비게이션 바 버튼(홈, 뒤로가기 등)을 마우스로 직접 클릭할 수 있습니다.
+    private val edgeInterceptHandler = Handler(Looper.getMainLooper())
+    private var isEdgeInterceptDisabled = false
+    private val reactivateInterceptRunnable = Runnable {
+        isEdgeInterceptDisabled = false
+        updateMouseInterceptMode(true)
+    }
+
+    private fun checkEdgeAndReleaseIntercept(x: Float, y: Float) {
+        if (isEdgeInterceptDisabled) return  // 이미 해제 상태 — 타이머가 재활성화
+        val dm = resources.displayMetrics
+        val atEdge = x <= EDGE_PX || x >= dm.widthPixels - EDGE_PX
+            || y <= EDGE_PX || y >= dm.heightPixels - EDGE_PX
+        if (!atEdge) return
+        isEdgeInterceptDisabled = true
+        updateMouseInterceptMode(false)
+        edgeInterceptHandler.postDelayed(reactivateInterceptRunnable, EDGE_REACTIVATE_MS)
+    }
+
     // ── 인터셉트 모드: 마우스 이벤트 → 제스처 재주입 ──────────────────────
     private var mouseDownTimeMs = 0L
     private var mouseDownX = 0f
@@ -155,6 +183,7 @@ class MimicAccessibilityService : AccessibilityService() {
             MotionEvent.ACTION_HOVER_MOVE,
             MotionEvent.ACTION_HOVER_ENTER -> {
                 cursorTracker.updateFromHeadTracker(event.x, event.y)
+                checkEdgeAndReleaseIntercept(event.x, event.y)
             }
 
             MotionEvent.ACTION_DOWN -> {
@@ -250,6 +279,7 @@ class MimicAccessibilityService : AccessibilityService() {
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
+        edgeInterceptHandler.removeCallbacksAndMessages(null)
         serviceScope.cancel()
         globalToggleController?.destroy()
         globalToggleController = null
