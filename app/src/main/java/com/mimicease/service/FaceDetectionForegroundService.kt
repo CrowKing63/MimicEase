@@ -636,8 +636,15 @@ class FaceDetectionForegroundService : LifecycleService() {
         // targetServiceState 저장은 호출측(HomeViewModel / MimicAccessibilityService)에서
         // ACTION_STOP 발송 전에 이미 처리한다. 여기서 비동기로 다시 저장하면 빠른 stop→start
         // 시퀀스에서 코루틴이 늦게 실행되어 Stopped 상태를 덮어쓰는 경쟁 조건이 발생한다.
-        updateRuntimeState(ServiceState.Stopped)
+        _serviceState.value = ServiceState.Stopped
+        serviceScope.launch {
+            MimicServiceStateStore.persistRuntimeState(this@FaceDetectionForegroundService, ServiceState.Stopped)
+        }
+        requestTileUpdate()
+        // stopForeground 전에 알림을 명시적으로 제거: updateNotification() 없이 직접 처리하여
+        // 코루틴이 stopForeground 이후 nm.notify()로 알림을 재생성하는 타이밍 버그를 방지
         stopForeground(STOP_FOREGROUND_REMOVE)
+        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(NOTIFICATION_ID)
         stopSelf()
     }
 
@@ -647,6 +654,11 @@ class FaceDetectionForegroundService : LifecycleService() {
 
     private fun updateNotification() {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (_serviceState.value == ServiceState.Stopped) {
+            // Stopped 상태에서는 알림을 재생성하지 말고 명시적으로 제거
+            nm.cancel(NOTIFICATION_ID)
+            return
+        }
         nm.notify(NOTIFICATION_ID, buildNotification())
     }
 

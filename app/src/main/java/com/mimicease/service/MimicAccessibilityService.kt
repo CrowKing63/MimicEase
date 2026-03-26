@@ -274,8 +274,10 @@ class MimicAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() {
+        // 진행 중인 제스처만 취소. pauseAnalysis()는 호출하지 않음 —
+        // 빅스비 등 시스템 UI 호출 시 onInterrupt()가 발동되는데,
+        // 이때 pauseAnalysis()를 호출하면 서비스가 일시정지되어 빅스비 음성 명령이 불가능해짐.
         faceDetectionService?.cancelCurrentGesture()
-        faceDetectionService?.pauseAnalysis()
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
