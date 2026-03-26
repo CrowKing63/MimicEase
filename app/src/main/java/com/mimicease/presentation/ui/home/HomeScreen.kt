@@ -8,11 +8,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -249,12 +247,10 @@ fun ServiceStatusCard(
                         modifier = Modifier.weight(1f),
                         shape = MaterialTheme.shapes.extraLarge
                     ) {
-                        Icon(
-                            if (uiState.isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                            null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        if (uiState.isPaused) {
+                            Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
                         Text(if (uiState.isPaused) stringResource(R.string.home_resume) else stringResource(R.string.home_pause))
                     }
                     OutlinedButton(
@@ -262,8 +258,6 @@ fun ServiceStatusCard(
                         modifier = Modifier.weight(1f),
                         shape = MaterialTheme.shapes.extraLarge
                     ) {
-                        Icon(Icons.Default.Stop, null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
                         Text(stringResource(R.string.home_stop_service))
                     }
                 }
