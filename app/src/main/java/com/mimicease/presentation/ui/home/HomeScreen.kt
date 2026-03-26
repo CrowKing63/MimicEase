@@ -95,30 +95,17 @@ fun HomeScreen(
 
             if (uiState.quickTriggers.isNotEmpty()) {
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(
-                            text = stringResource(R.string.home_quick_triggers),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        uiState.quickTriggers.chunked(2).forEach { pair ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                pair.forEach { trigger ->
-                                    QuickTriggerCard(
-                                        trigger = trigger,
-                                        onToggle = { isEnabled ->
-                                            viewModel.toggleTriggerEnabled(trigger, isEnabled)
-                                        },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                                if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
+                    Text(
+                        text = stringResource(R.string.home_quick_triggers),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                items(uiState.quickTriggers) { trigger ->
+                    QuickTriggerCard(
+                        trigger = trigger,
+                        onToggle = { isEnabled -> viewModel.toggleTriggerEnabled(trigger, isEnabled) }
+                    )
                 }
             }
         }
@@ -309,32 +296,17 @@ fun ActiveProfileCard(
 @Composable
 fun QuickTriggerCard(
     trigger: Trigger,
-    onToggle: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
+    onToggle: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
-    Card(modifier = modifier) {
+    Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 12.dp, vertical = 12.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                modifier = Modifier.size(40.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Default.Face,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = trigger.name.ifBlank { trigger.blendShape },

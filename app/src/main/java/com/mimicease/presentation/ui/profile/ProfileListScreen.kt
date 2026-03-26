@@ -16,7 +16,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -147,9 +146,6 @@ fun ProfileListScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.profiles_title)) },
                 actions = {
-                    IconButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) }) {
-                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.profiles_import)) // Note: Reuse Add icon or find Import icon
-                    }
                     IconButton(onClick = {
                         viewModel.exportProfiles(profiles.map { it.id }) { json ->
                             pendingExportJson = json
@@ -247,20 +243,6 @@ fun ProfileItemCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // 이모지 아이콘 박스
-            Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = if (profile.isActive)
-                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)
-                else
-                    MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(52.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(text = profile.icon, fontSize = 26.sp)
-                }
-            }
-
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -359,46 +341,28 @@ fun ProfileItemCard(
 
 // ─── Create profile dialog ────────────────────────────────────────────────
 
-private val PROFILE_ICONS = listOf("😊","😴","🎮","📺","📖","💼","🏃","✍️","🎵","📱")
-
 @Composable
 fun CreateProfileDialog(
     onConfirm: (name: String, icon: String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
-    var selectedIcon by remember { mutableStateOf("😊") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.profiles_create_dialog_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { if (it.length <= 30) name = it },
-                    label = { Text(stringResource(R.string.profiles_name_label)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Text(stringResource(R.string.profiles_icon_label), style = MaterialTheme.typography.labelMedium)
-                val rowChunks = PROFILE_ICONS.chunked(5)
-                rowChunks.forEach { chunk ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        chunk.forEach { emoji ->
-                            FilterChip(
-                                selected = selectedIcon == emoji,
-                                onClick = { selectedIcon = emoji },
-                                label = { Text(emoji) }
-                            )
-                        }
-                    }
-                }
-            }
+            OutlinedTextField(
+                value = name,
+                onValueChange = { if (it.length <= 30) name = it },
+                label = { Text(stringResource(R.string.profiles_name_label)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
         },
         confirmButton = {
             Button(
-                onClick = { if (name.isNotBlank()) onConfirm(name.trim(), selectedIcon) },
+                onClick = { if (name.isNotBlank()) onConfirm(name.trim(), "") },
                 enabled = name.isNotBlank()
             ) { Text(stringResource(R.string.profiles_create_confirm)) }
         },
