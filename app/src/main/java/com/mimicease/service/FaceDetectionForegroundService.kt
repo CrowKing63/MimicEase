@@ -172,6 +172,14 @@ class FaceDetectionForegroundService : LifecycleService() {
     private lateinit var dwellClickController: DwellClickController
 
     private var isAnalyzing = false
+    // 빅스비 활성화 중 트리거 액션 억제 플래그 — processResults()는 HandlerThread에서 호출되므로 @Volatile
+    @Volatile private var isBixbyActive = false
+    private val bixbyResumeTimeoutRunnable = Runnable {
+        if (isBixbyActive) {
+            Timber.w("빅스비 활성화 타임아웃(30s) — 트리거 억제 자동 해제")
+            isBixbyActive = false
+        }
+    }
     private var activeProfileName: String? = null
     private var currentMode: InteractionMode = InteractionMode.EXPRESSION_ONLY
     private var targetServiceState: ServiceState = ServiceState.Stopped
@@ -289,6 +297,24 @@ class FaceDetectionForegroundService : LifecycleService() {
         globalToggleController = controller
     }
 
+    /**
+     * 빅스비 활성화 상태를 설정합니다.
+     * 활성화 시 표정 트리거 실행을 억제하여 빅스비가 의도치 않게 종료되는 문제를 방지합니다.
+     * 카메라/EMA 분석은 계속 실행되어 빅스비 종료 즉시 반응 가능합니다.
+     * @param active true → 빅스비 활성화(트리거 억제 시작), false → 빅스비 비활성화(트리거 재개)
+     */
+    fun setBixbyActive(active: Boolean) {
+        mainHandler.removeCallbacks(bixbyResumeTimeoutRunnable)
+        isBixbyActive = active
+        if (active) {
+            Timber.i("빅스비 활성화 감지 — 표정 트리거 억제 시작")
+            // 30초 안전 타임아웃: 빅스비 종료 이벤트가 누락되는 경우 자동 해제
+            mainHandler.postDelayed(bixbyResumeTimeoutRunnable, 30_000L)
+        } else {
+            Timber.i("빅스비 비활성화 감지 — 표정 트리거 재개")
+        }
+    }
+
     /** HEAD_MOUSE 커서를 화면 중앙으로 리셋합니다. */
     fun recenterCursor() {
         if (::headTracker.isInitialized) headTracker.recenter()
@@ -395,6 +421,10 @@ class FaceDetectionForegroundService : LifecycleService() {
         if (globalToggleController?.checkExpressionToggle(smoothed) == true) {
             return  // 토글이 발동되면 이번 프레임의 다른 트리거는 무시
         }
+
+        // 빅스비 활성화 중에는 트리거 액션 억제 — 접근성 액션 실행이 빅스비를 종료하는 문제 방지
+        // (카메라/EMA/HEAD_MOUSE 커서는 계속 동작하여 빅스비 종료 즉시 재개 가능)
+        if (isBixbyActive) return
 
         val actions = matcher.match(smoothed)
 
@@ -725,6 +755,7 @@ class FaceDetectionForegroundService : LifecycleService() {
         requestTileUpdate()
         // cursorOverlayView는 Main thread에서 해제 — serviceScope.cancel() 이전에 처리해야 합니다.
         // cancel 이후 serviceScope.launch()는 즉시 CancellationException으로 실패합니다.
+        mainHandler.removeCallbacks(bixbyResumeTimeoutRunnable)
         if (::cursorOverlayView.isInitialized) {
             ContextCompat.getMainExecutor(this).execute { cursorOverlayView.hide() }
         }

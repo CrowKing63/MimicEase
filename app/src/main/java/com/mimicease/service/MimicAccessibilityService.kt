@@ -128,13 +128,18 @@ class MimicAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
-        // 빅스비 관련 패키지 이벤트는 무시 — 접근성 서비스가 빅스비 창을 건드리면
-        // Samsung 기기에서 빅스비가 즉시 종료되는 충돌이 발생함
         val pkg = event.packageName?.toString() ?: ""
-        if (pkg.startsWith("com.samsung.android.bixby") ||
-            pkg.startsWith("com.samsung.android.app.spage")) {
-            return
+        val isBixbyPkg = pkg.startsWith("com.samsung.android.bixby") ||
+            pkg.startsWith("com.samsung.android.app.spage")
+
+        // 창 전환 이벤트로 빅스비 활성화 상태를 추적 → 빅스비 활성 중 트리거 억제
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            faceDetectionService?.setBixbyActive(isBixbyPkg)
         }
+
+        // 빅스비 관련 패키지 이벤트는 cursorTracker에 전달하지 않음 —
+        // 접근성 서비스가 빅스비 창을 건드리면 Samsung 기기에서 빅스비가 즉시 종료됨
+        if (isBixbyPkg) return
         cursorTracker.onAccessibilityEvent(event)
     }
 
