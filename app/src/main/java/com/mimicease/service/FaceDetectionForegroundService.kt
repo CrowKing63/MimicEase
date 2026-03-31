@@ -174,10 +174,16 @@ class FaceDetectionForegroundService : LifecycleService() {
     private var isAnalyzing = false
     // 빅스비 활성화 중 트리거 액션 억제 플래그 — processResults()는 HandlerThread에서 호출되므로 @Volatile
     @Volatile private var isBixbyActive = false
+    // 빅스비 비활성화 지연 해제 — 명령 실행 중 중간 window 이벤트로 인한 오해제 방지 (2초 debounce)
+    private val bixbyDeactivateRunnable = Runnable {
+        isBixbyActive = false
+        Timber.i("빅스비 비활성화 확인 — 표정 트리거 재개")
+    }
     private val bixbyResumeTimeoutRunnable = Runnable {
         if (isBixbyActive) {
             Timber.w("빅스비 활성화 타임아웃(30s) — 트리거 억제 자동 해제")
             isBixbyActive = false
+            mainHandler.removeCallbacks(bixbyDeactivateRunnable)
         }
     }
     private var activeProfileName: String? = null
@@ -304,14 +310,19 @@ class FaceDetectionForegroundService : LifecycleService() {
      * @param active true → 빅스비 활성화(트리거 억제 시작), false → 빅스비 비활성화(트리거 재개)
      */
     fun setBixbyActive(active: Boolean) {
-        mainHandler.removeCallbacks(bixbyResumeTimeoutRunnable)
-        isBixbyActive = active
         if (active) {
+            // 빅스비 활성화: 즉시 억제 시작, 지연 해제 예약 취소, 30초 안전 타임아웃 재설정
+            mainHandler.removeCallbacks(bixbyDeactivateRunnable)
+            mainHandler.removeCallbacks(bixbyResumeTimeoutRunnable)
+            isBixbyActive = true
             Timber.i("빅스비 활성화 감지 — 표정 트리거 억제 시작")
-            // 30초 안전 타임아웃: 빅스비 종료 이벤트가 누락되는 경우 자동 해제
             mainHandler.postDelayed(bixbyResumeTimeoutRunnable, 30_000L)
         } else {
-            Timber.i("빅스비 비활성화 감지 — 표정 트리거 재개")
+            // 빅스비 비활성화: 즉시 해제하지 않고 2초 지연 후 해제
+            // 이유: 빅스비 명령 실행 중 중간 window state change(대상 앱 등)에서 비활성화 이벤트가
+            //       오면 Bixby가 아직 살아있는데도 트리거가 재활성화되어 명령 실행을 방해함.
+            mainHandler.removeCallbacks(bixbyDeactivateRunnable)
+            mainHandler.postDelayed(bixbyDeactivateRunnable, 2_000L)
         }
     }
 
@@ -395,8 +406,8 @@ class FaceDetectionForegroundService : LifecycleService() {
             val cx = headTracker.currentX
             val cy = headTracker.currentY
             MimicAccessibilityService.instance?.cursorTracker?.updateFromHeadTracker(cx, cy)
-            // Dwell click은 설정이 활성화된 경우에만 동작
-            val progress = if (dwellClickEnabled && ::dwellClickController.isInitialized) {
+            // Dwell click은 설정이 활성화된 경우에만 동작. 빅스비 활성 중에는 억제
+            val progress = if (dwellClickEnabled && ::dwellClickController.isInitialized && !isBixbyActive) {
                 dwellClickController.update(cx, cy, System.currentTimeMillis())
             } else 0f
             mainHandler.post {
@@ -756,6 +767,7 @@ class FaceDetectionForegroundService : LifecycleService() {
         // cursorOverlayView는 Main thread에서 해제 — serviceScope.cancel() 이전에 처리해야 합니다.
         // cancel 이후 serviceScope.launch()는 즉시 CancellationException으로 실패합니다.
         mainHandler.removeCallbacks(bixbyResumeTimeoutRunnable)
+        mainHandler.removeCallbacks(bixbyDeactivateRunnable)
         if (::cursorOverlayView.isInitialized) {
             ContextCompat.getMainExecutor(this).execute { cursorOverlayView.hide() }
         }
