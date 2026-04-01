@@ -458,7 +458,7 @@ public class FaceLandmarkerHelper extends HandlerThread {
 
         // There might be some image processing.
         isRunning = false;
-        if (currentInWorks < 0) {
+        if (currentInWorks <= 0) {
             ensurePauseThread();
         }
     }

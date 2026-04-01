@@ -14,8 +14,8 @@ android {
         applicationId = "com.mimicease"
         minSdk = 29
         targetSdk = 35
-        versionCode = 32
-        versionName = "1.5.12"
+        versionCode = 33
+        versionName = "1.5.13"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
