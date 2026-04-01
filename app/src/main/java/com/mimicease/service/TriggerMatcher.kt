@@ -20,6 +20,15 @@ class TriggerMatcher(
     // 매 호출마다 새 List 할당 방지 — 액션이 발동될 때만 toList() 복사
     private val resultBuffer = mutableListOf<Action>()
 
+    /**
+     * 홀드 타이머와 활성 프레임 카운터를 초기화합니다.
+     * 빅스비 비활성화 시 호출하여 빅스비 활성화 이전에 누적된 타이머로 인한 즉발 트리거를 방지합니다.
+     */
+    fun clearHoldTimers() {
+        holdStartTime.clear()
+        activeFrameCount.clear()
+    }
+
     fun match(smoothedValues: Map<String, Float>): List<Action> {
         val now = System.currentTimeMillis()
         resultBuffer.clear()

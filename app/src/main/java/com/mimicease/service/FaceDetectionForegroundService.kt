@@ -174,10 +174,15 @@ class FaceDetectionForegroundService : LifecycleService() {
     private var isAnalyzing = false
     // 빅스비 활성화 중 트리거 액션 억제 플래그 — processResults()는 HandlerThread에서 호출되므로 @Volatile
     @Volatile private var isBixbyActive = false
-    // 빅스비 비활성화 지연 해제 — 명령 실행 중 중간 window 이벤트로 인한 오해제 방지 (2초 debounce)
+    // 빅스비 비활성화 지연 해제 — 명령 실행 완료 후 EMA·홀드타이머 초기화 포함
     private val bixbyDeactivateRunnable = Runnable {
         isBixbyActive = false
-        Timber.i("빅스비 비활성화 확인 — 표정 트리거 재개")
+        // EMA 초기화: 빅스비 사용 중 누적된 높은 EMA 값으로 즉시 트리거 발동되는 문제 방지
+        expressionAnalyzer.reset()
+        // 홀드 타이머 초기화: 빅스비 활성화 이전에 시작된 타이머가 만료 상태로 남아
+        // isBixbyActive=false 순간 holdElapsed > holdDurationMs → 즉발 트리거가 되는 문제 방지
+        triggerMatcher?.clearHoldTimers()
+        Timber.i("빅스비 비활성화 — 트리거 재개, EMA/홀드타이머 초기화")
     }
     private val bixbyResumeTimeoutRunnable = Runnable {
         if (isBixbyActive) {
@@ -431,16 +436,18 @@ class FaceDetectionForegroundService : LifecycleService() {
         val matcher = triggerMatcher
         if (matcher == null || !::actionExecutor.isInitialized) return
 
+        // 빅스비 활성화 중: EMA 처리 포함 모든 표정 분석 건너뜀
+        // - EMA를 빅스비 활성 중 갱신하지 않으면 비활성화 시 bixbyDeactivateRunnable에서
+        //   reset()이 호출되어 사전 빅스비 상태(중립)로 돌아감 → 즉발 트리거 방지
+        // - 글로벌 토글도 억제하여 빅스비 음성 인식 중 의도치 않은 서비스 상태 전환 방지
+        if (isBixbyActive) return
+
         val smoothed = expressionAnalyzer.processSmoothed(rawValues)
 
         // 글로벌 토글: 표정 채널 검사 (트리거 매칭보다 먼저)
         if (globalToggleController?.checkExpressionToggle(smoothed) == true) {
             return  // 토글이 발동되면 이번 프레임의 다른 트리거는 무시
         }
-
-        // 빅스비 활성화 중에는 트리거 액션 억제 — 접근성 액션 실행이 빅스비를 종료하는 문제 방지
-        // (카메라/EMA/HEAD_MOUSE 커서는 계속 동작하여 빅스비 종료 즉시 재개 가능)
-        if (isBixbyActive) return
 
         val actions = matcher.match(smoothed)
 
