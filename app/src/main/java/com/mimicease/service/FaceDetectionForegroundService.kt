@@ -172,23 +172,57 @@ class FaceDetectionForegroundService : LifecycleService() {
     private lateinit var dwellClickController: DwellClickController
 
     private var isAnalyzing = false
+    // 빅스비 활성화 중 카메라를 일시 정지했는지 추적 — 사용자가 수동 정지한 것과 구별
+    private var cameraPausedForBixby = false
     // 빅스비 활성화 중 트리거 액션 억제 플래그 — processResults()는 HandlerThread에서 호출되므로 @Volatile
     @Volatile private var isBixbyActive = false
-    // 빅스비 비활성화 지연 해제 — 명령 실행 완료 후 EMA·홀드타이머 초기화 포함
-    private val bixbyDeactivateRunnable = Runnable {
-        isBixbyActive = false
-        // EMA 초기화: 빅스비 사용 중 누적된 높은 EMA 값으로 즉시 트리거 발동되는 문제 방지
-        expressionAnalyzer.reset()
-        // 홀드 타이머 초기화: 빅스비 활성화 이전에 시작된 타이머가 만료 상태로 남아
-        // isBixbyActive=false 순간 holdElapsed > holdDurationMs → 즉발 트리거가 되는 문제 방지
-        triggerMatcher?.clearHoldTimers()
-        Timber.i("빅스비 비활성화 — 트리거 재개, EMA/홀드타이머 초기화")
+
+    /**
+     * 빅스비 활성화 시 카메라·MediaPipe를 일시 정지합니다.
+     * updateRuntimeState()를 호출하지 않아 사용자가 보는 서비스 상태(알림/홈화면)는 그대로 유지됩니다.
+     */
+    private fun pauseCameraForBixby() {
+        if (isAnalyzing && !cameraPausedForBixby) {
+            cameraPausedForBixby = true
+            isAnalyzing = false
+            faceLandmarkerHelper.pauseThread()
+            unbindCamera()
+            Timber.i("빅스비용 카메라 일시 정지 — MediaPipe CPU 해제")
+        }
     }
+
+    /**
+     * 빅스비 비활성화 시 카메라·MediaPipe를 재시작합니다.
+     * pauseCameraForBixby()로 정지된 경우에만 재시작하며, 사용자가 수동 정지한 상태는 유지합니다.
+     */
+    private fun resumeCameraForBixby() {
+        if (cameraPausedForBixby) {
+            cameraPausedForBixby = false
+            if (targetServiceState == ServiceState.Running) {
+                faceLandmarkerHelper.resumeThread()
+                isAnalyzing = true
+                setupCamera()
+                Timber.i("빅스비용 카메라 재시작")
+            }
+        }
+    }
+
+    private fun deactivateBixby() {
+        isBixbyActive = false
+        expressionAnalyzer.reset()
+        triggerMatcher?.clearHoldTimers()
+        resumeCameraForBixby()
+        Timber.i("빅스비 비활성화 — 카메라 재시작, EMA/홀드타이머 초기화")
+    }
+
+    // 빅스비 비활성화 지연 해제 — 명령 실행 완료 대기 후 카메라 재시작
+    private val bixbyDeactivateRunnable = Runnable { deactivateBixby() }
+
     private val bixbyResumeTimeoutRunnable = Runnable {
         if (isBixbyActive) {
-            Timber.w("빅스비 활성화 타임아웃(30s) — 트리거 억제 자동 해제")
-            isBixbyActive = false
+            Timber.w("빅스비 활성화 타임아웃(30s) — 자동 해제")
             mainHandler.removeCallbacks(bixbyDeactivateRunnable)
+            deactivateBixby()
         }
     }
     private var activeProfileName: String? = null
@@ -311,19 +345,19 @@ class FaceDetectionForegroundService : LifecycleService() {
     /**
      * 빅스비 활성화 상태를 설정합니다.
      * 활성화 시 표정 트리거 실행을 억제하여 빅스비가 의도치 않게 종료되는 문제를 방지합니다.
-     * 카메라/EMA 분석은 계속 실행되어 빅스비 종료 즉시 반응 가능합니다.
-     * @param active true → 빅스비 활성화(트리거 억제 시작), false → 빅스비 비활성화(트리거 재개)
+     * 빅스비 활성화 시 카메라와 MediaPipe를 완전히 정지하여 CPU/GPU 리소스 경합을 제거합니다.
+     * @param active true → 빅스비 활성화(카메라 정지 + 트리거 억제), false → 빅스비 비활성화(카메라 재시작)
      */
     fun setBixbyActive(active: Boolean) {
         if (active) {
             // 빅스비 이벤트 수신: 항상 비활성화 타이머를 취소하여 억제 상태 유지
             mainHandler.removeCallbacks(bixbyDeactivateRunnable)
             if (!isBixbyActive) {
-                // 비활성 → 활성 전환 시에만 플래그 설정 및 30초 안전 타임아웃 등록
-                // (이미 활성 상태에서 재호출될 때 30초 타이머를 불필요하게 재설정하지 않음)
+                // 비활성 → 활성 전환 시에만 플래그 설정 및 카메라 정지
                 mainHandler.removeCallbacks(bixbyResumeTimeoutRunnable)
                 isBixbyActive = true
-                Timber.i("빅스비 활성화 감지 — 표정 트리거 억제 시작")
+                Timber.i("빅스비 활성화 — 카메라 일시 정지")
+                pauseCameraForBixby()
                 mainHandler.postDelayed(bixbyResumeTimeoutRunnable, 30_000L)
             }
         } else {
