@@ -311,18 +311,23 @@ class FaceDetectionForegroundService : LifecycleService() {
      */
     fun setBixbyActive(active: Boolean) {
         if (active) {
-            // 빅스비 활성화: 즉시 억제 시작, 지연 해제 예약 취소, 30초 안전 타임아웃 재설정
+            // 빅스비 이벤트 수신: 항상 비활성화 타이머를 취소하여 억제 상태 유지
             mainHandler.removeCallbacks(bixbyDeactivateRunnable)
-            mainHandler.removeCallbacks(bixbyResumeTimeoutRunnable)
-            isBixbyActive = true
-            Timber.i("빅스비 활성화 감지 — 표정 트리거 억제 시작")
-            mainHandler.postDelayed(bixbyResumeTimeoutRunnable, 30_000L)
+            if (!isBixbyActive) {
+                // 비활성 → 활성 전환 시에만 플래그 설정 및 30초 안전 타임아웃 등록
+                // (이미 활성 상태에서 재호출될 때 30초 타이머를 불필요하게 재설정하지 않음)
+                mainHandler.removeCallbacks(bixbyResumeTimeoutRunnable)
+                isBixbyActive = true
+                Timber.i("빅스비 활성화 감지 — 표정 트리거 억제 시작")
+                mainHandler.postDelayed(bixbyResumeTimeoutRunnable, 30_000L)
+            }
         } else {
-            // 빅스비 비활성화: 즉시 해제하지 않고 2초 지연 후 해제
-            // 이유: 빅스비 명령 실행 중 중간 window state change(대상 앱 등)에서 비활성화 이벤트가
-            //       오면 Bixby가 아직 살아있는데도 트리거가 재활성화되어 명령 실행을 방해함.
+            // 비-빅스비 창 전환: 5초 후 비활성화 예약
+            // - 5초로 설정한 이유: 빅스비 명령 실행(앱 열기 등) 중 중간 window event가
+            //   발생해도 명령 완료 전에 트리거가 재활성화되지 않도록 충분한 여유를 확보
+            // - 빅스비 이벤트가 5초 이내에 다시 오면 removeCallbacks로 타이머가 취소됨
             mainHandler.removeCallbacks(bixbyDeactivateRunnable)
-            mainHandler.postDelayed(bixbyDeactivateRunnable, 2_000L)
+            mainHandler.postDelayed(bixbyDeactivateRunnable, 5_000L)
         }
     }
 
