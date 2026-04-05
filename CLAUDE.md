@@ -4,36 +4,21 @@
 
 **MimicEase**는 ALS, 뇌성마비, 척수 손상 등 심각한 신체 장애를 가진 사용자가 얼굴 표정으로 스마트폰을 제어할 수 있도록 하는 Android 접근성 앱입니다. Google Project GameFace(MediaPipe Face Landmarker)를 활용해 52개의 얼굴 BlendShape를 실시간으로 분석하며, 모든 처리는 온디바이스(서버 통신 없음)로 이루어집니다.
 
+기술 스택: Kotlin 2.0.21 · Jetpack Compose + Material 3 · MVVM + Clean Architecture · MediaPipe 0.10.8 · CameraX 1.4.0 · Room 2.6.1 · Hilt 2.51.1 · DataStore 1.1.1 · minSdk 29 / targetSdk 35 → 상세: `docs/02_tech_stack.md`
+
 ## 저장소 구조
 
 ```
-MimicEase/
-├── app/                              # 메인 앱 모듈
-│   └── src/main/java/com/mimicease/
-│       ├── data/                     # 데이터 레이어 (Room DB, DataStore, Repository 구현체)
-│       │   ├── local/                # Room Entities, Daos, AppSettingsDataStore
-│       │   ├── model/                # ActionSerializer (Gson 직렬화)
-│       │   └── repository/           # ProfileRepositoryImpl, TriggerRepositoryImpl, SettingsRepositoryImpl
-│       ├── domain/                   # 도메인 레이어 (순수 Kotlin, Android 비의존)
-│       │   ├── model/                # Profile, Trigger, Action, InteractionMode, ModeManager
-│       │   └── repository/           # Repository 인터페이스
-│       ├── presentation/             # 프레젠테이션 레이어 (Compose UI + ViewModel)
-│       │   └── ui/                   # home, onboarding, profile, settings, test
-│       ├── service/                  # 백그라운드 서비스 및 핵심 로직
-│       ├── di/                       # Hilt DI 모듈
-│       ├── navigation/               # Compose 네비게이션 그래프 (MimicNavGraph)
-│       └── ui/theme/                 # Material3 테마 (Color, Theme, Type)
-├── gameFace/                         # GameFace 라이브러리 모듈 (얼굴 인식 엔진)
-│   └── src/main/java/com/mimicease/gameface/
-│       └── FaceLandmarkerHelper.java # MediaPipe 핵심 얼굴 감지 (Java)
-├── scripts/                          # Windows ADB 인스톨러 (GitHub Releases에 포함)
-│   ├── install.bat                   # 런처 — UTF-8 콘솔, 에러 시 창 유지
-│   ├── install.ps1                   # 메인 인스톨러 — UTF-8 BOM 필수 (PS5.1 한글 파싱)
-│   └── INSTALL_GUIDE.md              # 영/한 이중 언어 설치 가이드
-├── docs/                             # 상세 문서 (12개 마크다운 파일)
-├── gradle/
-│   └── libs.versions.toml            # Gradle 버전 카탈로그
-└── MimicEase_사양서.md               # 한국어 사양서
+app/src/main/java/com/mimicease/
+├── data/         # Room DB, DataStore, Repository 구현체
+├── domain/       # 순수 Kotlin 도메인 레이어 (Android 비의존)
+├── presentation/ # Compose UI + ViewModel
+├── service/      # 백그라운드 서비스 및 핵심 로직
+├── di/           # Hilt DI 모듈
+└── navigation/   # MimicNavGraph
+gameFace/         # FaceLandmarkerHelper.java (MediaPipe, Java)
+scripts/          # Windows ADB 인스톨러 (install.bat, install.ps1)
+docs/             # 상세 문서 12개 → docs/00_INDEX.md 참조
 ```
 
 ### 핵심 서비스 & 컴포넌트
@@ -45,7 +30,7 @@ MimicEase/
 | `ExpressionAnalyzer.kt` | EMA 필터 적용 (alpha 설정 가능, 연속 프레임 카운터 포함) |
 | `TriggerMatcher.kt` | 임계값 + holdDuration + 쿨다운 기반 트리거 매칭 |
 | `ActionExecutor.kt` | 접근성 액션 실행 (GestureDescription, Intent, AudioManager, 커서 액션) |
-| `GlobalToggleController.kt` | 다중 채널 글로벌 토글 (키조합/표정/브로드캐스트) + TTS/진동 피드백 |
+| `GlobalToggleController.kt` | 다중 채널 글로벌 토글 (표정/브로드캐스트) + TTS/진동 피드백 |
 | `HeadTracker.kt` | 머리 yaw/pitch → 화면 커서 좌표 변환 (데드존 + 가속) |
 | `CursorOverlayView.kt` | HEAD_MOUSE 모드 오버레이 커서 UI |
 | `DwellClickController.kt` | 드웰 클릭 (일정 시간 정지 → 자동 탭) |
@@ -58,28 +43,15 @@ MimicEase/
 
 ```
 Camera (ImageProxy)
-  ↓
-FaceLandmarkerHelper (GameFace)  [52 BlendShapes + transformMatrix]
-  ↓
-ExpressionAnalyzer  [EMA 필터]
-  ↓
-GlobalToggleController.checkExpressionToggle()  [토글 먼저 확인]
-  ↓
-TriggerMatcher  [임계값 + holdDuration + 쿨다운]
-  ↓ (EXPRESSION_ONLY 모드)
-ActionExecutor  [GestureDescription, Intent, AudioManager]
-  ↓
-MimicAccessibilityService
-  ↓
-시스템 액션 (뒤로가기, 홈, 제스처, 앱 실행, 미디어 제어)
+  ↓ FaceLandmarkerHelper (GameFace)  [52 BlendShapes + transformMatrix]
+  ↓ ExpressionAnalyzer  [EMA 필터]
+  ↓ GlobalToggleController.checkExpressionToggle()  [토글 먼저 확인]
+  ↓ TriggerMatcher  [임계값 + holdDuration + 쿨다운]
+  ↓ ActionExecutor  [GestureDescription, Intent, AudioManager]
+  ↓ MimicAccessibilityService → 시스템 액션
 
-HEAD_MOUSE 모드 추가 경로:
-  ↓ (transformMatrix에서 yaw/pitch 추출)
-HeadTracker  [데드존 + 가속 + 화면 좌표 변환]
-  ↓
-DwellClickController  [드웰 진행도 계산]
-  ↓
-CursorOverlayView  [오버레이 커서 표시]
+HEAD_MOUSE 추가 경로:
+  transformMatrix → HeadTracker [데드존+가속] → DwellClickController → CursorOverlayView
 ```
 
 ### 상호작용 모드 (`InteractionMode`)
@@ -90,47 +62,17 @@ CursorOverlayView  [오버레이 커서 표시]
 | `CURSOR_CLICK` | BT 마우스로 커서 이동, 표정으로 클릭 | 없음 (전체 허용) |
 | `HEAD_MOUSE` | 머리 움직임으로 커서 제어 + 드웰 클릭 | TapCenter, TapCustom, DoubleTap, LongPress |
 
-## 기술 스택
-
-- **언어**: Kotlin 2.0.21
-- **UI**: Jetpack Compose + Material 3
-- **아키텍처**: MVVM + Clean Architecture (Data / Domain / Presentation 3계층)
-- **얼굴 인식**: Google Project GameFace + MediaPipe Face Landmarker 0.10.8
-- **카메라**: CameraX 1.4.0
-- **데이터베이스**: Room 2.6.1
-- **의존성 주입**: Hilt 2.51.1
-- **비동기**: Kotlin Coroutines + Flow
-- **설정 저장**: DataStore Preferences 1.1.1
-- **직렬화**: Gson 2.11.0
-- **로깅**: Timber 5.0.1
-- **최소 SDK**: Android API 29 / 타겟 SDK API 35
-
-## 빌드 및 테스트 명령어
+## 빌드 및 테스트
 
 ```bash
-# 클린 빌드
-./gradlew clean build
-
-# 디버그 APK 빌드
-./gradlew assembleDebug
-
-# 릴리즈 APK 빌드
-./gradlew assembleRelease
-
-# Kotlin 컴파일만 빠르게 검증 (APK 빌드 없이)
-./gradlew :app:compileDebugKotlin
-
-# 유닛 테스트 실행
-./gradlew test
-
-# 앱 모듈 유닛 테스트
-./gradlew :app:test
-
-# 기기/에뮬레이터에 설치
-./gradlew installDebug
+./gradlew assembleDebug          # 디버그 APK
+./gradlew assembleRelease        # 릴리즈 APK
+./gradlew :app:compileDebugKotlin # Kotlin 컴파일만 빠르게 검증
+./gradlew :app:test              # 유닛 테스트 (3개, 전체 통과)
+./gradlew installDebug           # 기기 설치
 ```
 
-> **참고**: 기기 연결 없이는 계측 테스트(`connectedAndroidTest`)를 실행할 수 없습니다.
+> Windows에서 `Unable to establish loopback connection` 오류 시: `./gradlew --stop` 후 재시도.
 
 ## 개발 규칙
 
@@ -140,31 +82,7 @@ CursorOverlayView  [오버레이 커서 표시]
 - **Repository 패턴**: UI는 직접 데이터 소스에 접근하지 않습니다.
 
 ### 코드 스타일
-- Kotlin 관용구(코틀린스러운 코드) 사용
-- 새로운 UI 컴포넌트는 Jetpack Compose로 작성
-- DI는 반드시 Hilt 사용
-- 비동기 처리는 Coroutines + Flow 사용
-
-### 주요 함정 (Gotchas)
-
-- **SystemClock 금지**: `service/` 레이어에서 `android.os.SystemClock` 사용 금지 — JVM 유닛 테스트에서 "not mocked" 예외 발생. `System.currentTimeMillis()` 사용. `TriggerMatcher`, `ExpressionAnalyzer`, `DwellClickController`, `GlobalToggleController` 모두 수정 완료.
-- **ViewModel 위치**: ViewModel 클래스가 각 화면 파일과 동일한 `.kt` 파일에 정의됨 (예: `ExpressionTestScreen.kt` 내 `ExpressionTestViewModel`, `SettingsScreen.kt` 내 `SettingsViewModel`)
-- **Java 모듈**: `gameFace/` 모듈의 `FaceLandmarkerHelper`는 Java로 작성됨 (Kotlin 아님)
-- **TalkBack 공존**: `onAccessibilityEvent()`에서 이벤트를 consume하지 말 것 — TalkBack과 체인 유지
-- **카메라 충돌**: 다른 앱 카메라 사용 시 `CameraState.ERROR_CAMERA_IN_USE` 감지 후 `pauseAnalysis()` 호출
-- **서비스 재시작**: `onStartCommand()`에서 `intent`가 null일 수 있음 (`START_STICKY` 재시작 시)
-- **FaceDetectionForegroundService 초기화 순서**: `startForeground()`는 `onCreate()` 초반에 호출해야 5초 타임아웃 방지. MediaPipe 모델 로딩은 `Handler(faceLandmarkerHelper.looper).post { init() }`로 HandlerThread에서 비동기 실행
-- **Navigation triggerId**: `triggerEdit/{profileId}/{triggerId}` 라우트에서 `triggerId`는 `TriggerEditViewModel`의 `SavedStateHandle`에 Navigation이 자동 주입함. 명시적 추출 코드(`backStackEntry.arguments?.getString("triggerId")`)를 추가하여 null 라우팅 방지 완료.
-- **PS5.1 UTF-8 BOM**: `install.ps1`은 반드시 UTF-8 BOM(`EF BB BF`)으로 저장해야 함 — BOM 없는 UTF-8은 PS5.1에서 한글 파싱 오류로 즉시 종료. `New-Object System.Text.UTF8Encoding $true`로 저장.
-- **ADB + $ErrorActionPreference**: `$ErrorActionPreference = "Stop"` + ADB는 치명적 조합 — ADB는 성공 시에도 stderr에 메시지를 쓰므로 `NativeCommandError`로 스크립트가 종료됨. 반드시 `"Continue"` 사용, 에러 판정은 `$LASTEXITCODE`로.
-- **PowerShell 파이프라인 단일 항목**: `$lines = & adb devices | Where-Object { ... }`에서 결과가 1개이면 배열이 아닌 문자열 반환 — `$lines[0]`이 문자열 첫 번째 **문자**를 반환함(예: IP `192.168...`의 `'1'`). 반드시 `@(& adb devices | Where-Object { ... })`로 강제 배열.
-- **자동 업데이트 제거 완료 (v1.4.0)**: `CheckForUpdateUseCase`, `UpdateRepositoryImpl`, `UpdateRepository`, `SettingsViewModel.UpdateUiState` 전부 삭제됨. 이 기능은 복원하지 않음 — 앱은 GitHub에서만 배포되며 네트워크 기능 불필요.
-- **볼륨 키 조합 토글 제거 완료 (v1.4.1)**: `handleKeyEvent()`, `onKeyEvent()`, `flagRequestFilterKeyEvents`, `canRequestFilterKeyEvents`, `toggleByKeyCombo`, `toggleKeyHoldMs` 전부 삭제됨. 복원하지 말 것 — 키 이벤트 파이프라인 개입이 빅스비 TTS 초기화 크래시를 유발함. `GlobalToggleController`는 표정/브로드캐스트 채널만 지원.
-- **versionName 필수 동기화**: `app/build.gradle.kts`의 `versionName`이 `BuildConfig.VERSION_NAME`의 기준값 — 릴리즈 태그 배포 시 반드시 함께 업데이트.
-- **라이브러리 manifest 권한 병합**: 의존성 라이브러리가 `INTERNET`/`ACCESS_NETWORK_STATE`를 자체 manifest에 선언해 자동 병합될 수 있음. 앱에서 불필요한 권한은 `<uses-permission android:name="android.permission.INTERNET" tools:node="remove" />`로 명시적 차단 필요.
-- **DataStore 싱글턴 — applicationContext 필수**: `MimicServiceStateStore`처럼 Service context를 받는 코드에서 `context.appSettingsDataStore`를 직접 호출하면 `SettingsRepositoryImpl`(@ApplicationContext)과 별개 인스턴스가 생성 → `IllegalStateException: multiple DataStores active for the same file` 크래시. 반드시 `context.applicationContext.appSettingsDataStore` 사용.
-- **카메라 권한 없이 접근성 서비스 활성화**: 카메라 권한 미허용 상태로 `MimicAccessibilityService`가 활성화되면 앱이 "작동 안 함"으로 표시됨. 온보딩에서 카메라 권한이 거부된 경우 `shouldShowRationale`로 감지해 앱 설정 화면으로 안내.
-- **Gradle loopback 오류(Windows)**: Windows 환경에서 Gradle 데몬 기동 시 `java.io.IOException: Unable to establish loopback connection` 발생 가능 — `./gradlew --stop` 후 재시도. 지속되면 방화벽/VPN 확인.
+- Kotlin 관용구 사용 · 새 UI는 Jetpack Compose · DI는 Hilt · 비동기는 Coroutines + Flow
 
 ### 주요 도메인 모델
 
@@ -173,51 +91,26 @@ CursorOverlayView  [오버레이 커서 표시]
 - `Action` (sealed class) — 35+ 액션 타입 (시스템, 제스처, 커서, 앱 실행, 미디어 제어, 스위치)
 - `InteractionMode` — EXPRESSION_ONLY / CURSOR_CLICK / HEAD_MOUSE
 - `AppSettings` — DataStore 설정 (EMA, 모드, 글로벌 토글, 헤드마우스, 드웰 등)
-- **BlendShape 전체 목록**: `ExpressionTestScreen.kt`의 `BLENDSHAPE_DISPLAY_NAMES`가 52개 정규 출처 — 다른 파일에서 BlendShape 목록 유지 시 이 맵 기준으로 동기화
+- **BlendShape 정규 출처**: `presentation/ui/common/BlendShapeUtils.kt`의 `BLENDSHAPE_DISPLAY_NAMES` (52개)
 
-### SettingsScreen 구성 (전체 섹션)
+### 주요 함정 (Gotchas)
 
-1. **상호작용 모드** — RadioButton으로 EXPRESSION_ONLY / CURSOR_CLICK / HEAD_MOUSE 전환
-2. **헤드 마우스** — 감도(0.5~3.0x), 데드존(0.0~0.1 rad) 슬라이더
-3. **드웰 클릭** — 활성화 스위치, 대기시간(500~3000ms), 반경(10~100px) 슬라이더 (비활성 시 슬라이더 dim)
-4. **글로벌 토글** — 표정(오발동 경고) / 브로드캐스트 스위치 (볼륨키 조합 제거됨)
-5. **감지 설정** — EMA α, 연속 프레임
-6. **알림 설정** — 포그라운드 알림 스위치
-7. **시스템** — 접근성 서비스 상태, 배터리 최적화 제외
-8. **기타** — 개발자 모드, 버전, 튜토리얼 다시보기
-
-### 권한
-
-앱은 다음 권한이 필요합니다:
-- `CAMERA` — 얼굴 감지
-- `FOREGROUND_SERVICE` — 백그라운드 실행
-- `FOREGROUND_SERVICE_CAMERA` — 포그라운드 카메라 사용
-- `VIBRATE` — 토글 시 진동 피드백
-- 접근성 서비스 활성화 — 사용자가 직접 설정에서 활성화 필요
-
-## 유닛 테스트 현황
-
-`app/src/test/java/com/mimicease/`에 3개의 테스트 존재:
-- `ExpressionAnalyzerTest` — EMA 필터 로직
-- `TriggerMatcherTest` — 임계값/쿨다운/holdDuration 매칭
-- `ActionSerializerTest` — Gson 직렬화/역직렬화
-
-`./gradlew :app:test` 전체 통과 확인됨.
-
-## 문서 참조
-
-| 문서 | 내용 |
-|------|------|
-| `docs/00_INDEX.md` | 문서 목차 및 빠른 참조 |
-| `docs/01_project_overview.md` | 프로젝트 목표, 대상 사용자, BlendShape 목록 |
-| `docs/02_tech_stack.md` | 기술 스택, 라이브러리, 아키텍처 구조 |
-| `docs/03_architecture.md` | 데이터 흐름, 핵심 컴포넌트 4개, 서비스 2개 |
-| `docs/04_expression_test.md` | 표정 테스트 화면 상세 |
-| `docs/05_profile_trigger.md` | 프로필/트리거 설정 |
-| `docs/06_actions.md` | 전체 액션 목록 및 파라미터 사양 |
-| `docs/07_ui_screens.md` | 전체 화면 설계 및 네비게이션 구조 |
-| `docs/08_data_model.md` | Room 엔티티, 도메인 모델, Action sealed class |
-| `docs/09_accessibility_service.md` | 서비스 생명주기, 제스처 실행, EMA 필터 |
-| `docs/10_permissions_performance.md` | 권한 처리 및 성능 최적화 |
-| `docs/11_roadmap_testing_notes.md` | 개발 로드맵, 테스트 전략, 구현 주의사항 |
-| `MimicEase_사양서.md` | 한국어 전체 사양서 |
+- **SystemClock 금지**: `service/` 레이어에서 `android.os.SystemClock` 사용 금지 — JVM 유닛 테스트 "not mocked" 예외. `System.currentTimeMillis()` 사용.
+- **ViewModel 위치**: 각 화면 `.kt` 파일 내에 함께 정의됨 (예: `ExpressionTestScreen.kt` 내 `ExpressionTestViewModel`)
+- **Java 모듈**: `gameFace/` 모듈의 `FaceLandmarkerHelper`는 Java로 작성됨 (Kotlin 아님)
+- **TalkBack 공존**: `onAccessibilityEvent()`에서 이벤트를 consume하지 말 것 — TalkBack과 체인 유지
+- **카메라 충돌**: 다른 앱 카메라 사용 시 `CameraState.ERROR_CAMERA_IN_USE` 감지 후 `pauseAnalysis()` 호출
+- **서비스 재시작**: `onStartCommand()`에서 `intent`가 null일 수 있음 (`START_STICKY` 재시작 시)
+- **FaceDetectionForegroundService 초기화 순서**: `startForeground()`는 `onCreate()` 초반에 호출해야 5초 타임아웃 방지. MediaPipe 모델 로딩은 `Handler(faceLandmarkerHelper.looper).post { init() }`로 HandlerThread에서 비동기 실행
+- **Navigation triggerId**: `triggerEdit/{profileId}/{triggerId}` 라우트에서 `backStackEntry.arguments?.getString("triggerId") ?: return@composable`로 null 방지.
+- **PS5.1 UTF-8 BOM**: `install.ps1`은 반드시 UTF-8 BOM(`EF BB BF`)으로 저장 — BOM 없는 UTF-8은 PS5.1에서 한글 파싱 오류로 즉시 종료.
+- **ADB + $ErrorActionPreference**: `"Stop"` + ADB는 치명적 조합 — ADB는 성공 시에도 stderr에 쓰므로 `NativeCommandError` 발생. 반드시 `"Continue"` 사용, 에러 판정은 `$LASTEXITCODE`로.
+- **PowerShell 파이프라인 단일 항목**: `@(& adb devices | Where-Object { ... })`로 강제 배열화 필수 — 결과 1개이면 문자열 반환.
+- **자동 업데이트 제거 완료 (v1.4.0)**: `CheckForUpdateUseCase` 등 전부 삭제됨. 복원 금지.
+- **볼륨 키 조합 토글 제거 완료 (v1.4.1)**: `handleKeyEvent()` 등 전부 삭제됨. 복원 금지 — 빅스비 TTS 초기화 크래시 원인. `GlobalToggleController`는 표정/브로드캐스트 채널만 지원.
+- **versionName 필수 동기화**: `app/build.gradle.kts`의 `versionName`이 `BuildConfig.VERSION_NAME` 기준값 — 릴리즈 태그 배포 시 함께 업데이트.
+- **라이브러리 manifest 권한 병합**: 불필요한 `INTERNET` 권한은 `<uses-permission android:name="android.permission.INTERNET" tools:node="remove" />`로 명시적 차단.
+- **DataStore 싱글턴 — applicationContext 필수**: Service context에서 `context.appSettingsDataStore` 직접 호출 금지 → `IllegalStateException: multiple DataStores active`. 반드시 `context.applicationContext.appSettingsDataStore` 사용.
+- **카메라 권한 없이 접근성 서비스 활성화**: 온보딩에서 카메라 권한 거부 시 `shouldShowRationale`로 감지해 앱 설정 화면으로 안내.
+- **ModalBottomSheet 높이 제약**: `fillMaxHeight(fraction)` 내부 `weight()` 크래시 — `heightIn(max = LocalConfiguration.current.screenHeightDp.dp * fraction)` 절대값 사용. `fillMaxSize()` 대신 `fillMaxWidth()` 권장.
+- **카메라 프리뷰 공유**: `FaceDetectionForegroundService.previewUseCase`의 SurfaceProvider를 `attachPreviewSurfaceProvider/detachPreviewSurfaceProvider`로 외부 등록/해제 — 카메라 재바인딩 없음.

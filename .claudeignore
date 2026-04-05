@@ -1,0 +1,27 @@
+# Android 빌드 산출물
+build/
+app/build/
+gameFace/build/
+*.apk
+*.aab
+*.aar
+
+# Gradle 캐시 및 래퍼
+.gradle/
+gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+local.properties
+
+# 에셋 (바이너리)
+**/*.tflite
+**/*.task
+
+# 기타 바이너리/대용량
+**/*.png
+**/*.jpg
+**/*.webp
+**/*.keystore
+**/*.jks
