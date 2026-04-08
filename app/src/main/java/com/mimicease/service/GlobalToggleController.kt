@@ -115,19 +115,19 @@ class GlobalToggleController(
             when (state) {
                 ServiceState.Running -> {
                     // 높은 단음 1회
-                    val toneGen = ToneGenerator(AudioManager.STREAM_NOTIFICATION, ToneGenerator.MAX_VOLUME)
+                    val toneGen = ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME)
                     toneGen.startTone(ToneGenerator.TONE_PROP_BEEP2, 200)
                     toneHandler.postDelayed({ toneGen.release() }, 300L)
                 }
                 ServiceState.Paused -> {
                     // 중간 단음 1회
-                    val toneGen = ToneGenerator(AudioManager.STREAM_NOTIFICATION, ToneGenerator.MAX_VOLUME)
+                    val toneGen = ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME)
                     toneGen.startTone(ToneGenerator.TONE_PROP_BEEP, 200)
                     toneHandler.postDelayed({ toneGen.release() }, 300L)
                 }
                 ServiceState.Stopped -> {
                     // 낮은 음 2회 (종료 느낌)
-                    val toneGen = ToneGenerator(AudioManager.STREAM_NOTIFICATION, ToneGenerator.MAX_VOLUME)
+                    val toneGen = ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME)
                     toneGen.startTone(ToneGenerator.TONE_PROP_NACK, 150)
                     toneHandler.postDelayed({
                         toneGen.startTone(ToneGenerator.TONE_PROP_NACK, 150)

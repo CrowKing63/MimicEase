@@ -92,7 +92,7 @@ class ActionFeedbackController(private val context: Context) {
 
     private fun triggerBeep() {
         try {
-            val toneGen = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 80)
+            val toneGen = ToneGenerator(AudioManager.STREAM_MUSIC, 80)
             toneGen.startTone(ToneGenerator.TONE_PROP_BEEP, 100)
         } catch (e: Exception) {
             Timber.w(e, "ActionFeedback: 비프음 실패")

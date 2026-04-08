@@ -149,6 +149,13 @@ com.mimicease/
 - **Service restart**: `onStartCommand()` may receive null intent (START_STICKY)
 - **Foreground service**: Call `startForeground()` early in `onCreate()` to avoid 5-second timeout
 - **MediaPipe init**: Run on HandlerThread via `Handler(faceLandmarkerHelper.looper).post { init() }`
+- **PS5.1 UTF-8 BOM**: `install.ps1`은 반드시 UTF-8 BOM(`EF BB BF`)으로 저장 — PS5.1에서 한글 파싱 오류 발생 가능
+- **ADB + PowerShell**: ADB는 stderr에 로그를 쓰므로 `NativeCommandError` 방지를 위해 `$ErrorActionPreference = "Continue"` 필수
+- **DataStore 싱글턴**: Service context에서 호출 시 반드시 `context.applicationContext.appSettingsDataStore` 사용 (중복 활성화 방지)
+- **ModalBottomSheet 높이**: `fillMaxHeight(fraction)` 내부 `weight()` 크래시 우회 — `heightIn(max = LocalConfiguration.current.screenHeightDp.dp * fraction)` 사용
+- **카메라 프리뷰 공유**: SurfaceProvider를 `attachPreviewSurfaceProvider`로 외부 등록하여 카메라 재바인딩 없이 프리뷰 구현
+- **볼륨 키 토글 제거**: v1.4.1 이후 볼륨 키 조합 토글 로직은 삭제됨 (복원 금지)
+- **Dependency Version**: `libs.versions.toml` 수정 시 Room, Hilt, MediaPipe 간의 버전 호환성을 반드시 확인해야 함
 
 ### Logging
 - Use **Timber** (not `Log.d/e/w`)
